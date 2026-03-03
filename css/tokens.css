@@ -16,6 +16,8 @@
     --color-body-text: #111827;
     --color-footer: #ffffff;
     --color-footer-text: #111827;
+    --color-nav-auth-group-background: rgba(148, 163, 184, 0.14);
+    --nav-border-auth-group: 1px solid rgba(148, 163, 184, 0.32);
 
     --box-shadow: 0 0.8rem 2.4rem rgba(15, 23, 42, 0.08);
     --header-height: 7rem;
@@ -36,6 +38,8 @@
     --color-body-text: #f8fafc;
     --color-footer: #0f172a;
     --color-footer-text: #e2e8f0;
+    --color-nav-auth-group-background: rgba(148, 163, 184, 0.22);
+    --nav-border-auth-group: 1px solid rgba(148, 163, 184, 0.42);
 
     --box-shadow: 0 0.8rem 2.4rem rgba(0, 0, 0, 0.35);
 }

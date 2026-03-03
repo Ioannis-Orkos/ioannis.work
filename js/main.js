@@ -3,6 +3,7 @@ import { initTheme } from "./theme.js";
 import { initMobileNav } from "./mobile-nav.js";
 import { initNavigation } from "./navigation.js";
 import { initHeaderScroll } from "./header-scroll.js";
+import { initModals } from "./modals.js";
 
 const refs = getDomRefs();
 
@@ -18,11 +19,16 @@ if (hasRequiredDom(refs)) {
     burgerButton: refs.burgerButton,
   });
 
-  initNavigation({
+  const navigationController = initNavigation({
     pages: refs.pages,
     navLinks: refs.navLinks,
     pageMap: refs.pageMap,
     mobileNavController,
+  });
+
+  initModals({
+    mobileNavController,
+    navigationController,
   });
 
   initHeaderScroll({

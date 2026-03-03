@@ -1,4 +1,8 @@
+import { MODAL_ROUTE_IDS } from "./config.js";
+
 export function initNavigation({ pages, navLinks, pageMap, mobileNavController }) {
+  const isModalHash = (hash) => MODAL_ROUTE_IDS.includes(hash);
+
   const setActiveLink = (targetId) => {
     navLinks.forEach((link) => {
       const isActive = link.dataset.target === targetId;
@@ -40,8 +44,13 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
   const getDefaultPageId = () =>
     pages.find((page) => page.classList.contains("active"))?.id || pages[0].id;
 
+  const getActivePageId = () =>
+    pages.find((page) => page.classList.contains("active"))?.id || getDefaultPageId();
+
   const syncFromUrl = () => {
     const hash = window.location.hash.replace("#", "");
+    if (isModalHash(hash)) return;
+
     const targetId = pageMap.has(hash) ? hash : getDefaultPageId();
     setActivePage(targetId);
   };
@@ -58,7 +67,10 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
   });
 
   const initialHash = window.location.hash.replace("#", "");
-  const startPage = pageMap.has(initialHash) ? initialHash : getDefaultPageId();
+  const startPage =
+    !isModalHash(initialHash) && pageMap.has(initialHash)
+      ? initialHash
+      : getDefaultPageId();
   setActivePage(startPage);
 
   if (!initialHash) {
@@ -69,5 +81,7 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
     navigateTo,
     setActivePage,
     syncFromUrl,
+    getActivePageId,
+    getDefaultPageId,
   };
 }

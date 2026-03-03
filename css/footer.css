@@ -1,15 +1,26 @@
 footer {
     margin-top: auto;
     display: flex;
+    flex-direction: column;
     justify-content: center;
+    align-items: center;
     padding: 1rem;
+    width: 100%;
+    box-sizing: border-box;
     background-color: var(--color-footer);
     color: var(--color-footer-text);
     box-shadow: var(--box-shadow);
-    border-radius: var(--radius) var(--radius) 0 0;
-    gap: 1.4rem;
+    border-radius: 0;
+    gap: 0.5rem;
     transition: background-color var(--transition), color var(--transition);
 }
+
+footer .footer-socials {
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+}
+
 
 footer a img {
     width: 3rem;
@@ -28,4 +39,12 @@ footer a.social img {
 
 :root[data-theme="dark"] footer a.social img {
     filter: invert(1) brightness(1.1);
+}
+
+footer .footer-copy {
+  font-size: 0.8rem;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  opacity: 0.8;
 }

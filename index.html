@@ -37,11 +37,12 @@
         <li><a href="#about" data-target="about">About</a></li>
         <li><a href="#project" data-target="project">Project</a></li>
         <li><a href="#blog" data-target="blog">Blog</a></li>
-        <li><a href="#contact" data-target="contact">Contact</a></li>
-        <li>
-          <button id="theme-toggle" class="theme-toggle" aria-label="Toggle Theme">
-            <span id="theme-icon">🌙</span>
-          </button>
+        <li><a href="#contact" data-modal="contact">Contact</a></li>
+        <li class="nav-auth-group">
+            <a id="nav-login-link" href="#login" data-modal="login">Login</a>
+            <button id="theme-toggle" class="theme-toggle" aria-label="Toggle Theme">
+                <span id="theme-icon">🌙</span>
+            </button>
         </li>
       </ul>
     </nav>
@@ -72,11 +73,6 @@
       <h2>Blog</h2>
       <p>my latest blog posts or thoughts.</p>
     </section>
-
-    <section id="contact" class="page">
-      <h2>Contact</h2>
-      <p>Hello people.</p>
-    </section>
   </main>
 
   <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation">
@@ -85,11 +81,12 @@
       <li><a href="#about" data-target="about">About</a></li>
       <li><a href="#project" data-target="project">Project</a></li>
       <li><a href="#blog" data-target="blog">Blog</a></li>
-      <li><a href="#contact" data-target="contact">Contact</a></li>
-      <li>
-        <button id="theme-toggle-mobile" class="theme-toggle" aria-label="Toggle Theme">
-          <span id="theme-icon-mobile">🌙</span>
-        </button>
+      <li><a href="#contact" data-modal="contact">Contact</a></li>
+      <li class="nav-auth-group">
+          <a id="nav-login-link" href="#login" data-modal="login">Login</a>
+          <button id="theme-toggle-mobile" class="theme-toggle" aria-label="Toggle Theme">
+              <span id="theme-icon-mobile">🌙</span>
+          </button>
       </li>
     </ul>
   </nav>
@@ -97,14 +94,52 @@
   <!-- Footer Section -->
   <footer>
 
-    <a href="#"  class="social"  target="_blank" rel="noreferrer noopener"><img src="images/assets/fb-logo.png" alt="Facebook" width="30"
-        height="30" loading="lazy" /></a>
+    <div class="footer-socials">
+      <a href="#" class="social" target="_blank" rel="noreferrer noopener"><img src="images/assets/fb-logo.png" alt="Facebook" width="30"
+          height="30" loading="lazy" /></a>
+      <a href="#" class="social" target="_blank" rel="noreferrer noopener"><img src="images/assets/instagram-logo.png" alt="Instagram"
+          width="30" height="30" loading="lazy" /></a>
+    </div>
 
-    <a href="#"  class="social" target="_blank" rel="noreferrer noopener"><img src="images/assets/instagram-logo.png" alt="Instagram"
-        width="30" height="30" loading="lazy" /></a>
-
-    <div>COPYRIGHT © 2025 Ioannis Orkos</div>
+    <div class="footer-copy">COPYRIGHT © 2025 Ioannis Orkos</div>
   </footer>
+
+  <div id="contact-modal" class="modal-overlay" data-modal-id="contact" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="contact-modal-title">
+      <button type="button" class="modal-close" data-modal-close aria-label="Close contact form">×</button>
+      <h2 id="contact-modal-title">Contact Me</h2>
+      <form id="contact-form" class="modal-form">
+        <label for="contact-name">Name</label>
+        <input id="contact-name" name="name" type="text" required />
+
+        <label for="contact-email">Email</label>
+        <input id="contact-email" name="email" type="email" required />
+
+        <label for="contact-message">Message</label>
+        <textarea id="contact-message" name="message" rows="4" required></textarea>
+
+        <button type="submit" class="modal-submit">Send Message</button>
+      </form>
+      <p id="contact-status" class="modal-status" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <div id="login-modal" class="modal-overlay" data-modal-id="login" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
+      <button type="button" class="modal-close" data-modal-close aria-label="Close login form">×</button>
+      <h2 id="login-modal-title">Login</h2>
+      <form id="login-form" class="modal-form">
+        <label for="login-email">Email</label>
+        <input id="login-email" name="email" type="email" required />
+
+        <label for="login-password">Password</label>
+        <input id="login-password" name="password" type="password" required minlength="6" />
+
+        <button type="submit" class="modal-submit">Sign In</button>
+      </form>
+      <p id="login-status" class="modal-status" aria-live="polite"></p>
+    </div>
+  </div>
 
   <script type="module" src="js/main.js"></script>
 </body>

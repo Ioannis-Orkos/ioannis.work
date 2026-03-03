@@ -9,7 +9,8 @@ header {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100vw;
+    right: 0;
+    width: 100%;
     height: var(--header-height);
     z-index: 1000;
     box-shadow: var(--box-shadow);
@@ -38,6 +39,10 @@ header.is-hidden-on-scroll {
 
 .h-desktop-nav ul li {
     margin: 0 1.5rem;
+}
+
+.h-desktop-nav ul li.nav-auth-group {
+    margin: 0 0 0 0.8rem;
 }
 
 .h-desktop-nav ul li a {
@@ -95,13 +100,38 @@ header.is-hidden-on-scroll {
     transform: rotate(-45deg) translate(0.5rem, -0.5rem);
 }
 
+.nav-auth-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.4rem 1rem;
+    border: var(--nav-border-auth-group);
+    border-radius: 999px;
+    background: var(--color-nav-auth-group-background);
+}
+
+.nav-auth-group a {
+    white-space: nowrap;
+}
+
+.h-desktop-nav .nav-auth-group {
+    margin-left: 0;
+}
+
+.nav-auth-group .theme-toggle {
+    width: 3.2rem;
+    height: 3.2rem;
+    background: transparent;
+}
+
 .mobile-nav {
     display: flex;
     flex-direction: column;
     position: fixed;
     top: var(--header-height);
     left: 0;
-    width: 100vw;
+    right: 0;
+    width: 100%;
     height: calc(100vh - var(--header-height));
     background-color: var(--color-mobile-nav);
     z-index: 900;
@@ -144,6 +174,19 @@ header.is-hidden-on-scroll {
 .mobile-nav ul li a:hover {
     color: var(--color-nav-active-hover);
 }
+
+
+
+.mobile-nav .nav-auth-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 1rem;
+    justify-content: center;
+    width: fit-content;
+    margin: 1.2rem auto 0;
+}
+
+
 
 @media (max-width: 768px) {
     header {

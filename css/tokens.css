@@ -1,0 +1,41 @@
+:root {
+    color-scheme: light;
+
+    --font-header: 2rem/1.65 "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    --font-header-weight: 600;
+    --font-body: 1.6rem/1.65 "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    --font-heading: "Poppins", "Inter", "Segoe UI", Arial, sans-serif;
+
+    --color-header: #ffffff;
+    --color-header-text: #111827;
+    --color-nav-active-hover: #d97706;
+    --color-burger-line: #111827;
+    --color-mobile-nav: #f8fafc;
+    --color-mobile-nav-text: #0f172a;
+    --color-body: #f3f4f6;
+    --color-body-text: #111827;
+    --color-footer: #ffffff;
+    --color-footer-text: #111827;
+
+    --box-shadow: 0 0.8rem 2.4rem rgba(15, 23, 42, 0.08);
+    --header-height: 7rem;
+    --radius: 1.2rem;
+    --transition: 0.25s ease;
+}
+
+:root[data-theme="dark"] {
+    color-scheme: dark;
+
+    --color-header: #0f172a;
+    --color-header-text: #e2e8f0;
+    --color-nav-active-hover: #f59e0b;
+    --color-burger-line: #e2e8f0;
+    --color-mobile-nav: #111827;
+    --color-mobile-nav-text: #f8fafc;
+    --color-body: #020617;
+    --color-body-text: #f8fafc;
+    --color-footer: #0f172a;
+    --color-footer-text: #e2e8f0;
+
+    --box-shadow: 0 0.8rem 2.4rem rgba(0, 0, 0, 0.35);
+}

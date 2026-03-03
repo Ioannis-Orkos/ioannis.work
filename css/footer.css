@@ -1,0 +1,31 @@
+footer {
+    margin-top: auto;
+    display: flex;
+    justify-content: center;
+    padding: 1rem;
+    background-color: var(--color-footer);
+    color: var(--color-footer-text);
+    box-shadow: var(--box-shadow);
+    border-radius: var(--radius) var(--radius) 0 0;
+    gap: 1.4rem;
+    transition: background-color var(--transition), color var(--transition);
+}
+
+footer a img {
+    width: 3rem;
+    display: block;
+    margin: 0 auto;
+    transition: transform var(--transition), filter var(--transition);
+}
+
+footer a:hover img {
+    transform: translateY(-0.2rem) scale(1.05);
+}
+
+footer a.social img {
+    filter: none;
+}
+
+:root[data-theme="dark"] footer a.social img {
+    filter: invert(1) brightness(1.1);
+}

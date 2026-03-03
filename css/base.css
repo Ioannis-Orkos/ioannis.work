@@ -1,0 +1,60 @@
+html {
+    font-size: 62.5%;
+}
+
+body {
+    font: var(--font-body);
+    overflow-x: hidden;
+    background-color: var(--color-body);
+    color: var(--color-body-text);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    transition: background-color var(--transition), color var(--transition);
+}
+
+section {
+    padding: 3rem 2rem;
+    text-align: center;
+    margin-top: var(--header-height);
+}
+
+main {
+    flex: 1;
+    padding: 0 1.6rem 2.4rem;
+}
+
+.page {
+    display: none;
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 800px;
+}
+
+.page.active {
+    display: block;
+    animation: fade-up 0.35s ease;
+}
+
+.page h1,
+.page h2 {
+    font-family: var(--font-heading);
+    letter-spacing: 0.02em;
+    margin-bottom: 1rem;
+}
+
+.page p {
+    max-width: 65ch;
+    margin: 0 auto;
+}
+
+@keyframes fade-up {
+    from {
+        opacity: 0;
+        transform: translateY(1rem);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

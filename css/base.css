@@ -164,6 +164,39 @@ main {
     margin: 0;
 }
 
+.blog-loading {
+    max-width: 65ch;
+    margin: 0 auto;
+}
+
+.blog-loaded-content {
+    max-width: 76rem;
+    margin: 0 auto;
+    text-align: left;
+    line-height: 1.7;
+}
+
+.blog-loaded-content h1,
+.blog-loaded-content h2,
+.blog-loaded-content h3 {
+    margin: 0 0 1rem;
+    font-family: var(--font-heading);
+}
+
+.blog-loaded-content p {
+    margin: 0 0 1rem;
+    max-width: none;
+}
+
+.blog-loaded-content img,
+.blog-loaded-content video {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border-radius: 1rem;
+    margin: 1.2rem 0;
+}
+
 @media (max-width: 640px) {
     .blog-item {
         grid-template-columns: 1fr;

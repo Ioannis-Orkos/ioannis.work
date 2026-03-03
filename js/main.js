@@ -36,5 +36,7 @@ if (hasRequiredDom(refs)) {
     header: refs.header,
   });
 
-  initBlog();
+  initBlog({
+    navigationController,
+  });
 }

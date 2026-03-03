@@ -2,10 +2,19 @@ import { MODAL_ROUTE_IDS } from "./config.js";
 
 export function initNavigation({ pages, navLinks, pageMap, mobileNavController }) {
   const isModalHash = (hash) => MODAL_ROUTE_IDS.includes(hash);
+  const isBlogDetailHash = (hash) => hash.startsWith("blog-") && hash.length > 5;
+  const blogNavTarget = "blog";
+
+  const getPagesState = () => {
+    const livePages = [...document.querySelectorAll(".page")];
+    const livePageMap = new Map(livePages.map((page) => [page.id, page]));
+    return { livePages, livePageMap };
+  };
 
   const setActiveLink = (targetId) => {
+    const navTarget = targetId.startsWith("blog-") ? blogNavTarget : targetId;
     navLinks.forEach((link) => {
-      const isActive = link.dataset.target === targetId;
+      const isActive = link.dataset.target === navTarget;
       link.classList.toggle("active", isActive);
 
       if (isActive) {
@@ -17,9 +26,10 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
   };
 
   const setActivePage = (targetId) => {
-    if (!pageMap.has(targetId)) return false;
+    const { livePages, livePageMap } = getPagesState();
+    if (!livePageMap.has(targetId)) return false;
 
-    pages.forEach((page) => {
+    livePages.forEach((page) => {
       page.classList.toggle("active", page.id === targetId);
     });
 
@@ -41,17 +51,26 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
     window.scrollTo({ top: 0, behavior: "auto" });
   };
 
-  const getDefaultPageId = () =>
-    pages.find((page) => page.classList.contains("active"))?.id || pages[0].id;
+  const getDefaultPageId = () => {
+    const { livePages } = getPagesState();
+    return livePages.find((page) => page.classList.contains("active"))?.id || livePages[0]?.id;
+  };
 
-  const getActivePageId = () =>
-    pages.find((page) => page.classList.contains("active"))?.id || getDefaultPageId();
+  const getActivePageId = () => {
+    const { livePages } = getPagesState();
+    return livePages.find((page) => page.classList.contains("active"))?.id || getDefaultPageId();
+  };
 
   const syncFromUrl = () => {
     const hash = window.location.hash.replace("#", "");
     if (isModalHash(hash)) return;
+    const { livePageMap } = getPagesState();
 
-    const targetId = pageMap.has(hash) ? hash : getDefaultPageId();
+    const targetId = livePageMap.has(hash)
+      ? hash
+      : isBlogDetailHash(hash) && livePageMap.has("blog")
+      ? "blog"
+      : getDefaultPageId();
     setActivePage(targetId);
   };
 
@@ -67,9 +86,13 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
   });
 
   const initialHash = window.location.hash.replace("#", "");
+  const { livePageMap } = getPagesState();
   const startPage =
-    !isModalHash(initialHash) && pageMap.has(initialHash)
-      ? initialHash
+    !isModalHash(initialHash) &&
+    (livePageMap.has(initialHash) || (isBlogDetailHash(initialHash) && livePageMap.has("blog")))
+      ? isBlogDetailHash(initialHash)
+        ? "blog"
+        : initialHash
       : getDefaultPageId();
   setActivePage(startPage);
 

@@ -23,7 +23,9 @@
   }
 
 
-  /// == THEME TOGGLE ==========================
+  const THEME_STORAGE_KEY = "site-theme";
+
+  // Set theme and update icons/labels
   const setTheme = (theme) => {
     root.setAttribute("data-theme", theme);
     const nextIcon = theme === "dark" ? "☀️" : "🌙";
@@ -34,9 +36,18 @@
     for (const button of themeButtons) {
       button.setAttribute("aria-label", nextLabel);
     }
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
   };
 
- // Initialize theme 
+  // Initialize theme based on stored preference or default to light
+  const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+  if (storedTheme === "dark" || storedTheme === "light") {
+    setTheme(storedTheme);
+  } else {
+    setTheme("light");
+  }
+
+
   for (const themeButton of themeButtons) {
     themeButton.addEventListener("click", () => {
       const nextTheme = root.getAttribute("data-theme") === "dark" ? "light" : "dark";

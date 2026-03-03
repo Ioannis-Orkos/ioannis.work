@@ -13,6 +13,7 @@ export async function initBlog({ navigationController } = {}) {
   let blogs = [];
   let selectedCategories = new Set();
   const loadedSections = new Set();
+  const loadingSections = new Map();
 
   const normalizeBlog = (blog, index) => ({
     id: String(blog?.id || `blog-${index + 1}`),
@@ -110,18 +111,27 @@ export async function initBlog({ navigationController } = {}) {
     const blogUrl = buildBlogUrl(blog);
 
     if (!loadedSections.has(sectionId)) {
-      try {
-        const response = await fetch(blogUrl);
-        if (!response.ok) {
-          throw new Error(`Failed to load blog: ${response.status}`);
-        }
-        const html = await response.text();
-        renderBlogHtmlIntoSection(section, html, blogUrl);
-        loadedSections.add(sectionId);
-      } catch (error) {
-        console.error("[Blog] Failed to load blog page:", error);
-        section.innerHTML = "<p>Failed to load blog content.</p>";
+      if (!loadingSections.has(sectionId)) {
+        const loadPromise = (async () => {
+          try {
+            const response = await fetch(blogUrl);
+            if (!response.ok) {
+              throw new Error(`Failed to load blog: ${response.status}`);
+            }
+            const html = await response.text();
+            renderBlogHtmlIntoSection(section, html, blogUrl);
+            loadedSections.add(sectionId);
+          } catch (error) {
+            console.error("[Blog] Failed to load blog page:", error);
+            section.innerHTML = "<p>Failed to load blog content.</p>";
+          } finally {
+            loadingSections.delete(sectionId);
+          }
+        })();
+        loadingSections.set(sectionId, loadPromise);
       }
+
+      await loadingSections.get(sectionId);
     }
 
     if (navigationController && typeof navigationController.navigateTo === "function") {

@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Personal website of Ioannis with projects, portfolio, and articles." />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" sizes="32x32" href="images/logo.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="images/logo.png" />
+  <!-- Apple devices -->
+  <link rel="apple-touch-icon" sizes="180x180" href="images/logo.png" />
+
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap"
+    rel="stylesheet" />
+
+  <title>Ioannis</title>
+
+  <link rel="stylesheet" href="css/reset.css" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+
+<body>
+  <header>
+    <div class="h-logo">
+      <img src="images/logo.png" alt="Ioannis logo" width="50" height="50" />
+    </div>
+
+    <!-- Desktop Navigation -->
+    <nav class="h-desktop-nav">
+      <ul>
+        <li><a href="#home" data-target="home">Home</a></li>
+        <li><a href="#about" data-target="about">About</a></li>
+        <li><a href="#project" data-target="project">Project</a></li>
+        <li><a href="#blog" data-target="blog">Blog</a></li>
+        <li><a href="#contact" data-target="contact">Contact</a></li>
+        <li>
+          <button id="theme-toggle" class="theme-toggle" aria-label="Toggle Theme">
+            <span id="theme-icon">🌙</span>
+          </button>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="h-burger-menu" id="h-burger-menu">
+      <div class="h-line"></div>
+      <div class="h-line"></div>
+    </div>
+  </header>
+
+  <!-- Main Content Sections -->
+  <main>
+    <section id="home" class="page active">
+      <h1>Welcome to My Website</h1>
+    </section>
+
+    <section id="about" class="page">
+      <h2>About Me</h2>
+      <p>Some information about myself.</p>
+    </section>
+
+    <section id="project" class="page">
+      <h2>Project</h2>
+      <p>Showcase my work here.</p>
+    </section>
+
+    <section id="blog" class="page">
+      <h2>Blog</h2>
+      <p>my latest blog posts or thoughts.</p>
+    </section>
+
+    <section id="contact" class="page">
+      <h2>Contact</h2>
+      <p>Hello people.</p>
+    </section>
+  </main>
+
+  <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation">
+    <ul>
+      <li><a href="#home" data-target="home">Home</a></li>
+      <li><a href="#about" data-target="about">About</a></li>
+      <li><a href="#project" data-target="project">Project</a></li>
+      <li><a href="#blog" data-target="blog">Blog</a></li>
+      <li><a href="#contact" data-target="contact">Contact</a></li>
+      <li>
+        <button id="theme-toggle-mobile" class="theme-toggle" aria-label="Toggle Theme">
+          <span id="theme-icon-mobile">🌙</span>
+        </button>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- Footer Section -->
+  <footer>
+
+    <a href="#"  class="social"  target="_blank" rel="noreferrer noopener"><img src="images/assets/fb-logo.png" alt="Facebook" width="30"
+        height="30" loading="lazy" /></a>
+
+    <a href="#"  class="social" target="_blank" rel="noreferrer noopener"><img src="images/assets/instagram-logo.png" alt="Instagram"
+        width="30" height="30" loading="lazy" /></a>
+
+    <div>COPYRIGHT © 2025 Ioannis Orkos</div>
+  </footer>
+
+  <script src="js/script.js" defer></script>
+</body>
+
+</html>

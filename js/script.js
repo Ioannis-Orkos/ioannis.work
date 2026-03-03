@@ -1,16 +1,50 @@
 (() => {
-
+  const root = document.documentElement;
   const mobileNav = document.getElementById("mobile-nav");
   const burgerButton = document.getElementById("h-burger-menu");
+
+  const themeButtons = [
+    document.getElementById("theme-toggle"),
+    document.getElementById("theme-toggle-mobile"),
+  ].filter(Boolean);
+
+  const themeIcons = [
+    document.getElementById("theme-icon"),
+    document.getElementById("theme-icon-mobile"),
+  ].filter(Boolean);
 
 
   const pages = [...document.querySelectorAll(".page")];
   const navLinks = [...document.querySelectorAll("header nav ul li a[data-target]")];
   const pageMap = new Map(pages.map((p) => [p.id, p]));
 
-  if (!mobileNav || !burgerButton || pages.length === 0 || navLinks.length === 0) {
+  if ( !mobileNav || !burgerButton || !themeButtons.length || !themeIcons.length || !pages.length) {
     return;
   }
+
+
+  /// == THEME TOGGLE ==========================
+  const setTheme = (theme) => {
+    root.setAttribute("data-theme", theme);
+    const nextIcon = theme === "dark" ? "☀️" : "🌙";
+    const nextLabel = theme === "dark" ? "Switch to light theme" : "Switch to dark theme";
+    for (const icon of themeIcons) {
+      icon.textContent = nextIcon;
+    }
+    for (const button of themeButtons) {
+      button.setAttribute("aria-label", nextLabel);
+    }
+  };
+
+ // Initialize theme 
+  for (const themeButton of themeButtons) {
+    themeButton.addEventListener("click", () => {
+      const nextTheme = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+      setTheme(nextTheme);
+    });
+  }
+
+
 
   /* ==ACTIVE LINK + PAGE ========================== */
 
@@ -38,7 +72,6 @@
     setActiveLink(targetId);
     return true;
   };
-
 
 
   /* == MOBILE NAV ========================== */
@@ -75,16 +108,31 @@
     }
   });
 
+  
+  // Close mobile nav if switching to desktop view
   const desktopMq = window.matchMedia("(min-width: 769px)");
-
   desktopMq.addEventListener("change", (event) => {
     if (event.matches) {
       closeMobileNav();
     }
   });
 
-  /* == NAVIGATION ========================== */
+  /* == BACK / FORWARD SUPPORT ========================== */
+  const syncFromUrl = () => {
+    const hash = window.location.hash.replace("#", "");
+    const defaultPage =
+      pages.find((p) => p.classList.contains("active"))?.id || pages[0].id;
 
+    const target = pageMap.has(hash) ? hash : defaultPage;
+
+    setActivePage(target);
+  };
+
+  window.addEventListener("popstate", syncFromUrl);
+  window.addEventListener("hashchange", syncFromUrl);
+
+
+  /* == NAVIGATION ========================== */
   const navigateTo = (targetId, { push = true } = {}) => {
     if (!setActivePage(targetId)) return;
 
@@ -108,23 +156,6 @@
     e.preventDefault();
     navigateTo(link.dataset.target, { push: true });
   });
-
-
-  /* == BACK / FORWARD SUPPORT ========================== */
-
-  const syncFromUrl = () => {
-    const hash = window.location.hash.replace("#", "");
-    const defaultPage =
-      pages.find((p) => p.classList.contains("active"))?.id || pages[0].id;
-
-    const target = pageMap.has(hash) ? hash : defaultPage;
-
-    setActivePage(target);
-  };
-
-  window.addEventListener("popstate", syncFromUrl);
-  window.addEventListener("hashchange", syncFromUrl);
-
 
 
   /* == FIRST LOAD  ========================== */

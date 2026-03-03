@@ -1,0 +1,42 @@
+[
+  {
+    "id": "blog-001",
+    "folder": "blog1",
+    "title": "Dummy Blog Post 1",
+    "date": "2026-03-01",
+    "description": "Test post 1 for iframe and standalone page rendering.",
+    "image": "blog1/test.webp",
+    "categories": ["Test", "Frontend"],
+    "url": "blog1/index.html"
+  },
+  {
+    "id": "blog-002",
+    "folder": "blog2",
+    "title": "Dummy Blog Post 2",
+    "date": "2026-03-02",
+    "description": "Test post 2 with placeholder content and image.",
+    "image": "blog2/test2.webp",
+    "categories": ["Test", "Data"],
+    "url": "blog2/index.html"
+  },
+  {
+    "id": "blog-003",
+    "folder": "blog3",
+    "title": "Dummy Blog Post 3",
+    "date": "2026-03-03",
+    "description": "Test post 3 for validating JSON parsing and routing.",
+    "image": "blog3/test.webp",
+    "url": "blog3/index.html"
+  },
+  {
+    "id": "blog-004",
+    "folder": "blog4",
+    "title": "Dummy Blog Post 4",
+    "date": "2026-03-04",
+    "description": "Test post 4 for final iframe and standalone checks.",
+    "image": "blog4/test2.webp",
+    "categories": ["Test", "Integration"],
+    "url": "blog4/index.html"
+  }
+]
+

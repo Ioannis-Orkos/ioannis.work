@@ -1,5 +1,6 @@
 (() => {
   const root = document.documentElement;
+  const header = document.querySelector("header");
   const mobileNav = document.getElementById("mobile-nav");
   const burgerButton = document.getElementById("h-burger-menu");
 
@@ -18,7 +19,7 @@
   const navLinks = [...document.querySelectorAll("header nav ul li a[data-target]")];
   const pageMap = new Map(pages.map((p) => [p.id, p]));
 
-  if ( !mobileNav || !burgerButton || !themeButtons.length || !themeIcons.length || !pages.length) {
+  if (!header || !mobileNav || !burgerButton || !themeButtons.length || !themeIcons.length || !pages.length) {
     return;
   }
 
@@ -127,6 +128,32 @@
       closeMobileNav();
     }
   });
+
+  /* == HEADER SCROLL BEHAVIOR ========================== */
+  // Hide header when scrolling down, show when scrolling up
+  let lastScrollY = window.scrollY;
+  const SCROLL_DELTA = 8;
+
+  window.addEventListener(
+    "scroll",
+    () => {
+      const currentScrollY = window.scrollY;
+      const delta = currentScrollY - lastScrollY;
+
+      if (Math.abs(delta) < SCROLL_DELTA) return;
+
+      if (delta < 0) {
+        // User scrolled up -> show header
+        header.classList.remove("is-hidden-on-scroll");
+      } else {
+        // User scrolled down -> hide header
+        header.classList.add("is-hidden-on-scroll");
+      }
+
+      lastScrollY = currentScrollY;
+    },
+    { passive: true }
+  );
 
   /* == BACK / FORWARD SUPPORT ========================== */
   const syncFromUrl = () => {

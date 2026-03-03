@@ -79,7 +79,12 @@ header {
     height: var(--header-height);
     z-index: 1000;
     box-shadow: var(--box-shadow);
-    transition: background-color var(--transition), color var(--transition), box-shadow var(--transition);
+    transition: transform 0.48s cubic-bezier(0.22, 0.61, 0.36, 1), background-color var(--transition), color var(--transition), box-shadow var(--transition);
+}
+
+header.is-hidden-on-scroll {
+    transform: translateY(calc(-1 * var(--header-height)));
+    transition-delay: 0.08s;
 }
 
 .h-logo img {

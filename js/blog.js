@@ -221,7 +221,17 @@ export async function initBlog({ navigationController } = {}) {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "blog-category-button";
-      button.textContent = `${category} (${count})`;
+
+      const label = document.createElement("span");
+      label.className = "blog-category-label";
+      label.textContent = category;
+
+      const countEl = document.createElement("span");
+      countEl.className = "blog-category-count";
+      countEl.textContent = String(count);
+
+      button.appendChild(label);
+      button.appendChild(countEl);
 
       button.addEventListener("click", () => {
         if (selectedCategories.has(category)) {

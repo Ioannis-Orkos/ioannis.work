@@ -83,23 +83,51 @@
     }
   });
 
-  document.addEventListener("click", (event) => {
-    const link = event.target.closest("a[data-target]");
-    if (!link) return;
-    
-    event.preventDefault();
-    
+  /* == NAVIGATION ========================== */
+
+  const navigateTo = (targetId, { push = true } = {}) => {
+    if (!setActivePage(targetId)) return;
+
     if (mobileNav.classList.contains("active")) {
       closeMobileNav();
     }
 
-    const targetId = link.dataset.target;
-    setActivePage(targetId);
+    if (push) {
+      history.pushState({ targetId }, "", `#${targetId}`);
+    }
 
+    window.scrollTo({ top: 0, behavior: "auto" });
+  };
+
+
+  // Handle clicks on any link with data-target, including those inside mobile nav
+  document.addEventListener("click", (e) => {
+    const link = e.target.closest("a[data-target]");
+    if (!link) return;
+
+    e.preventDefault();
+    navigateTo(link.dataset.target, { push: true });
   });
 
 
-  /* == FIRST LOAD FIX  ========================== */
+  /* == BACK / FORWARD SUPPORT ========================== */
+
+  const syncFromUrl = () => {
+    const hash = window.location.hash.replace("#", "");
+    const defaultPage =
+      pages.find((p) => p.classList.contains("active"))?.id || pages[0].id;
+
+    const target = pageMap.has(hash) ? hash : defaultPage;
+
+    setActivePage(target);
+  };
+
+  window.addEventListener("popstate", syncFromUrl);
+  window.addEventListener("hashchange", syncFromUrl);
+
+
+
+  /* == FIRST LOAD  ========================== */
 
   const initialHash = window.location.hash.replace("#", "");
   const defaultPage =
@@ -108,5 +136,10 @@
   const startPage = pageMap.has(initialHash) ? initialHash : defaultPage;
 
   setActivePage(startPage);
+
+  // If no hash exists, write it once
+  if (!initialHash) {
+    history.replaceState(null, "", `#${startPage}`);
+  }
  
 })();

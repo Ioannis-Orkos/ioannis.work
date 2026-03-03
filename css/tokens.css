@@ -14,6 +14,8 @@
     --color-mobile-nav-text: #0f172a;
     --color-body: #f3f4f6;
     --color-body-text: #111827;
+    --color-surface: #ffffff;
+    --color-border: #d1d5db;
     --color-footer: #ffffff;
     --color-footer-text: #111827;
     --color-nav-auth-group-background: rgba(148, 163, 184, 0.14);
@@ -36,6 +38,8 @@
     --color-mobile-nav-text: #f8fafc;
     --color-body: #020617;
     --color-body-text: #f8fafc;
+    --color-surface: #0b1220;
+    --color-border: #334155;
     --color-footer: #0f172a;
     --color-footer-text: #e2e8f0;
     --color-nav-auth-group-background: rgba(148, 163, 184, 0.22);

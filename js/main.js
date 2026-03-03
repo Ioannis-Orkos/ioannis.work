@@ -4,6 +4,7 @@ import { initMobileNav } from "./mobile-nav.js";
 import { initNavigation } from "./navigation.js";
 import { initHeaderScroll } from "./header-scroll.js";
 import { initModals } from "./modals.js";
+import { initBlog } from "./blog.js";
 
 const refs = getDomRefs();
 
@@ -34,4 +35,6 @@ if (hasRequiredDom(refs)) {
   initHeaderScroll({
     header: refs.header,
   });
+
+  initBlog();
 }

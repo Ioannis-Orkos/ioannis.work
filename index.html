@@ -70,8 +70,22 @@
     </section>
 
     <section id="blog" class="page">
-      <h2>Blog</h2>
-      <p>my latest blog posts or thoughts.</p>
+      <h2>List of Blogs</h2>
+
+      <!-- Blog Search -->
+      <div class="blog-search">
+          <input type="text" id="blog-search" placeholder="Search blogs..." aria-label="Search Blogs">
+      </div>
+
+      <!-- Blog Categories -->
+      <div id="blog-categories" class="blog-categories" aria-label="Blog Categories">
+          <!-- Categories will be dynamically inserted here -->
+      </div>
+
+      <!-- Blog List -->
+      <div id="blogs" class="blog-list" aria-live="polite">
+          <!-- Blog items will be dynamically inserted here -->
+      </div>
     </section>
   </main>
 

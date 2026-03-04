@@ -66,7 +66,7 @@ export function initModals({ mobileNavController, navigationController }) {
 
     hideAllModals();
     navigationController.navigateTo("home", { push: false });
-    history.replaceState({ type: "page", targetId: "home" }, "", "#home");
+    history.replaceState({ type: "page", targetId: "home" }, "", "/");
   };
 
   const syncModalFromUrl = () => {
@@ -79,7 +79,7 @@ export function initModals({ mobileNavController, navigationController }) {
     if (!showModal(modalId)) {
       hideAllModals();
       navigationController.navigateTo("home", { push: false });
-      history.replaceState({ type: "page", targetId: "home" }, "", "#home");
+      history.replaceState({ type: "page", targetId: "home" }, "", "/");
     }
   };
 

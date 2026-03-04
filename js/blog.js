@@ -29,7 +29,14 @@ export async function initBlog({ navigationController } = {}) {
   });
 
   const sectionIdForBlog = (blog) => `blog-${blog.folder}`;
-  const getFolderFromHash = () => {
+  const getFolderFromLocation = () => {
+    const pathname = (window.location.pathname || "/").replace(/\/+$/, "") || "/";
+    if (pathname.startsWith("/blog/")) {
+      const folder = pathname.slice("/blog/".length).split("/")[0];
+      if (folder) return folder;
+    }
+
+    // Legacy hash route support.
     const hash = window.location.hash.replace("#", "");
     return hash.startsWith("blog-") ? hash.replace("blog-", "") : "";
   };
@@ -284,9 +291,9 @@ export async function initBlog({ navigationController } = {}) {
   };
 
   const tryOpenFromHash = () => {
-    const folderFromHash = getFolderFromHash();
-    if (!folderFromHash) return;
-    openBlogByFolder(folderFromHash, { push: false });
+    const folderFromLocation = getFolderFromLocation();
+    if (!folderFromLocation) return;
+    openBlogByFolder(folderFromLocation, { push: false });
   };
 
   blogSearchEl.addEventListener("input", renderBlogs);
@@ -299,7 +306,7 @@ export async function initBlog({ navigationController } = {}) {
   });
 
   try {
-    const initialFolder = getFolderFromHash();
+    const initialFolder = getFolderFromLocation();
     if (initialFolder) {
       openBlogByFolder(initialFolder, { push: false });
     }
@@ -318,6 +325,7 @@ export async function initBlog({ navigationController } = {}) {
     renderCategories();
     renderBlogs();
     tryOpenFromHash();
+    window.addEventListener("popstate", tryOpenFromHash);
     window.addEventListener("hashchange", tryOpenFromHash);
   } catch (error) {
     console.error("[Blog] Failed to initialize blog module:", error);

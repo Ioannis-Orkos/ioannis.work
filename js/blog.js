@@ -31,6 +31,12 @@ export async function initBlog({ navigationController } = {}) {
   const sectionIdForBlog = (blog) => `blog-${blog.folder}`;
   const getFolderFromLocation = () => {
     const pathname = (window.location.pathname || "/").replace(/\/+$/, "") || "/";
+    if (pathname.startsWith("/blogs/")) {
+      const folder = pathname.slice("/blogs/".length).split("/")[0];
+      if (folder) return folder;
+    }
+
+    // Backward compatibility for older blog detail route.
     if (pathname.startsWith("/blog/")) {
       const folder = pathname.slice("/blog/".length).split("/")[0];
       if (folder) return folder;

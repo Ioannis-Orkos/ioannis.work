@@ -34,6 +34,12 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
       }
     }
 
+    if (pathname.startsWith("/blogs/")) {
+      const folder = pathname.slice("/blogs/".length).split("/")[0];
+      return folder ? `blog-${folder}` : "blog";
+    }
+
+    // Backward compatibility for older blog detail route.
     if (pathname.startsWith("/blog/")) {
       const folder = pathname.slice("/blog/".length).split("/")[0];
       return folder ? `blog-${folder}` : "blog";
@@ -45,7 +51,7 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
   const buildPathForTarget = (targetId) => {
     if (targetId.startsWith("blog-") && targetId.length > 5) {
       const folder = targetId.replace("blog-", "");
-      return `/blog/${folder}`;
+      return `/blogs/${folder}`;
     }
 
     return pagePathMap.get(targetId) || "/";
@@ -106,6 +112,21 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
     if (isModalHash(hash)) return;
     const { livePageMap } = getPagesState();
     const pathTarget = getTargetFromPathname();
+    const hasHashPageTarget = Boolean(hash && livePageMap.has(hash));
+    const hasHashBlogTarget = isBlogDetailHash(hash) && livePageMap.has("blog");
+
+    // Hash-based SPA routes (e.g. /#project) should win over default path '/'.
+    if (hasHashPageTarget) {
+      setActivePage(hash);
+      history.replaceState({ type: "page", targetId: hash }, "", buildPathForTarget(hash));
+      return;
+    }
+
+    if (hasHashBlogTarget) {
+      setActivePage("blog");
+      history.replaceState({ type: "page", targetId: hash }, "", buildPathForTarget(hash));
+      return;
+    }
 
     if (pathTarget && livePageMap.has(pathTarget)) {
       setActivePage(pathTarget);
@@ -114,24 +135,6 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
 
     if (pathTarget && pathTarget.startsWith("blog-") && livePageMap.has("blog")) {
       setActivePage("blog");
-      return;
-    }
-
-    // Legacy hash route support.
-    if (livePageMap.has(hash)) {
-      setActivePage(hash);
-      history.replaceState({ type: "page", targetId: hash }, "", buildPathForTarget(hash));
-      return;
-    }
-
-    if (isBlogDetailHash(hash) && livePageMap.has("blog")) {
-      const blogTarget = hash;
-      setActivePage("blog");
-      history.replaceState(
-        { type: "page", targetId: blogTarget },
-        "",
-        buildPathForTarget(blogTarget)
-      );
       return;
     }
 
@@ -152,10 +155,16 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
   const initialHash = window.location.hash.replace("#", "");
   const initialPathTarget = getTargetFromPathname();
   const { livePageMap } = getPagesState();
+  const hasInitialHashPageTarget = Boolean(initialHash && livePageMap.has(initialHash));
+  const hasInitialHashBlogTarget = isBlogDetailHash(initialHash) && livePageMap.has("blog");
 
   let startPage = getDefaultPageId();
 
-  if (initialPathTarget && livePageMap.has(initialPathTarget)) {
+  if (hasInitialHashPageTarget) {
+    startPage = initialHash;
+  } else if (hasInitialHashBlogTarget) {
+    startPage = "blog";
+  } else if (initialPathTarget && livePageMap.has(initialPathTarget)) {
     startPage = initialPathTarget;
   } else if (initialPathTarget && initialPathTarget.startsWith("blog-") && livePageMap.has("blog")) {
     startPage = "blog";

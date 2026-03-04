@@ -5,6 +5,7 @@ import { initNavigation } from "./navigation.js";
 import { initHeaderScroll } from "./header-scroll.js";
 import { initModals } from "./modals.js";
 import { initBlog } from "./blog.js";
+import { initContactForm } from "./contact.js";
 
 const refs = getDomRefs();
 
@@ -31,6 +32,8 @@ if (hasRequiredDom(refs)) {
     mobileNavController,
     navigationController,
   });
+
+  initContactForm();
 
   initHeaderScroll({
     header: refs.header,

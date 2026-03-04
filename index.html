@@ -125,16 +125,26 @@
       <form id="contact-form" class="modal-form">
         <label for="contact-name">Name</label>
         <input id="contact-name" name="name" type="text" required />
+        <p id="name-error" class="error-message" data-error-for="contact-name" aria-live="polite"></p>
 
         <label for="contact-email">Email</label>
         <input id="contact-email" name="email" type="email" required />
+        <p id="email-error" class="error-message" data-error-for="contact-email" aria-live="polite"></p>
+
+        <label for="contact-subject">Subject</label>
+        <input id="contact-subject" name="subject" type="text" required />
+        <p id="subject-error" class="error-message" data-error-for="contact-subject" aria-live="polite"></p>
 
         <label for="contact-message">Message</label>
         <textarea id="contact-message" name="message" rows="4" required></textarea>
+        <p id="message-error" class="error-message" data-error-for="contact-message" aria-live="polite"></p>
 
-        <button type="submit" class="modal-submit">Send Message</button>
+        <button type="submit" id="submit-button" class="modal-submit">Send Message</button>
       </form>
       <p id="contact-status" class="modal-status" aria-live="polite"></p>
+      <div id="thank-you-message" class="contact-thank-you" hidden>
+        <p>Thank you for your message. I will get back to you soon.</p>
+      </div>
     </div>
   </div>
 
@@ -155,6 +165,7 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script type="module" src="js/main.js"></script>
 </body>
 

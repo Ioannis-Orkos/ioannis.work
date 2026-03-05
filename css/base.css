@@ -494,7 +494,8 @@ section {
 
 .project-embedded-frame {
     display: block;
-    width: 100%;
+    width: 100vw;
+    max-width: 100vw;
     margin: 0 auto;
     min-height: 0;
     height: auto;
@@ -506,6 +507,10 @@ section {
 
 .project-embedded-page {
     padding: 0;
+    width: 100vw;
+    max-width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
 }
 
 .admin-gate-status {
@@ -605,6 +610,30 @@ section {
 
 .admin-edit-project-icon:hover {
     border-color: var(--color-nav-active-hover);
+}
+
+.admin-delete-project-icon {
+    position: absolute;
+    top: 4rem;
+    right: 0.8rem;
+    z-index: 2;
+    width: 2.8rem;
+    height: 2.8rem;
+    border-radius: 999px;
+    border: 1px solid rgba(239, 68, 68, 0.7);
+    background: rgba(239, 68, 68, 0.12);
+    color: #b91c1c;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.admin-delete-project-icon:hover {
+    background: rgba(239, 68, 68, 0.2);
+}
+
+.admin-panel-projects .project-item.project-item-locked .admin-delete-project-icon {
+    opacity: 1;
+    filter: none;
 }
 
 .admin-panel-projects .project-item.project-item-locked {
@@ -713,6 +742,29 @@ section {
     background: var(--color-body);
     color: inherit;
     padding: 0.55rem 0.75rem;
+}
+
+.admin-loading {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7rem;
+    color: inherit;
+    opacity: 0.85;
+}
+
+.admin-spinner {
+    width: 1.4rem;
+    height: 1.4rem;
+    border: 2px solid rgba(148, 163, 184, 0.4);
+    border-top-color: var(--color-nav-active-hover);
+    border-radius: 50%;
+    animation: admin-spin 0.8s linear infinite;
+}
+
+@keyframes admin-spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 @media (max-width: 900px) {

@@ -7,9 +7,11 @@ const endpoints = {
   overview: `${AUTH_API_BASE_URL}/api/admin/overview`,
   users: `${AUTH_API_BASE_URL}/api/admin/users`,
   projects: `${AUTH_API_BASE_URL}/api/admin/projects`,
+  createProject: `${AUTH_API_BASE_URL}/api/admin/projects`,
   accessRequests: `${AUTH_API_BASE_URL}/api/admin/access-requests`,
   accessRequestById: (id) => `${AUTH_API_BASE_URL}/api/admin/access-requests/${id}`,
   projectById: (id) => `${AUTH_API_BASE_URL}/api/admin/projects/${id}`,
+  projectDeleteById: (id) => `${AUTH_API_BASE_URL}/api/admin/projects/${id}`,
   userRoleById: (id) => `${AUTH_API_BASE_URL}/api/admin/users/${id}/role`,
   userById: (id) => `${AUTH_API_BASE_URL}/api/admin/users/${id}`,
 };
@@ -58,10 +60,13 @@ export function initAdmin({ navigationController } = {}) {
   let requestFilter = "pending";
   let requestSearchQuery = "";
   let requestsCache = [];
+  let projectsCache = [];
   let projectEditorModal = null;
   let projectEditorForm = null;
   let projectEditorStatus = null;
   let editingProjectId = null;
+  let projectEditorMode = "edit";
+  const loadingMarkup = '<div class="admin-loading"><span class="admin-spinner" aria-hidden="true"></span><span>Loading...</span></div>';
 
   const setGateStatus = (message) => {
     gateStatusEl.textContent = message || "";
@@ -96,6 +101,10 @@ export function initAdmin({ navigationController } = {}) {
         <h2 id="admin-project-editor-title">Edit Project</h2>
         <form id="admin-project-editor-form" class="modal-form admin-project-editor-form">
           <div class="admin-project-editor-grid">
+            <div class="admin-project-editor-field">
+              <label for="admin-project-slug">Slug</label>
+              <input id="admin-project-slug" name="slug" type="text" required />
+            </div>
             <div class="admin-project-editor-field">
               <label for="admin-project-title">Title</label>
               <input id="admin-project-title" name="title" type="text" required />
@@ -141,6 +150,17 @@ export function initAdmin({ navigationController } = {}) {
     projectEditorModal = overlay;
     projectEditorForm = overlay.querySelector("#admin-project-editor-form");
     projectEditorStatus = overlay.querySelector("#admin-project-editor-status");
+    const titleField = overlay.querySelector("#admin-project-title");
+    const slugField = overlay.querySelector("#admin-project-slug");
+
+    const toSlug = (value) =>
+      String(value || "")
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s-_]/g, "")
+        .replace(/[\s_]+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
 
     overlay.addEventListener("click", (event) => {
       if (event.target === overlay || event.target.closest(".admin-project-editor-close")) {
@@ -152,10 +172,12 @@ export function initAdmin({ navigationController } = {}) {
 
     projectEditorForm.addEventListener("submit", async (event) => {
       event.preventDefault();
-      if (!Number.isFinite(editingProjectId)) return;
+      const isCreate = projectEditorMode === "create";
+      if (!isCreate && !Number.isFinite(editingProjectId)) return;
 
       const formData = new FormData(projectEditorForm);
       const payload = {
+        slug: String(formData.get("slug") || "").trim().toLowerCase(),
         title: String(formData.get("title") || "").trim(),
         description: String(formData.get("description") || "").trim(),
         imagePath: String(formData.get("imagePath") || "").trim(),
@@ -166,8 +188,11 @@ export function initAdmin({ navigationController } = {}) {
       };
 
       try {
-        const response = await apiFetch(endpoints.projectById(editingProjectId), {
-          method: "PATCH",
+        const submitBtn = projectEditorForm.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
+        if (projectEditorStatus) projectEditorStatus.innerHTML = loadingMarkup;
+        const response = await apiFetch(isCreate ? endpoints.createProject : endpoints.projectById(editingProjectId), {
+          method: isCreate ? "POST" : "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
@@ -175,32 +200,71 @@ export function initAdmin({ navigationController } = {}) {
         if (!response.ok) {
           throw new Error(body.error || "Failed to save project.");
         }
+        const savedProject = body?.project || null;
+        if (savedProject && typeof savedProject === "object") {
+          if (isCreate) {
+            projectsCache = [savedProject, ...projectsCache];
+          } else {
+            projectsCache = projectsCache.map((project) =>
+              Number(project.id) === Number(savedProject.id) ? savedProject : project
+            );
+          }
+          renderProjects(projectsCache);
+        }
         projectEditorModal.hidden = true;
         editingProjectId = null;
+        projectEditorMode = "edit";
         if (projectEditorStatus) projectEditorStatus.textContent = "";
-        await loadAdminData();
       } catch (error) {
         if (projectEditorStatus) {
           projectEditorStatus.textContent = error.message || "Failed to save project.";
         }
+      } finally {
+        const submitBtn = projectEditorForm.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = false;
       }
+    });
+
+    titleField.addEventListener("input", () => {
+      if (projectEditorMode !== "create") return;
+      const slugInput = slugField;
+      if (!slugInput || slugInput.dataset.manual === "1") return;
+      slugInput.value = toSlug(titleField.value || "");
+    });
+
+    slugField.addEventListener("input", () => {
+      const slugInput = slugField;
+      if (!slugInput) return;
+      slugInput.dataset.manual = slugInput.value.trim() ? "1" : "0";
     });
   };
 
-  const openProjectEditor = (project) => {
+  const openProjectEditor = (project, { mode = "edit" } = {}) => {
     ensureProjectEditorModal();
-    editingProjectId = Number(project?.id);
-    if (!Number.isFinite(editingProjectId)) return;
+    projectEditorMode = mode === "create" ? "create" : "edit";
+    editingProjectId = projectEditorMode === "edit" ? Number(project?.id) : null;
+    if (projectEditorMode === "edit" && !Number.isFinite(editingProjectId)) return;
     if (!projectEditorForm) return;
 
-    projectEditorForm.elements.title.value = String(project?.title || "");
-    projectEditorForm.elements.description.value = String(project?.description || "");
-    projectEditorForm.elements.imagePath.value = String(project?.image_path || "");
-    projectEditorForm.elements.deliveryType.value =
+    const slugInput = projectEditorForm.querySelector("#admin-project-slug");
+    const titleInput = projectEditorForm.querySelector("#admin-project-title");
+    const descriptionInput = projectEditorForm.querySelector("#admin-project-description");
+    const imageInput = projectEditorForm.querySelector("#admin-project-image");
+    const deliveryInput = projectEditorForm.querySelector("#admin-project-delivery");
+    const lockedInput = projectEditorForm.querySelector("#admin-project-locked");
+    const externalUrlInput = projectEditorForm.querySelector("#admin-project-external-url");
+    const htmlContentInput = projectEditorForm.querySelector("#admin-project-content");
+    slugInput.value = String(project?.slug || "");
+    slugInput.disabled = projectEditorMode === "edit";
+    slugInput.dataset.manual = projectEditorMode === "create" && slugInput.value.trim() ? "1" : "0";
+    titleInput.value = String(project?.title || "");
+    descriptionInput.value = String(project?.description || "");
+    imageInput.value = String(project?.image_path || "");
+    deliveryInput.value =
       String(project?.delivery_type || "content").toLowerCase() === "link" ? "link" : "content";
-    projectEditorForm.elements.locked.value = Boolean(project?.locked) ? "true" : "false";
-    projectEditorForm.elements.externalUrl.value = String(project?.external_url || "");
-    projectEditorForm.elements.htmlContent.value = String(project?.html_content || "");
+    lockedInput.value = Boolean(project?.locked) ? "true" : "false";
+    externalUrlInput.value = String(project?.external_url || "");
+    htmlContentInput.value = String(project?.html_content || "");
     if (projectEditorStatus) projectEditorStatus.textContent = "";
     projectEditorModal.hidden = false;
   };
@@ -418,6 +482,9 @@ export function initAdmin({ navigationController } = {}) {
     }
 
     projectsEl.innerHTML = `
+      <div class="admin-toolbar" style="justify-content:flex-start;margin-bottom:0.8rem;">
+        <button type="button" class="auth-switch-button admin-add-project">Add Project</button>
+      </div>
       <div class="project-list">
         ${projects
           .map((project) => {
@@ -434,6 +501,7 @@ export function initAdmin({ navigationController } = {}) {
                        data-locked="${locked ? "1" : "0"}"
                        data-project='${escapeHtml(JSON.stringify(project))}'>
                 <button type="button" class="admin-edit-project-icon" aria-label="Edit project" title="Edit project">✎</button>
+                <button type="button" class="admin-delete-project-icon" aria-label="Delete project" title="Delete project">🗑</button>
                 <div class="blog-item-media ${imageUrl ? "" : "blog-item-media-empty"}">
                   ${imageUrl ? `<img class="blog-item-image" src="${escapeHtml(imageUrl)}" alt="${escapeHtml(project.title)}" />` : ""}
                 </div>
@@ -497,6 +565,10 @@ export function initAdmin({ navigationController } = {}) {
     }
 
     try {
+      overviewEl.innerHTML = loadingMarkup;
+      usersEl.innerHTML = loadingMarkup;
+      requestsEl.innerHTML = loadingMarkup;
+      projectsEl.innerHTML = loadingMarkup;
       const [overviewRes, usersRes, requestsRes, projectsRes] = await Promise.all([
         apiFetch(endpoints.overview).catch(() => null),
         apiFetch(endpoints.users),
@@ -526,6 +598,7 @@ export function initAdmin({ navigationController } = {}) {
       const requests = Array.isArray(requestsBody?.requests) ? requestsBody.requests : [];
       requestsCache = requests;
       const projects = Array.isArray(projectsBody?.projects) ? projectsBody.projects : [];
+      projectsCache = projects;
       const fallbackOverview = {
         usersTotal: users.length,
         pendingRequests: requests.filter((r) => r.status === "pending").length,
@@ -662,6 +735,23 @@ export function initAdmin({ navigationController } = {}) {
   });
 
   projectsEl.addEventListener("click", async (event) => {
+    if (event.target.closest(".admin-add-project")) {
+      openProjectEditor(
+        {
+          slug: "",
+          title: "",
+          description: "",
+          image_path: "",
+          delivery_type: "content",
+          locked: false,
+          external_url: "",
+          html_content: "",
+        },
+        { mode: "create" }
+      );
+      return;
+    }
+
     const card = event.target.closest("[data-project-id]");
     if (!card) return;
     const projectId = Number(card.dataset.projectId);
@@ -671,9 +761,26 @@ export function initAdmin({ navigationController } = {}) {
       try {
         const raw = card.getAttribute("data-project") || "{}";
         const parsed = JSON.parse(raw);
-        openProjectEditor(parsed);
+        openProjectEditor(parsed, { mode: "edit" });
       } catch {
         setGateStatus("Failed to open project editor.");
+      }
+      return;
+    }
+
+    if (event.target.closest(".admin-delete-project-icon")) {
+      try {
+        const response = await apiFetch(endpoints.projectDeleteById(projectId), {
+          method: "DELETE",
+        });
+        const body = await parseJsonSafe(response);
+        if (!response.ok) {
+          throw new Error(body.error || "Failed to delete project.");
+        }
+        projectsCache = projectsCache.filter((project) => Number(project.id) !== projectId);
+        renderProjects(projectsCache);
+      } catch (error) {
+        setGateStatus(error.message || "Failed to delete project.");
       }
       return;
     }
@@ -701,12 +808,11 @@ export function initAdmin({ navigationController } = {}) {
   });
 
   const startPolling = () => {
-    if (pollTimer) clearInterval(pollTimer);
-    pollTimer = setInterval(() => {
-      if (navigationController?.getActivePageId?.() === "admin") {
-        loadAdminData();
-      }
-    }, 10000);
+    // Polling disabled to avoid disruptive auto-refresh while admin is working.
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
   };
 
   const stopPolling = () => {

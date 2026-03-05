@@ -354,7 +354,7 @@ export async function initProject({ navigationController } = {}) {
     iframe.setAttribute("scrolling", "no");
     iframe.setAttribute(
       "sandbox",
-      "allow-forms allow-pointer-lock allow-presentation allow-same-origin allow-scripts"
+      "allow-forms allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts"
     );
     const frameId = `project-frame-${Math.random().toString(36).slice(2)}`;
     iframe.dataset.frameId = frameId;
@@ -388,16 +388,27 @@ export async function initProject({ navigationController } = {}) {
 <script>
 (() => {
   const frameId = ${JSON.stringify(frameId)};
+  let heightScheduled = false;
   const sendHeight = () => {
     const bodyHeight = document.body ? document.body.scrollHeight : 0;
     const htmlHeight = document.documentElement ? document.documentElement.scrollHeight : 0;
-    const height = Math.max(bodyHeight, htmlHeight, 600);
+    const height = Math.max(bodyHeight, htmlHeight, 1);
     parent.postMessage({ type: "project-frame-height", frameId, height }, "*");
   };
+  const scheduleHeight = () => {
+    if (heightScheduled) return;
+    heightScheduled = true;
+    requestAnimationFrame(() => {
+      heightScheduled = false;
+      sendHeight();
+    });
+  };
   window.addEventListener("load", sendHeight);
-  window.addEventListener("resize", sendHeight);
-  new MutationObserver(sendHeight).observe(document.documentElement, { childList: true, subtree: true, attributes: true });
-  setInterval(sendHeight, 800);
+  window.addEventListener("resize", scheduleHeight);
+  new MutationObserver(scheduleHeight).observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+  });
   sendHeight();
 })();
 </script>
@@ -589,9 +600,9 @@ export async function initProject({ navigationController } = {}) {
 
     if ((serverDeliveryType === "link" || projectDeliveryType === "link") && redirectTarget) {
       try {
-        window.open(new URL(redirectTarget, window.location.href).toString(), "_blank", "noopener,noreferrer");
+        window.location.href = new URL(redirectTarget, window.location.href).toString();
       } catch {
-        window.open(redirectTarget, "_blank", "noopener,noreferrer");
+        window.location.href = redirectTarget;
       }
       return;
     }
@@ -914,7 +925,7 @@ export async function initProject({ navigationController } = {}) {
     if (!frame) return;
     const nextHeight = Number(data.height);
     if (!Number.isFinite(nextHeight) || nextHeight <= 0) return;
-    frame.style.height = `${Math.max(600, Math.round(nextHeight))}px`;
+    frame.style.height = `${Math.max(1, Math.round(nextHeight))}px`;
   });
 
   if (requestAccessFormEl && requestAccessConfirmBtn) {

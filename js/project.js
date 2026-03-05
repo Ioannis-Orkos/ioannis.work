@@ -54,6 +54,7 @@ export async function initProject({ navigationController } = {}) {
   if (!projectPage || !mainEl || !projectListEl || !projectSearchEl || !projectCategoriesEl) return;
 
   let projects = [];
+  let baseProjects = [];
   let selectedCategories = new Set();
   let serverProjectsBySlug = new Map();
   let requestNotesBySlug = new Map();
@@ -89,6 +90,12 @@ export async function initProject({ navigationController } = {}) {
   });
 
   const sectionIdForProject = (project) => `project-${project.folder}`;
+
+  const getSharedFolderFromLocation = () => {
+    const hash = String(window.location.hash || "").replace(/^#/, "").trim();
+    if (!hash.startsWith("s-")) return "";
+    return hash.slice(2).trim();
+  };
 
   const getFolderFromLocation = () => {
     const pathname = (window.location.pathname || "/").replace(/\/+$/, "") || "/";
@@ -165,6 +172,16 @@ export async function initProject({ navigationController } = {}) {
   };
 
   const loadServerProjects = async () => {
+    requestNotesBySlug = new Map();
+
+    if (!isAuthorizedUser()) {
+      const hasSession = await ensureAuthorizedSession();
+      if (!hasSession) {
+        serverProjectsBySlug = new Map();
+        return;
+      }
+    }
+
     if (!isAuthorizedUser()) {
       serverProjectsBySlug = new Map();
       return;
@@ -200,14 +217,108 @@ export async function initProject({ navigationController } = {}) {
     }
   };
 
+  const applyServerProjectCatalog = () => {
+    projects = baseProjects.map((project) => ({ ...project }));
+
+    if (!isAuthorizedUser() || !serverProjectsBySlug.size) return;
+
+    const bySlug = new Map(
+      projects.map((project) => [String(project.serverProjectSlug || project.folder || "").trim(), project])
+    );
+
+    let addedCount = 0;
+    serverProjectsBySlug.forEach((row, slug) => {
+      const normalizedSlug = String(slug || "").trim();
+      if (!normalizedSlug) return;
+
+      const existing = bySlug.get(normalizedSlug);
+      const serverDeliveryType = String(row?.deliveryType || "").trim().toLowerCase();
+      const serverExternalUrl = String(row?.externalUrl || row?.external_url || "").trim();
+      const serverImagePath = String(row?.imagePath || row?.image_path || "").trim();
+      const serverDate = String(row?.date || row?.updatedAt || row?.updated_at || "").trim();
+
+      if (existing) {
+        existing.locked = Boolean(row?.locked ?? existing.locked);
+        if (serverDeliveryType === "link" || serverDeliveryType === "content") {
+          existing.lockedDelivery = serverDeliveryType;
+        }
+        if (serverExternalUrl) {
+          existing.serverEndpoint = serverExternalUrl;
+        }
+        if (serverImagePath) {
+          existing.image = serverImagePath;
+        }
+        if (serverDate) {
+          existing.date = serverDate;
+        }
+        if (!existing.title && row?.title) {
+          existing.title = String(row.title);
+        }
+        if (!existing.description && row?.description) {
+          existing.description = String(row.description);
+        }
+        return;
+      }
+
+      addedCount += 1;
+      const generated = normalizeProject(
+        {
+          id: `server-${normalizedSlug}`,
+          folder: normalizedSlug,
+          title: String(row?.title || normalizedSlug),
+          date: serverDate,
+          description: String(row?.description || ""),
+          image: serverImagePath,
+          locked: Boolean(row?.locked),
+          serverProjectSlug: normalizedSlug,
+          lockedDelivery: serverDeliveryType === "link" ? "link" : "content",
+          serverEndpoint: serverExternalUrl,
+          url: serverExternalUrl || `${normalizedSlug}/index.html`,
+          categories: ["Server"],
+        },
+        baseProjects.length + addedCount
+      );
+
+      projects.push(generated);
+      bySlug.set(normalizedSlug, generated);
+    });
+  };
+
   const buildImageUrl = (project) => {
     if (!project.image) return "";
+    if (/^https?:\/\//i.test(project.image)) return project.image;
+    if (project.image.startsWith("/")) return project.image;
     return `${PROJECT_BASE_PATH}${project.image.replace(/^\/+/, "")}`;
   };
 
   const buildProjectUrl = (project) => {
-    if (/^https?:\/\//i.test(project.url)) return project.url;
-    if (project.url) return `${PROJECT_BASE_PATH}${project.url.replace(/^\/+/, "")}`;
+    const rawUrl = String(project?.url || "").trim();
+    const rawEndpoint = String(project?.serverEndpoint || "").trim();
+
+    const normalizeExternalCandidate = (value) => {
+      const candidate = String(value || "").trim();
+      if (!candidate) return "";
+      if (/^https?:\/\//i.test(candidate)) return candidate;
+      if (/^\/\//.test(candidate)) return `https:${candidate}`;
+      if (/^([a-z0-9-]+\.)+[a-z]{2,}(?:\/|$)/i.test(candidate)) return `https://${candidate}`;
+      return "";
+    };
+
+    const normalizedUrl = normalizeExternalCandidate(rawUrl);
+    if (normalizedUrl) return normalizedUrl;
+
+    if (rawUrl) return `${PROJECT_BASE_PATH}${rawUrl.replace(/^\/+/, "")}`;
+
+    const normalizedEndpoint = normalizeExternalCandidate(rawEndpoint);
+    if (normalizedEndpoint) return normalizedEndpoint;
+
+    if (project.serverEndpoint) {
+      try {
+        return new URL(project.serverEndpoint, window.location.href).toString();
+      } catch {
+        return project.serverEndpoint;
+      }
+    }
     return `${PROJECT_BASE_PATH}${project.folder}/index.html`;
   };
 
@@ -230,7 +341,7 @@ export async function initProject({ navigationController } = {}) {
     section.id = sectionIdForProject(project);
     section.className = "page project-embedded-page";
     section.dataset.projectFolder = project.folder;
-    section.innerHTML = '<p class="blog-loading">Loading project...</p>';
+    section.innerHTML = "";
     mainEl.appendChild(section);
     return section;
   };
@@ -243,12 +354,21 @@ export async function initProject({ navigationController } = {}) {
     iframe.setAttribute("scrolling", "no");
     iframe.setAttribute(
       "sandbox",
-      "allow-forms allow-pointer-lock allow-presentation allow-scripts"
+      "allow-forms allow-pointer-lock allow-presentation allow-same-origin allow-scripts"
     );
     const frameId = `project-frame-${Math.random().toString(36).slice(2)}`;
     iframe.dataset.frameId = frameId;
     embeddedFrameById.set(frameId, iframe);
     return iframe;
+  };
+
+  const isCrossOriginUrl = (value) => {
+    try {
+      const target = new URL(String(value || ""), window.location.href);
+      return target.origin !== window.location.origin;
+    } catch {
+      return false;
+    }
   };
 
   const renderHtmlIntoSection = (section, html, sourceUrl) => {
@@ -291,6 +411,14 @@ export async function initProject({ navigationController } = {}) {
 
   const renderUrlIntoSection = async (section, sourceUrl) => {
     try {
+      if (isCrossOriginUrl(sourceUrl)) {
+        const iframe = createSandboxedProjectFrame();
+        iframe.src = sourceUrl;
+        section.innerHTML = "";
+        section.appendChild(iframe);
+        return;
+      }
+
       const response = await fetch(sourceUrl, { credentials: "include" });
       if (!response.ok) {
         throw new Error(`Failed to load project: ${response.status}`);
@@ -398,6 +526,8 @@ export async function initProject({ navigationController } = {}) {
         requestNotesBySlug.set(slugKey, savedNote);
       }
       await loadServerProjects();
+      applyServerProjectCatalog();
+      renderCategories();
       renderProjects();
       return true;
     } catch {
@@ -409,25 +539,20 @@ export async function initProject({ navigationController } = {}) {
 
   const loadServerLockedContent = async (project, serverProject, { push = true } = {}) => {
     try {
-      if (project.lockedDelivery === "sso") {
-        const tokenRes = await apiFetch(endpoints.ssoToken(serverProject.id), {
-          method: "POST",
-        });
-        const tokenBody = await tokenRes.json().catch(() => ({}));
-        if (!tokenRes.ok || !tokenBody?.ssoToken) {
-          setProjectStatus(tokenBody.error || "Failed to generate SSO token.");
-          return;
-        }
+      const serverDeliveryType = String(serverProject?.deliveryType || "").trim().toLowerCase();
+      const clientDeliveryType = String(project?.lockedDelivery || "").trim().toLowerCase();
+      const effectiveDeliveryType =
+        serverDeliveryType === "link" || serverDeliveryType === "content"
+          ? serverDeliveryType
+          : (clientDeliveryType === "sso" || clientDeliveryType === "link" ? "link" : "content");
 
-        const redirectBase = project.serverEndpoint || serverProject.external_url;
+      if (effectiveDeliveryType === "link") {
+        const redirectBase = project.serverEndpoint || serverProject.externalUrl || serverProject.external_url;
         if (!redirectBase) {
           setProjectStatus("No redirect URL configured for this locked project.");
           return;
         }
-
-        const target = new URL(redirectBase, window.location.href);
-        target.searchParams.set("ssoToken", tokenBody.ssoToken);
-        window.location.href = target.toString();
+        window.location.href = new URL(redirectBase, window.location.href).toString();
         return;
       }
 
@@ -442,6 +567,10 @@ export async function initProject({ navigationController } = {}) {
       renderHtmlIntoSection(section, String(body.htmlContent || ""), endpoints.content(serverProject.id));
       if (navigationController && typeof navigationController.navigateTo === "function") {
         navigationController.navigateTo(sectionIdForProject(project), { push });
+        const sharedSlug = String(project?.serverProjectSlug || project?.folder || "").trim();
+        if (sharedSlug) {
+          history.replaceState({ type: "page", targetId: sectionIdForProject(project) }, "", `/#s-${sharedSlug}`);
+        }
       }
     } catch {
       setProjectStatus("Failed to load locked project content.");
@@ -451,6 +580,21 @@ export async function initProject({ navigationController } = {}) {
   const openProject = async (project, { push = true } = {}) => {
     if (!project || !project.folder) return;
     setProjectStatus("");
+    const serverProject = serverProjectsBySlug.get(project.serverProjectSlug);
+    const serverDeliveryType = String(serverProject?.deliveryType || "").trim().toLowerCase();
+    const projectDeliveryType = String(project?.lockedDelivery || "").trim().toLowerCase();
+    const redirectTarget = String(
+      project?.serverEndpoint || serverProject?.externalUrl || serverProject?.external_url || buildProjectUrl(project)
+    ).trim();
+
+    if ((serverDeliveryType === "link" || projectDeliveryType === "link") && redirectTarget) {
+      try {
+        window.open(new URL(redirectTarget, window.location.href).toString(), "_blank", "noopener,noreferrer");
+      } catch {
+        window.open(redirectTarget, "_blank", "noopener,noreferrer");
+      }
+      return;
+    }
 
     if (project.locked) {
       const hasSession = await ensureAuthorizedSession();
@@ -459,7 +603,6 @@ export async function initProject({ navigationController } = {}) {
         return;
       }
 
-      const serverProject = serverProjectsBySlug.get(project.serverProjectSlug);
       if (!serverProject) {
         await loadServerProjects();
         const refreshedProject = serverProjectsBySlug.get(project.serverProjectSlug);
@@ -477,6 +620,15 @@ export async function initProject({ navigationController } = {}) {
       return;
     }
 
+    if (
+      serverProject &&
+      String(serverProject.deliveryType || "").trim().toLowerCase() === "content" &&
+      String(project.id || "").startsWith("server-")
+    ) {
+      await loadServerLockedContent(project, serverProject, { push });
+      return;
+    }
+
     const sectionId = sectionIdForProject(project);
     const section = ensureProjectSection(project);
     const projectUrl = buildProjectUrl(project);
@@ -485,6 +637,12 @@ export async function initProject({ navigationController } = {}) {
 
     if (navigationController && typeof navigationController.navigateTo === "function") {
       navigationController.navigateTo(sectionId, { push });
+      if (serverProject) {
+        const sharedSlug = String(project?.serverProjectSlug || project?.folder || "").trim();
+        if (sharedSlug) {
+          history.replaceState({ type: "page", targetId: sectionId }, "", `/#s-${sharedSlug}`);
+        }
+      }
     } else {
       window.location.hash = sectionId;
     }
@@ -505,6 +663,53 @@ export async function initProject({ navigationController } = {}) {
     };
 
     await openProject(knownProject || fallbackProject, { push });
+  };
+
+  const openSharedProjectBySlug = async (slug, { push = false } = {}) => {
+    const normalizedSlug = String(slug || "").trim();
+    if (!normalizedSlug) return;
+
+    const hasSession = await ensureAuthorizedSession();
+    if (!hasSession) {
+      openLoginWithMessage("This shared project requires login.");
+      return;
+    }
+
+    await loadServerProjects();
+    applyServerProjectCatalog();
+
+    const serverProject = serverProjectsBySlug.get(normalizedSlug);
+    if (!serverProject) {
+      setProjectStatus("Shared project is unavailable.");
+      return;
+    }
+
+    const knownProject = projects.find((item) => item.serverProjectSlug === normalizedSlug || item.folder === normalizedSlug);
+    const fallbackProject = normalizeProject(
+      {
+        id: `server-${normalizedSlug}`,
+        folder: normalizedSlug,
+        title: String(serverProject.title || normalizedSlug),
+        date: String(serverProject.date || serverProject.updatedAt || serverProject.updated_at || "").slice(0, 10),
+        description: String(serverProject.description || ""),
+        image: String(serverProject.imagePath || serverProject.image_path || ""),
+        locked: Boolean(serverProject.locked),
+        serverProjectSlug: normalizedSlug,
+        lockedDelivery: String(serverProject.deliveryType || "content"),
+        serverEndpoint: String(serverProject.externalUrl || serverProject.external_url || ""),
+      },
+      0
+    );
+
+    const targetProject = knownProject || fallbackProject;
+
+    if (!canAccessServerProject(serverProject, targetProject)) {
+      const requestStatus = getServerProjectStatus(serverProject);
+      openRequestAccessModal(targetProject, serverProject, requestStatus);
+      return;
+    }
+
+    await loadServerLockedContent(targetProject, serverProject, { push });
   };
 
   const projectAccessLabel = (project) => {
@@ -529,6 +734,8 @@ export async function initProject({ navigationController } = {}) {
     item.setAttribute("role", "button");
     item.setAttribute("aria-label", `Open project ${project.title}`);
 
+    const media = document.createElement("div");
+    media.className = "blog-item-media";
     const imageUrl = buildImageUrl(project);
     if (imageUrl) {
       const img = document.createElement("img");
@@ -536,8 +743,11 @@ export async function initProject({ navigationController } = {}) {
       img.src = imageUrl;
       img.alt = project.title;
       img.loading = "lazy";
-      item.appendChild(img);
+      media.appendChild(img);
+    } else {
+      media.classList.add("blog-item-media-empty");
     }
+    item.appendChild(media);
 
     const details = document.createElement("div");
     details.className = "blog-item-details";
@@ -668,14 +878,23 @@ export async function initProject({ navigationController } = {}) {
   };
 
   const tryOpenFromLocation = () => {
+    const sharedFolder = getSharedFolderFromLocation();
+    if (sharedFolder) {
+      openSharedProjectBySlug(sharedFolder, { push: false });
+      return;
+    }
     const folderFromLocation = getFolderFromLocation();
     if (!folderFromLocation) return;
     openProjectByFolder(folderFromLocation, { push: false });
   };
 
   const refreshAuthSensitiveState = async () => {
+    await ensureAuthorizedSession();
     await loadServerProjects();
+    applyServerProjectCatalog();
+    renderCategories();
     renderProjects();
+    tryOpenFromLocation();
   };
 
   projectSearchEl.addEventListener("input", renderProjects);
@@ -727,11 +946,14 @@ export async function initProject({ navigationController } = {}) {
 
     const data = await response.json();
     const source = Array.isArray(data) ? data : data?.projects;
-    projects = Array.isArray(source)
+    baseProjects = Array.isArray(source)
       ? source.map((project, index) => normalizeProject(project, index)).filter((project) => project.folder)
       : [];
+    projects = baseProjects.map((project) => ({ ...project }));
 
+    await ensureAuthorizedSession();
     await loadServerProjects();
+    applyServerProjectCatalog();
     renderCategories();
     renderProjects();
     tryOpenFromLocation();

@@ -4,6 +4,7 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
   const isModalHash = (hash) => MODAL_ROUTE_IDS.includes(hash);
   const isBlogDetailHash = (hash) => hash.startsWith("blog-") && hash.length > 5;
   const isProjectDetailHash = (hash) => hash.startsWith("project-") && hash.length > 8;
+  const isSharedProjectHash = (hash) => hash.startsWith("s-") && hash.length > 2;
   const blogNavTarget = "blog";
   const projectNavTarget = "project";
   const pagePathMap = new Map([
@@ -11,6 +12,7 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
     ["about", "/about"],
     ["project", "/project"],
     ["blog", "/blog"],
+    ["admin", "/admin"],
   ]);
 
   const getPagesState = () => {
@@ -135,6 +137,7 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
     const hasHashPageTarget = Boolean(hash && livePageMap.has(hash));
     const hasHashBlogTarget = isBlogDetailHash(hash) && livePageMap.has("blog");
     const hasHashProjectTarget = isProjectDetailHash(hash) && livePageMap.has("project");
+    const hasHashSharedProjectTarget = isSharedProjectHash(hash) && livePageMap.has("project");
 
     // Hash-based SPA routes (e.g. /#project) should win over default path '/'.
     if (hasHashPageTarget) {
@@ -152,6 +155,12 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
     if (hasHashProjectTarget) {
       setActivePage("project");
       history.replaceState({ type: "page", targetId: hash }, "", buildPathForTarget(hash));
+      return;
+    }
+
+    if (hasHashSharedProjectTarget) {
+      setActivePage("project");
+      history.replaceState({ type: "page", targetId: hash }, "", `/#${hash}`);
       return;
     }
 
@@ -190,6 +199,7 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
   const hasInitialHashPageTarget = Boolean(initialHash && livePageMap.has(initialHash));
   const hasInitialHashBlogTarget = isBlogDetailHash(initialHash) && livePageMap.has("blog");
   const hasInitialHashProjectTarget = isProjectDetailHash(initialHash) && livePageMap.has("project");
+  const hasInitialHashSharedProjectTarget = isSharedProjectHash(initialHash) && livePageMap.has("project");
 
   let startPage = getDefaultPageId();
 
@@ -198,6 +208,8 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
   } else if (hasInitialHashBlogTarget) {
     startPage = "blog";
   } else if (hasInitialHashProjectTarget) {
+    startPage = "project";
+  } else if (hasInitialHashSharedProjectTarget) {
     startPage = "project";
   } else if (initialPathTarget && livePageMap.has(initialPathTarget)) {
     startPage = initialPathTarget;
@@ -210,12 +222,13 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
     (
       livePageMap.has(initialHash) ||
       (isBlogDetailHash(initialHash) && livePageMap.has("blog")) ||
-      (isProjectDetailHash(initialHash) && livePageMap.has("project"))
+      (isProjectDetailHash(initialHash) && livePageMap.has("project")) ||
+      (isSharedProjectHash(initialHash) && livePageMap.has("project"))
     )
   ) {
     startPage = isBlogDetailHash(initialHash)
       ? "blog"
-      : isProjectDetailHash(initialHash)
+      : (isProjectDetailHash(initialHash) || isSharedProjectHash(initialHash))
         ? "project"
         : initialHash;
   }
@@ -225,10 +238,14 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
   if (!initialPathTarget && !initialHash) {
     history.replaceState({ type: "page", targetId: startPage }, "", buildPathForTarget(startPage));
   } else if (!initialPathTarget && initialHash && !isModalHash(initialHash)) {
-    const targetId = (isBlogDetailHash(initialHash) || isProjectDetailHash(initialHash))
+    const targetId = (isBlogDetailHash(initialHash) || isProjectDetailHash(initialHash) || isSharedProjectHash(initialHash))
       ? initialHash
       : startPage;
-    history.replaceState({ type: "page", targetId }, "", buildPathForTarget(targetId));
+    history.replaceState(
+      { type: "page", targetId },
+      "",
+      isSharedProjectHash(targetId) ? `/#${targetId}` : buildPathForTarget(targetId)
+    );
   }
 
   return {

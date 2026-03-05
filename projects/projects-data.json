@@ -31,31 +31,5 @@
     "locked": false,
     "categories": ["Aviation", "Operations", "Dashboard"],
     "url": "defect-priority-board/index.html"
-  },
-  {
-    "id": "project-004",
-    "folder": "maintenance-compliance-api",
-    "title": "Maintenance Compliance API",
-    "date": "2026-03-03",
-    "description": "Locked project. Compliance reports are fetched from a secure backend endpoint for authorized users.",
-    "image": "maintenance-compliance-api/asset/preview.webp",
-    "locked": true,
-    "serverProjectSlug": "maintenance-compliance-api",
-    "lockedDelivery": "content",
-    "categories": ["Backend", "Auth", "API"],
-    "serverEndpoint": "http://127.0.0.1:4020/projects/maintenance-compliance-api"
-  },
-  {
-    "id": "project-005",
-    "folder": "authorized-fleet-insights",
-    "title": "Authorized Fleet Insights",
-    "date": "2026-03-04",
-    "description": "Locked project. Loads confidential fleet reliability insights from server only for authorized users.",
-    "image": "authorized-fleet-insights/asset/preview.webp",
-    "locked": true,
-    "serverProjectSlug": "authorized-fleet-insights",
-    "lockedDelivery": "sso",
-    "categories": ["Analytics", "Security", "Aviation"],
-    "serverEndpoint": "https://projects.ioannis.work/authorized-fleet-insights"
   }
 ]

@@ -9,6 +9,26 @@ const endpoints = {
   me: `${AUTH_API_BASE_URL}/api/auth/me`,
 };
 
+const getStoredAuthToken = () => {
+  for (const key of TOKEN_KEYS) {
+    const value = localStorage.getItem(key) || sessionStorage.getItem(key);
+    if (value) return value;
+  }
+  return "";
+};
+
+const parseJwtPayload = (token) => {
+  try {
+    const payload = String(token || "").split(".")[1];
+    if (!payload) return null;
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const decoded = atob(normalized);
+    return JSON.parse(decoded);
+  } catch {
+    return null;
+  }
+};
+
 const parseJsonSafe = async (response) => {
   try {
     return await response.json();
@@ -30,6 +50,19 @@ const setAuthUser = (user) => {
   window.__AUTH_USER = user || null;
 };
 
+const getAdminNavLinks = () => [...document.querySelectorAll('a[data-target="admin"]')];
+
+const setAdminNavVisibility = (visible) => {
+  getAdminNavLinks().forEach((link) => {
+    const navItem = link.closest("li");
+    if (navItem) {
+      navItem.hidden = !visible;
+      return;
+    }
+    link.hidden = !visible;
+  });
+};
+
 const clearTokens = () => {
   TOKEN_KEYS.forEach((key) => {
     localStorage.removeItem(key);
@@ -37,6 +70,7 @@ const clearTokens = () => {
   });
   window.__IS_AUTHORIZED_USER = false;
   setAuthUser(null);
+  setAdminNavVisibility(false);
   window.dispatchEvent(new CustomEvent("auth:changed", { detail: { loggedIn: false } }));
 };
 
@@ -93,15 +127,22 @@ export function initAuth() {
   };
 
   const bootstrapSession = async () => {
+    const token = getStoredAuthToken();
     try {
       const response = await fetch(endpoints.me, {
         method: "GET",
         credentials: "include",
+        headers: token
+          ? {
+              Authorization: `Bearer ${token}`,
+            }
+          : undefined,
       });
       if (response.ok) {
         const body = await parseJsonSafe(response);
         window.__IS_AUTHORIZED_USER = true;
         setAuthUser(body?.user || null);
+        setAdminNavVisibility(String(body?.user?.role || "").toLowerCase() === "admin");
         setNavLoggedState(true);
         window.dispatchEvent(new CustomEvent("auth:changed", { detail: { loggedIn: true } }));
         return;
@@ -110,9 +151,22 @@ export function initAuth() {
       // Keep default logged-out state.
     }
 
-    const hasToken = TOKEN_KEYS.some((key) => localStorage.getItem(key));
+    const hasToken = Boolean(token);
     setNavLoggedState(hasToken);
     window.__IS_AUTHORIZED_USER = hasToken;
+    if (hasToken) {
+      const payload = parseJwtPayload(token);
+      const inferredRole = String(payload?.role || "").toLowerCase();
+      if (!window.__AUTH_USER) {
+        setAuthUser({
+          role: inferredRole || "user",
+        });
+      }
+      setAdminNavVisibility(inferredRole === "admin");
+      window.dispatchEvent(new CustomEvent("auth:changed", { detail: { loggedIn: true } }));
+      return;
+    }
+    setAdminNavVisibility(false);
   };
 
   showLoginBtn.addEventListener("click", () => setMode("login"));
@@ -190,6 +244,7 @@ export function initAuth() {
 
       saveToken(body.token);
       setAuthUser(body?.user || null);
+      setAdminNavVisibility(String(body?.user?.role || "").toLowerCase() === "admin");
       setNavLoggedState(true);
       setStatus("Logged in successfully.");
       resetAuthForms();
@@ -220,6 +275,17 @@ export function initAuth() {
     clearTokens();
     setNavLoggedState(false);
     resetAuthForms();
+
+    const hash = String(window.location.hash || "").replace(/^#/, "").trim();
+    const pathname = String(window.location.pathname || "/");
+    const isSharedOrProjectDetail =
+      hash.startsWith("s-") ||
+      pathname.startsWith("/projects/") ||
+      pathname.startsWith("/project/s/");
+
+    if (isSharedOrProjectDetail) {
+      window.location.href = "/project";
+    }
   });
 
   document.addEventListener("click", (event) => {
@@ -242,5 +308,6 @@ export function initAuth() {
   });
 
   resetAuthForms();
+  setAdminNavVisibility(false);
   bootstrapSession();
 }

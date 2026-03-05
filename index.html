@@ -68,6 +68,7 @@
         <li><a href="/about" data-target="about">About</a></li>
         <li><a href="/project" data-target="project">Project</a></li>
         <li><a href="/blog" data-target="blog">Blog</a></li>
+        <li><a href="/admin" data-target="admin">Admin</a></li>
         <li><a href="#contact" data-modal="contact">Contact</a></li>
         <li class="nav-auth-group">
             <a id="nav-login-link" href="#login" data-modal="login">Login</a>
@@ -194,6 +195,40 @@
           <!-- Blog items will be dynamically inserted here -->
       </div>
     </section>
+
+    <section id="admin" class="page">
+      <h2>Admin Control</h2>
+      <p id="admin-gate-status" class="admin-gate-status" aria-live="polite">Login as admin to manage access requests.</p>
+
+        <div id="admin-controls" class="admin-controls" hidden>
+        <div class="admin-toolbar">
+          <div class="admin-tabs" role="tablist" aria-label="Admin Sections">
+            <button type="button" id="admin-tab-users" class="auth-switch-button admin-tab active">Users</button>
+            <button type="button" id="admin-tab-requests" class="auth-switch-button admin-tab">Requests</button>
+            <button type="button" id="admin-tab-projects" class="auth-switch-button admin-tab">Projects</button>
+          </div>
+        </div>
+
+        <div id="admin-overview" class="admin-overview" aria-live="polite"></div>
+
+        <div class="admin-grid">
+          <div class="admin-panel admin-panel-users" data-admin-panel="users">
+            <h3>Users</h3>
+            <div id="admin-users" class="admin-list" aria-live="polite"></div>
+          </div>
+
+          <div class="admin-panel admin-panel-requests" data-admin-panel="requests" hidden>
+            <h3>Access Requests</h3>
+            <div id="admin-access-requests" class="admin-list" aria-live="polite"></div>
+          </div>
+
+          <div class="admin-panel admin-panel-projects" data-admin-panel="projects" hidden>
+            <h3>Project Management</h3>
+            <div id="admin-projects" class="admin-list" aria-live="polite"></div>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation">
@@ -202,6 +237,7 @@
       <li><a href="/about" data-target="about">About</a></li>
       <li><a href="/project" data-target="project">Project</a></li>
       <li><a href="/blog" data-target="blog">Blog</a></li>
+      <li><a href="/admin" data-target="admin">Admin</a></li>
       <li><a href="#contact" data-modal="contact">Contact</a></li>
       <li class="nav-auth-group">
           <a id="nav-login-link" href="#login" data-modal="login">Login</a>

@@ -6,6 +6,7 @@ import { initHeaderScroll } from "./header-scroll.js";
 import { initModals } from "./modals.js";
 import { initBlog } from "./blog.js";
 import { initProject } from "./project.js";
+import { initAdmin } from "./admin.js";
 import { initContactForm } from "./contact.js";
 import { initAuth } from "./auth.js";
 
@@ -46,6 +47,10 @@ if (hasRequiredDom(refs)) {
   });
 
   initProject({
+    navigationController,
+  });
+
+  initAdmin({
     navigationController,
   });
 

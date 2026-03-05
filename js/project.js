@@ -665,11 +665,37 @@ export async function initProject({ navigationController } = {}) {
     }
   };
 
-  const openProjectByFolder = async (folder, { push = false } = {}) => {
+  const openProjectByFolder = async (folder, { push = false, allowFallback = true } = {}) => {
     const normalizedFolder = String(folder || "").trim();
     if (!normalizedFolder) return;
 
     const knownProject = projects.find((item) => item.folder === normalizedFolder);
+    if (knownProject) {
+      await openProject(knownProject, { push });
+      return;
+    }
+
+    await ensureAuthorizedSession();
+    await loadServerProjects();
+    applyServerProjectCatalog();
+
+    const mergedServerProject = projects.find(
+      (item) => String(item.serverProjectSlug || item.folder || "").trim() === normalizedFolder
+    );
+    if (mergedServerProject) {
+      await openProject(mergedServerProject, { push });
+      return;
+    }
+
+    if (!allowFallback) {
+      if (!isAuthorizedUser()) {
+        openLoginWithMessage("This project requires login and access approval.");
+      } else {
+        setProjectStatus("Project unavailable.");
+      }
+      return;
+    }
+
     const fallbackProject = {
       folder: normalizedFolder,
       title: `Project ${normalizedFolder}`,
@@ -679,7 +705,7 @@ export async function initProject({ navigationController } = {}) {
       lockedDelivery: "content",
     };
 
-    await openProject(knownProject || fallbackProject, { push });
+    await openProject(fallbackProject, { push });
   };
 
   const openSharedProjectBySlug = async (slug, { push = false } = {}) => {
@@ -902,7 +928,7 @@ export async function initProject({ navigationController } = {}) {
     }
     const folderFromLocation = getFolderFromLocation();
     if (!folderFromLocation) return;
-    openProjectByFolder(folderFromLocation, { push: false });
+    openProjectByFolder(folderFromLocation, { push: false, allowFallback: false });
   };
 
   const refreshAuthSensitiveState = async () => {

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aircraft Defect Priority Board</title>
+  <script>
+    if (window.top === window.self) {
+      window.location.replace("/#project-defect-priority-board");
+    }
+  </script>
+  <link rel="stylesheet" href="./style/styles.css" />
+</head>
+<body>
+  <main class="shell">
+    <section class="panel">
+      <h1>Aircraft Defect Priority Board</h1>
+      <p>Self-contained ranking board for defects by operational risk score.</p>
+      <button id="rank-btn" type="button">Rank By Highest Risk</button>
+
+      <div class="board">
+        <article class="col">
+          <h2>Open</h2>
+          <div id="col-open"></div>
+        </article>
+        <article class="col">
+          <h2>In Progress</h2>
+          <div id="col-in-progress"></div>
+        </article>
+        <article class="col">
+          <h2>Deferred</h2>
+          <div id="col-deferred"></div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <script src="./js/app.js"></script>
+</body>
+</html>
+

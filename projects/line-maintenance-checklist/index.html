@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Line Maintenance Checklist Tracker</title>
+  <script>
+    if (window.top === window.self) {
+      window.location.replace("/#project-line-maintenance-checklist");
+    }
+  </script>
+  <link rel="stylesheet" href="./style/styles.css" />
+</head>
+<body>
+  <main class="shell">
+    <section class="panel">
+      <h1>Line Maintenance Checklist Tracker</h1>
+      <p>Self-contained checklist capture page for line maintenance handover.</p>
+
+      <div class="grid">
+        <article class="card">
+          <label for="task">Task</label>
+          <textarea id="task" rows="3" placeholder="Enter completed maintenance task..."></textarea>
+        </article>
+
+        <article class="card">
+          <label for="shift">Shift</label>
+          <select id="shift">
+            <option value="Morning">Morning</option>
+            <option value="Afternoon">Afternoon</option>
+            <option value="Night">Night</option>
+          </select>
+
+          <label for="notes">Handover Notes</label>
+          <textarea id="notes" rows="3" placeholder="Notes for next engineer..."></textarea>
+          <button id="save-entry" type="button">Save Entry</button>
+        </article>
+      </div>
+
+      <p id="save-status" class="status" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <script src="./js/app.js"></script>
+</body>
+</html>
+

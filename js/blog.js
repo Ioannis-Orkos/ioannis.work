@@ -1,5 +1,5 @@
-const BLOG_DATA_URL = "./blogs/blog-data.json";
-const BLOG_BASE_PATH = "./blogs/";
+const BLOG_DATA_URL = "/blogs/blog-data.json";
+const BLOG_BASE_PATH = "/blogs/";
 
 export async function initBlog({ navigationController } = {}) {
   const blogPage = document.getElementById("blog");

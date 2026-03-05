@@ -1,0 +1,57 @@
+[
+  {
+    "id": "project-001",
+    "folder": "ft-to-lb-conversion",
+    "title": "FT to LB Conversion Tool (Aviation)",
+    "date": "2026-03-01",
+    "description": "Converts fuel and payload weights from kilograms to pounds and feet to meters with aircraft-ready rounding and validation checks.",
+    "image": "ft-to-lb-conversion/asset/preview.webp",
+    "locked": false,
+    "categories": ["Aviation", "Utilities", "JavaScript"],
+    "url": "ft-to-lb-conversion/index.html"
+  },
+  {
+    "id": "project-002",
+    "folder": "line-maintenance-checklist",
+    "title": "Line Maintenance Checklist Tracker",
+    "date": "2026-02-24",
+    "description": "A daily checklist tracker for line maintenance teams with shift handover notes and completion audit trail.",
+    "image": "line-maintenance-checklist/asset/preview.webp",
+    "locked": false,
+    "categories": ["Aviation", "Workflow", "Frontend"],
+    "url": "line-maintenance-checklist/index.html"
+  },
+  {
+    "id": "project-003",
+    "folder": "defect-priority-board",
+    "title": "Aircraft Defect Priority Board",
+    "date": "2026-02-18",
+    "description": "Sorts aircraft defects by operational risk, turnaround impact, and engineering priority for faster decision making.",
+    "image": "defect-priority-board/asset/preview.webp",
+    "locked": false,
+    "categories": ["Aviation", "Operations", "Dashboard"],
+    "url": "defect-priority-board/index.html"
+  },
+  {
+    "id": "project-004",
+    "folder": "maintenance-compliance-api",
+    "title": "Maintenance Compliance API",
+    "date": "2026-03-03",
+    "description": "Locked project. Compliance reports are fetched from a secure backend endpoint for authorized users.",
+    "image": "maintenance-compliance-api/asset/preview.webp",
+    "locked": true,
+    "categories": ["Backend", "Auth", "API"],
+    "serverEndpoint": "http://127.0.0.1:4020/projects/maintenance-compliance-api"
+  },
+  {
+    "id": "project-005",
+    "folder": "authorized-fleet-insights",
+    "title": "Authorized Fleet Insights",
+    "date": "2026-03-04",
+    "description": "Locked project. Loads confidential fleet reliability insights from server only for authorized users.",
+    "image": "authorized-fleet-insights/asset/preview.webp",
+    "locked": true,
+    "categories": ["Analytics", "Security", "Aviation"],
+    "serverEndpoint": "http://127.0.0.1:4020/projects/authorized-fleet-insights"
+  }
+]

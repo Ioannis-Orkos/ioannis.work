@@ -3,7 +3,9 @@ import { MODAL_ROUTE_IDS } from "./config.js";
 export function initNavigation({ pages, navLinks, pageMap, mobileNavController }) {
   const isModalHash = (hash) => MODAL_ROUTE_IDS.includes(hash);
   const isBlogDetailHash = (hash) => hash.startsWith("blog-") && hash.length > 5;
+  const isProjectDetailHash = (hash) => hash.startsWith("project-") && hash.length > 8;
   const blogNavTarget = "blog";
+  const projectNavTarget = "project";
   const pagePathMap = new Map([
     ["home", "/"],
     ["about", "/about"],
@@ -45,6 +47,17 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
       return folder ? `blog-${folder}` : "blog";
     }
 
+    if (pathname.startsWith("/projects/")) {
+      const folder = pathname.slice("/projects/".length).split("/")[0];
+      return folder ? `project-${folder}` : "project";
+    }
+
+    // Backward compatibility for older project detail route.
+    if (pathname.startsWith("/project/")) {
+      const folder = pathname.slice("/project/".length).split("/")[0];
+      return folder ? `project-${folder}` : "project";
+    }
+
     return null;
   };
 
@@ -54,11 +67,18 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
       return `/blogs/${folder}`;
     }
 
+    if (targetId.startsWith("project-") && targetId.length > 8) {
+      const folder = targetId.replace("project-", "");
+      return `/projects/${folder}`;
+    }
+
     return pagePathMap.get(targetId) || "/";
   };
 
   const setActiveLink = (targetId) => {
-    const navTarget = targetId.startsWith("blog-") ? blogNavTarget : targetId;
+    let navTarget = targetId;
+    if (targetId.startsWith("blog-")) navTarget = blogNavTarget;
+    if (targetId.startsWith("project-")) navTarget = projectNavTarget;
     navLinks.forEach((link) => {
       const isActive = link.dataset.target === navTarget;
       link.classList.toggle("active", isActive);
@@ -114,6 +134,7 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
     const pathTarget = getTargetFromPathname();
     const hasHashPageTarget = Boolean(hash && livePageMap.has(hash));
     const hasHashBlogTarget = isBlogDetailHash(hash) && livePageMap.has("blog");
+    const hasHashProjectTarget = isProjectDetailHash(hash) && livePageMap.has("project");
 
     // Hash-based SPA routes (e.g. /#project) should win over default path '/'.
     if (hasHashPageTarget) {
@@ -128,6 +149,12 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
       return;
     }
 
+    if (hasHashProjectTarget) {
+      setActivePage("project");
+      history.replaceState({ type: "page", targetId: hash }, "", buildPathForTarget(hash));
+      return;
+    }
+
     if (pathTarget && livePageMap.has(pathTarget)) {
       setActivePage(pathTarget);
       return;
@@ -135,6 +162,11 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
 
     if (pathTarget && pathTarget.startsWith("blog-") && livePageMap.has("blog")) {
       setActivePage("blog");
+      return;
+    }
+
+    if (pathTarget && pathTarget.startsWith("project-") && livePageMap.has("project")) {
+      setActivePage("project");
       return;
     }
 
@@ -157,6 +189,7 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
   const { livePageMap } = getPagesState();
   const hasInitialHashPageTarget = Boolean(initialHash && livePageMap.has(initialHash));
   const hasInitialHashBlogTarget = isBlogDetailHash(initialHash) && livePageMap.has("blog");
+  const hasInitialHashProjectTarget = isProjectDetailHash(initialHash) && livePageMap.has("project");
 
   let startPage = getDefaultPageId();
 
@@ -164,15 +197,27 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
     startPage = initialHash;
   } else if (hasInitialHashBlogTarget) {
     startPage = "blog";
+  } else if (hasInitialHashProjectTarget) {
+    startPage = "project";
   } else if (initialPathTarget && livePageMap.has(initialPathTarget)) {
     startPage = initialPathTarget;
   } else if (initialPathTarget && initialPathTarget.startsWith("blog-") && livePageMap.has("blog")) {
     startPage = "blog";
+  } else if (initialPathTarget && initialPathTarget.startsWith("project-") && livePageMap.has("project")) {
+    startPage = "project";
   } else if (
     !isModalHash(initialHash) &&
-    (livePageMap.has(initialHash) || (isBlogDetailHash(initialHash) && livePageMap.has("blog")))
+    (
+      livePageMap.has(initialHash) ||
+      (isBlogDetailHash(initialHash) && livePageMap.has("blog")) ||
+      (isProjectDetailHash(initialHash) && livePageMap.has("project"))
+    )
   ) {
-    startPage = isBlogDetailHash(initialHash) ? "blog" : initialHash;
+    startPage = isBlogDetailHash(initialHash)
+      ? "blog"
+      : isProjectDetailHash(initialHash)
+        ? "project"
+        : initialHash;
   }
 
   setActivePage(startPage);
@@ -180,7 +225,9 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
   if (!initialPathTarget && !initialHash) {
     history.replaceState({ type: "page", targetId: startPage }, "", buildPathForTarget(startPage));
   } else if (!initialPathTarget && initialHash && !isModalHash(initialHash)) {
-    const targetId = isBlogDetailHash(initialHash) ? initialHash : startPage;
+    const targetId = (isBlogDetailHash(initialHash) || isProjectDetailHash(initialHash))
+      ? initialHash
+      : startPage;
     history.replaceState({ type: "page", targetId }, "", buildPathForTarget(targetId));
   }
 

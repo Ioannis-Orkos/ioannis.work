@@ -5,10 +5,7 @@ html {
 body {
     font: var(--font-body);
     overflow-x: hidden;
-    background:
-        /* radial-gradient(circle at 14% 12%, rgba(217, 119, 6, 0.1), transparent 66%),
-        radial-gradient(circle at 82% 18%, rgba(56, 189, 248, 0.08), transparent 66%), */
-        var(--color-body);
+    background:var(--color-body);
     color: var(--color-body-text);
     display: flex;
     flex-direction: column;
@@ -205,11 +202,31 @@ section {
     max-width: 72rem;
 }
 
+#project h2 {
+    text-align: center;
+}
+
+.project-search {
+    margin: 1.2rem auto 1.6rem;
+    max-width: 72rem;
+}
+
 #blog h2 {
     text-align: center;
 }
 
 #blog-search {
+    width: 100%;
+    border: 1px solid var(--color-border);
+    border-radius: 0.8rem;
+    padding: 1rem 1.2rem;
+    font: var(--font-body);
+    background: var(--color-surface);
+    color: var(--color-body-text);
+    box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.18);
+}
+
+#project-search {
     width: 100%;
     border: 1px solid var(--color-border);
     border-radius: 0.8rem;
@@ -226,7 +243,22 @@ section {
     box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.22);
 }
 
+#project-search:focus-visible {
+    outline: 2px solid var(--color-nav-active-hover);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.22);
+}
+
 .blog-categories {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    justify-content: center;
+    max-width: 80rem;
+    margin: 0 auto 1.6rem;
+}
+
+.project-categories {
     display: flex;
     flex-wrap: wrap;
     gap: 0.8rem;
@@ -275,6 +307,13 @@ section {
 }
 
 .blog-list {
+    display: grid;
+    gap: 1.2rem;
+    max-width: 80rem;
+    margin: 0 auto;
+}
+
+.project-list {
     display: grid;
     gap: 1.2rem;
     max-width: 80rem;

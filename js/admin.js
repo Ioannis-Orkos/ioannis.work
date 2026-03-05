@@ -264,7 +264,7 @@ export function initAdmin({ navigationController } = {}) {
     const externalUrlInput = projectEditorForm.querySelector("#admin-project-external-url");
     const htmlContentInput = projectEditorForm.querySelector("#admin-project-content");
     slugInput.value = String(project?.slug || "");
-    slugInput.disabled = projectEditorMode === "edit";
+    slugInput.disabled = false;
     slugInput.dataset.manual = projectEditorMode === "create" && slugInput.value.trim() ? "1" : "0";
     titleInput.value = String(project?.title || "");
     descriptionInput.value = String(project?.description || "");

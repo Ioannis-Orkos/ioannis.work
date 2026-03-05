@@ -23,6 +23,11 @@ const saveToken = (token) => {
     localStorage.setItem(key, token);
   });
   window.__IS_AUTHORIZED_USER = true;
+  window.dispatchEvent(new CustomEvent("auth:changed", { detail: { loggedIn: true } }));
+};
+
+const setAuthUser = (user) => {
+  window.__AUTH_USER = user || null;
 };
 
 const clearTokens = () => {
@@ -31,6 +36,8 @@ const clearTokens = () => {
     sessionStorage.removeItem(key);
   });
   window.__IS_AUTHORIZED_USER = false;
+  setAuthUser(null);
+  window.dispatchEvent(new CustomEvent("auth:changed", { detail: { loggedIn: false } }));
 };
 
 const getNavLinks = () => [...document.querySelectorAll("#nav-login-link")];
@@ -92,8 +99,11 @@ export function initAuth() {
         credentials: "include",
       });
       if (response.ok) {
+        const body = await parseJsonSafe(response);
         window.__IS_AUTHORIZED_USER = true;
+        setAuthUser(body?.user || null);
         setNavLoggedState(true);
+        window.dispatchEvent(new CustomEvent("auth:changed", { detail: { loggedIn: true } }));
         return;
       }
     } catch {
@@ -179,6 +189,7 @@ export function initAuth() {
       }
 
       saveToken(body.token);
+      setAuthUser(body?.user || null);
       setNavLoggedState(true);
       setStatus("Logged in successfully.");
       resetAuthForms();

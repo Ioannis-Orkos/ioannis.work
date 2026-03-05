@@ -115,6 +115,16 @@ export function initModals({ mobileNavController, navigationController }) {
   window.addEventListener("popstate", syncModalFromUrl);
   window.addEventListener("hashchange", syncModalFromUrl);
 
+  window.addEventListener("app:open-modal", (event) => {
+    const modalId = event?.detail?.modalId;
+    if (!modalId) return;
+    openModal(modalId, { push: true });
+  });
+
+  window.addEventListener("app:close-modal", () => {
+    closeModal();
+  });
+
   syncModalFromUrl();
 
   return {

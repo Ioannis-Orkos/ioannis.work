@@ -170,6 +170,8 @@
       <div id="project-categories" class="project-categories" aria-label="Project Categories">
       </div>
 
+      <p id="project-status" class="project-status" aria-live="polite"></p>
+
       <div id="projects" class="project-list" aria-live="polite">
       </div>
     </section>
@@ -284,6 +286,20 @@
         <button type="submit" class="modal-submit">Create Account</button>
       </form>
       <p id="login-status" class="modal-status" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <div id="request-access-modal" class="modal-overlay" data-modal-id="request-access" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="request-access-title">
+      <button type="button" class="modal-close" data-modal-close aria-label="Close request access dialog">×</button>
+      <h2 id="request-access-title">Request Project Access</h2>
+      <p id="request-access-message" class="modal-status">You need access approval before opening this locked project.</p>
+      <form id="request-access-form" class="modal-form">
+        <label for="request-access-note">Message</label>
+        <textarea id="request-access-note" name="note" rows="4" placeholder="Write why you need access..." required></textarea>
+        <button type="submit" class="modal-submit" id="request-access-confirm">Send Request</button>
+      </form>
+      <p id="request-access-status" class="modal-status" aria-live="polite"></p>
     </div>
   </div>
 

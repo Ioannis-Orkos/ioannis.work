@@ -320,6 +320,57 @@ section {
     margin: 0 auto;
 }
 
+.project-status {
+    min-height: 2rem;
+    margin: 0 auto 1rem;
+    max-width: 80rem;
+    text-align: center;
+    color: #ef4444;
+}
+
+.project-item-locked {
+    opacity: 0.76;
+    filter: grayscale(0.72);
+    border-color: rgba(148, 163, 184, 0.5);
+    box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.18);
+    position: relative;
+}
+
+.project-item-approved {
+    opacity: 1;
+    filter: none;
+}
+
+.project-item-pending {
+    opacity: 0.76;
+    filter: grayscale(0.72);
+    border-color: rgba(148, 163, 184, 0.5);
+    box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.18);
+}
+
+.project-lock-icon {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 2.6rem;
+    height: 2.6rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.5);
+    background: rgba(127, 29, 29, 0.9);
+    color: #fecaca;
+    font-size: 1.4rem;
+    line-height: 1;
+}
+
+.project-lock-icon-awaiting {
+    border-color: rgba(245, 158, 11, 0.7);
+    background: rgba(154, 52, 18, 0.92);
+    color: #ffedd5;
+}
+
 .blog-item {
     display: grid;
     grid-template-columns: minmax(10rem, 16rem) 1fr;

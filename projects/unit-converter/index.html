@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Unit Converter (Simple)</title>
+  <script>
+    if (window.top === window.self) {
+      window.location.replace("/#project-ft-to-lb-conversion");
+    }
+  </script>
+  <style>
+    :root{
+      color-scheme: light dark;
+      --bg:#0b1220;
+      --card:#101a2e;
+      --text:#e7eefc;
+      --muted:#a8b3cf;
+      --line:rgba(255,255,255,.10);
+      --shadow:0 12px 30px rgba(0,0,0,.35);
+      --radius:16px;
+      --focus:rgba(207,226,255,.45);
+      --accent:#60a5fa;
+      --btnbg:rgba(255,255,255,.06);
+    }
+    @media (prefers-color-scheme: light){
+      :root{
+        --bg:#f3f4f6;
+        --card:#ffffff;
+        --text:#111827;
+        --muted:#4b5563;
+        --line:rgba(17,24,39,.12);
+        --shadow:0 12px 30px rgba(0,0,0,.12);
+        --focus:rgba(59,130,246,.25);
+        --accent:#2563eb;
+        --btnbg:rgba(17,24,39,.04);
+      }
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 20% -10%, rgba(96,165,250,.18) 0%, transparent 60%),
+        radial-gradient(900px 600px at 120% 10%, rgba(167,139,250,.16) 0%, transparent 55%),
+        var(--bg);
+    }
+
+    .wrap{max-width:980px;margin:0 auto;padding:16px 14px 40px}
+    header{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;margin-bottom:12px}
+    h1{margin:0;font-size:22px}
+    .sub{margin:0;color:var(--muted);font-size:13px}
+
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .hd{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .bd{padding:12px 14px}
+    .grid{display:grid;grid-template-columns:1fr;gap:12px}
+
+    /* expandable category */
+    details.cat{
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:color-mix(in srgb, var(--card) 86%, transparent);
+      overflow:hidden;
+    }
+    details.cat > summary{
+      list-style:none;
+      cursor:pointer;
+      padding:12px 14px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      font-weight:900;
+      outline:none;
+    }
+    details.cat > summary::-webkit-details-marker{display:none}
+    .chev{
+      width:10px;height:10px;
+      border-right:2px solid var(--muted);
+      border-bottom:2px solid var(--muted);
+      transform:rotate(45deg);
+      transition:transform .12s ease;
+      flex:0 0 auto;
+    }
+    details.cat[open] .chev{transform:rotate(225deg)}
+    .catBody{padding:10px 14px;border-top:1px solid var(--line)}
+    .topbar{display:flex;flex-wrap:wrap;gap:8px}
+
+    .catBtn{
+      appearance:none;
+      border:1px solid var(--line);
+      background:var(--btnbg);
+      color:var(--text);
+      padding:9px 12px;
+      border-radius:14px;
+      font-weight:800;
+      cursor:pointer;
+      transition:transform .03s ease;
+    }
+    .catBtn:active{transform:scale(.99)}
+    .catBtn[aria-pressed="true"]{
+      border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+      box-shadow:0 0 0 4px var(--focus);
+      background: color-mix(in srgb, var(--accent) 14%, var(--btnbg));
+    }
+
+    label{display:block;color:var(--muted);font-size:12px;margin:0 0 6px}
+    input, select, button{
+      width:100%;
+      padding:11px 12px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:color-mix(in srgb, var(--card) 92%, transparent);
+      color:var(--text);
+      outline:none;
+      font:inherit;
+    }
+    input:focus, select:focus, button:focus{
+      box-shadow:0 0 0 4px var(--focus);
+      border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+    }
+
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media (max-width: 650px){ .row{grid-template-columns:1fr} }
+
+    .result{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:12px;
+      background:color-mix(in srgb, var(--card) 86%, transparent);
+      margin-top:10px;
+    }
+    .big{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size:22px;
+      font-weight:900;
+      margin:0 0 4px;
+      word-break:break-word;
+    }
+    .small{margin:0;color:var(--muted);font-size:12px;word-break:break-word}
+
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    .btn2{cursor:pointer;font-weight:900}
+    .hint{color:var(--muted);font-size:12px;margin-top:8px}
+    .hidden{display:none !important}
+    .sep{height:1px;background:var(--line);margin:12px 0}
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Unit Converter</h1>
+        <p class="sub">Simple categories + simple input.</p>
+      </div>
+      <!-- <div class="sub">TV friendly: Tab + Enter works.</div> -->
+    </header>
+
+    <div class="grid">
+      <!-- Expandable Category -->
+      <section class="card">
+        <div class="hd">
+          <div style="font-weight:900">Category</div>
+          <div class="sub" id="catLabel">Speed</div>
+        </div>
+        <div class="bd">
+          <details class="cat" id="catDetails" open>
+            <summary>
+              <span id="catSummaryText">Choose category: <span style="color:var(--accent)">Speed</span></span>
+              <span class="chev" aria-hidden="true"></span>
+            </summary>
+            <div class="catBody">
+              <div class="topbar" id="catBar"></div>
+              <div class="hint">Pick a category.</div>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <!-- Main converter -->
+      <section class="card">
+        <div class="hd">
+          <div style="font-weight:900">Converter</div>
+          <div class="sub" id="modeHint">Convert value</div>
+        </div>
+        <div class="bd">
+          <div class="row">
+            <!-- LEFT: input + result -->
+            <div>
+              <label>Value</label>
+              <input id="val" inputmode="decimal" placeholder="Type a number..." />
+
+              <!-- ✅ Result moved here (replaces keypad) -->
+              <div class="result" aria-live="polite">
+                <p class="big" id="bigOut">—</p>
+                <p class="small" id="smallOut">Result will appear here.</p>
+              </div>
+
+              <div class="hint">Tip: just type the number. Result updates instantly.</div>
+            </div>
+
+            <!-- RIGHT: from/to controls -->
+            <div>
+              <label>From</label>
+              <select id="fromU"></select>
+
+              <div style="height:10px"></div>
+
+              <label>To</label>
+              <select id="toU"></select>
+
+              <div class="actions">
+                <button class="btn2" type="button" id="swap">Swap</button>
+                <button class="btn2" type="button" id="copy">Copy</button>
+              </div>
+
+              <!-- Fuel density -->
+              <div id="fuelBox" class="hidden" style="margin-top:12px">
+                <div class="sep"></div>
+                <div class="row">
+                  <div>
+                    <label>Fuel density (kg/L)</label>
+                    <input id="densKgL" inputmode="decimal" value="0.80" />
+                  </div>
+                  <div>
+                    <label>Fuel density (lb/US gal)</label>
+                    <input id="densLbUSG" inputmode="decimal" value="6.7" />
+                  </div>
+                </div>
+                <div class="hint">Only used for Fuel conversions (mass ↔ volume).</div>
+              </div>
+            </div>
+          </div>
+
+          
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    // ---------- helpers ----------
+    const $ = (id)=>document.getElementById(id);
+    const valEl = $("val");
+    const fromU = $("fromU");
+    const toU = $("toU");
+    const bigOut = $("bigOut");
+    const smallOut = $("smallOut");
+    const catLabel = $("catLabel");
+    const catSummaryText = $("catSummaryText");
+    const modeHint = $("modeHint");
+    const fuelBox = $("fuelBox");
+    const catDetails = $("catDetails");
+
+    function toNum(v){
+      const n = Number(String(v).trim());
+      return Number.isFinite(n) ? n : NaN;
+    }
+    function fmt(n){
+      if(!Number.isFinite(n)) return "—";
+      const abs = Math.abs(n);
+      if(abs !== 0 && (abs >= 1e6 || abs < 1e-3)) return n.toExponential(6);
+      return n.toLocaleString(undefined,{maximumFractionDigits:6});
+    }
+
+    // ---------- categories + units ----------
+    const KG_PER_LB = 0.45359237;
+    const L_PER_USG = 3.785411784;
+    const L_PER_IMPG = 4.54609;
+
+    const CATS = {
+      speed: { label:"Speed", type:"factor", units:{ "kt":0.5144444444444445, "km/h":0.2777777777777778, "mph":0.44704, "m/s":1 } },
+      altitude: { label:"Altitude", type:"altitude", units:["ft","m","FL"] },
+      pressure: { label:"Pressure", type:"factor", units:{ "hPa":100, "kPa":1000, "Pa":1, "bar":100000, "psi":6894.757293168, "inHg":3386.389, "mmHg":133.322387415 } },
+      temp: { label:"Temp", type:"temp", units:["C","F","K"] },
+      length: { label:"Length", type:"factor", units:{ "mm":0.001, "cm":0.01, "m":1, "km":1000, "in":0.0254, "ft":0.3048, "yd":0.9144, "NM":1852, "SM":1609.344 } },
+      mass: { label:"Mass", type:"factor", units:{ "g":0.001, "kg":1, "tonne":1000, "lb":0.45359237, "oz":0.028349523125 } },
+      volume: { label:"Volume", type:"factor", units:{ "L":1, "m³":1000, "US gal":3.785411784, "Imp gal":4.54609, "US qt":0.946352946 } },
+      torque: { label:"Torque", type:"factor", units:{ "N·m":1, "lbf·ft":1.3558179483314004, "lbf·in":0.1129848290276167, "kgf·m":9.80665, "kgf·cm":0.0980665 } },
+      fuel: { label:"Fuel", type:"fuel", units:["kg","lb","L","US gal","Imp gal"] },
+    };
+
+    let current = "speed";
+
+    function setOptions(select, list){
+      select.innerHTML = "";
+      list.forEach(u=>{
+        const o=document.createElement("option");
+        o.value=u; o.textContent=u;
+        select.appendChild(o);
+      });
+    }
+    function setOptionsFromDict(select, dict){
+      select.innerHTML = "";
+      Object.keys(dict).forEach(u=>{
+        const o=document.createElement("option");
+        o.value=u; o.textContent=u;
+        select.appendChild(o);
+      });
+    }
+
+    function maybeAutoCollapseCategory(){
+      catDetails.open = false;
+    }
+
+    function setCategory(key){
+      current = key;
+      const cat = CATS[key];
+
+      catLabel.textContent = cat.label;
+      catSummaryText.innerHTML = `Choose category: <span style="color:var(--accent)">${cat.label}</span>`;
+
+      fuelBox.classList.toggle("hidden", key !== "fuel");
+      modeHint.textContent = "Convert value";
+
+      if (cat.type === "factor"){
+        setOptionsFromDict(fromU, cat.units);
+        setOptionsFromDict(toU, cat.units);
+        const keys = Object.keys(cat.units);
+        fromU.value = keys[0];
+        toU.value = keys[1] || keys[0];
+      } else if (cat.type === "altitude"){
+        setOptions(fromU, cat.units);
+        setOptions(toU, cat.units);
+        fromU.value = "ft";
+        toU.value = "m";
+      } else if (cat.type === "temp"){
+        setOptions(fromU, cat.units);
+        setOptions(toU, cat.units);
+        fromU.value = "C";
+        toU.value = "F";
+      } else if (cat.type === "fuel"){
+        setOptions(fromU, cat.units);
+        setOptions(toU, cat.units);
+        fromU.value = "kg";
+        toU.value = "L";
+      }
+
+      convert();
+    }
+
+    // ---------- conversion ----------
+    function convertFactor(val, fromUnit, toUnit, dict){
+      const fFrom = dict[fromUnit];
+      const fTo = dict[toUnit];
+      if(!fFrom || !fTo) return NaN;
+      const base = val * fFrom;
+      return base / fTo;
+    }
+
+    function convertTemp(val, fromUnit, toUnit){
+      let c;
+      if(fromUnit==="C") c=val;
+      else if(fromUnit==="F") c=(val-32)*5/9;
+      else if(fromUnit==="K") c=val-273.15;
+      else return NaN;
+
+      if(toUnit==="C") return c;
+      if(toUnit==="F") return c*9/5+32;
+      if(toUnit==="K") return c+273.15;
+      return NaN;
+    }
+
+    function convertAlt(val, fromUnit, toUnit){
+      let ft;
+      if(fromUnit==="ft") ft=val;
+      else if(fromUnit==="m") ft=val*3.280839895013123;
+      else if(fromUnit==="FL") ft=val*100;
+      else return NaN;
+
+      if(toUnit==="ft") return ft;
+      if(toUnit==="m") return ft/3.280839895013123;
+      if(toUnit==="FL") return ft/100;
+      return NaN;
+    }
+
+    function fuelConvert(val, fromUnit, toUnit){
+      const dKgL = toNum($("densKgL").value);
+      if(!Number.isFinite(dKgL) || dKgL<=0) return NaN;
+
+      let kg;
+      if(fromUnit==="kg") kg=val;
+      else if(fromUnit==="lb") kg=val*KG_PER_LB;
+      else if(fromUnit==="L") kg=val*dKgL;
+      else if(fromUnit==="US gal") kg=(val*L_PER_USG)*dKgL;
+      else if(fromUnit==="Imp gal") kg=(val*L_PER_IMPG)*dKgL;
+      else return NaN;
+
+      if(toUnit==="kg") return kg;
+      if(toUnit==="lb") return kg/KG_PER_LB;
+      if(toUnit==="L") return kg/dKgL;
+      if(toUnit==="US gal") return (kg/dKgL)/L_PER_USG;
+      if(toUnit==="Imp gal") return (kg/dKgL)/L_PER_IMPG;
+      return NaN;
+    }
+
+    function convert(){
+
+      const v = toNum(valEl.value);
+      if(!Number.isFinite(v)){
+        bigOut.textContent = "—";
+        smallOut.textContent = "Enter a number.";
+        return;
+      }
+
+      const cat = CATS[current];
+      const a = fromU.value;
+      const b = toU.value;
+
+      let res = NaN;
+
+      if(cat.type === "factor") res = convertFactor(v, a, b, cat.units);
+      else if(cat.type === "temp") res = convertTemp(v, a, b);
+      else if(cat.type === "altitude") res = convertAlt(v, a, b);
+      else if(cat.type === "fuel") res = fuelConvert(v, a, b);
+
+      bigOut.textContent = `${fmt(res)} ${b}`;
+      smallOut.textContent = `${fmt(v)} ${a}  →  ${fmt(res)} ${b}`;
+    }
+
+    // ---------- category buttons ----------
+    const catBar = $("catBar");
+    const catOrder = ["speed","altitude","pressure","temp","length","mass","volume","torque","fuel"];
+
+    catOrder.forEach(key=>{
+      const btn = document.createElement("button");
+      btn.type="button";
+      btn.className="catBtn";
+      btn.textContent = CATS[key].label;
+      btn.setAttribute("aria-pressed", key===current ? "true":"false");
+      btn.addEventListener("click", ()=>{
+        [...catBar.querySelectorAll(".catBtn")].forEach(b=>b.setAttribute("aria-pressed","false"));
+        btn.setAttribute("aria-pressed","true");
+        setCategory(key);
+        maybeAutoCollapseCategory();
+      });
+      catBar.appendChild(btn);
+    });
+
+    // ---------- buttons ----------
+    $("swap").addEventListener("click", ()=>{
+      const a = fromU.value;
+      fromU.value = toU.value;
+      toU.value = a;
+      convert();
+    });
+
+    $("copy").addEventListener("click", ()=>{
+      const text = `${smallOut.textContent}\n${bigOut.textContent}`;
+      navigator.clipboard?.writeText(text).catch(()=>{});
+    });
+
+    valEl.addEventListener("input", convert);
+    fromU.addEventListener("change", convert);
+    toU.addEventListener("change", convert);
+
+    // ---------- density sync ----------
+    function syncFromKgL(){
+      const d = toNum($("densKgL").value);
+      if(!Number.isFinite(d) || d<=0) return;
+      $("densLbUSG").value = String(Number((d * L_PER_USG / KG_PER_LB).toFixed(6)));
+    }
+    function syncFromLbUSG(){
+      const d = toNum($("densLbUSG").value);
+      if(!Number.isFinite(d) || d<=0) return;
+      $("densKgL").value = String(Number((d * KG_PER_LB / L_PER_USG).toFixed(6)));
+    }
+    $("densKgL").addEventListener("input", ()=>{ syncFromKgL(); if(current==="fuel") convert(); });
+    $("densLbUSG").addEventListener("input", ()=>{ syncFromLbUSG(); if(current==="fuel") convert(); });
+    syncFromKgL();
+
+    
+
+    // init
+    setCategory("speed");
+  </script>
+</body>
+</html>

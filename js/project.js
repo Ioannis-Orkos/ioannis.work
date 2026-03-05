@@ -604,15 +604,6 @@ export async function initProject({ navigationController } = {}) {
       project?.serverEndpoint || serverProject?.externalUrl || serverProject?.external_url || buildProjectUrl(project)
     ).trim();
 
-    if ((serverDeliveryType === "link" || projectDeliveryType === "link") && redirectTarget) {
-      try {
-        window.location.href = new URL(redirectTarget, window.location.href).toString();
-      } catch {
-        window.location.href = redirectTarget;
-      }
-      return;
-    }
-
     if (project.locked) {
       const hasSession = await ensureAuthorizedSession();
       if (!hasSession) {
@@ -634,6 +625,15 @@ export async function initProject({ navigationController } = {}) {
       }
 
       await loadServerLockedContent(project, serverProject, { push });
+      return;
+    }
+
+    if ((serverDeliveryType === "link" || projectDeliveryType === "link") && redirectTarget) {
+      try {
+        window.location.href = new URL(redirectTarget, window.location.href).toString();
+      } catch {
+        window.location.href = redirectTarget;
+      }
       return;
     }
 

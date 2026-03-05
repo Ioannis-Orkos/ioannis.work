@@ -1,35 +1,11 @@
 [
   {
     "id": "project-001",
-    "folder": "ft-to-lb-conversion",
-    "title": "FT to LB Conversion Tool (Aviation)",
+    "folder": "unit-converter",
+    "title": "Unit Converter",
     "date": "2026-03-01",
-    "description": "Converts fuel and payload weights from kilograms to pounds and feet to meters with aircraft-ready rounding and validation checks.",
-    "image": "ft-to-lb-conversion/asset/preview.webp",
-    "locked": false,
-    "categories": ["Aviation", "Utilities", "JavaScript"],
-    "url": "ft-to-lb-conversion/index.html"
-  },
-  {
-    "id": "project-002",
-    "folder": "line-maintenance-checklist",
-    "title": "Line Maintenance Checklist Tracker",
-    "date": "2026-02-24",
-    "description": "A daily checklist tracker for line maintenance teams with shift handover notes and completion audit trail.",
-    "image": "line-maintenance-checklist/asset/preview.webp",
-    "locked": false,
-    "categories": ["Aviation", "Workflow", "Frontend"],
-    "url": "line-maintenance-checklist/index.html"
-  },
-  {
-    "id": "project-003",
-    "folder": "defect-priority-board",
-    "title": "Aircraft Defect Priority Board",
-    "date": "2026-02-18",
-    "description": "Sorts aircraft defects by operational risk, turnaround impact, and engineering priority for faster decision making.",
-    "image": "defect-priority-board/asset/preview.webp",
-    "locked": false,
-    "categories": ["Aviation", "Operations", "Dashboard"],
-    "url": "defect-priority-board/index.html"
+    "description": "simple unit converter for various categories.",
+    "image": "unit-converter/asset/preview.webp",
+    "categories": ["Aviation", "Utilities", "JavaScript"]
   }
 ]

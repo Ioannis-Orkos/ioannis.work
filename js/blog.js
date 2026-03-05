@@ -12,8 +12,7 @@ export async function initBlog({ navigationController } = {}) {
 
   let blogs = [];
   let selectedCategories = new Set();
-  const loadedSections = new Set();
-  const loadingSections = new Map();
+  const embeddedFrameById = new Map();
 
   const normalizeBlog = (blog, index) => ({
     id: String(blog?.id || `blog-${index + 1}`),
@@ -29,6 +28,7 @@ export async function initBlog({ navigationController } = {}) {
   });
 
   const sectionIdForBlog = (blog) => `blog-${blog.folder}`;
+
   const getFolderFromLocation = () => {
     const pathname = (window.location.pathname || "/").replace(/\/+$/, "") || "/";
     if (pathname.startsWith("/blogs/")) {
@@ -36,13 +36,11 @@ export async function initBlog({ navigationController } = {}) {
       if (folder) return folder;
     }
 
-    // Backward compatibility for older blog detail route.
     if (pathname.startsWith("/blog/")) {
       const folder = pathname.slice("/blog/".length).split("/")[0];
       if (folder) return folder;
     }
 
-    // Legacy hash route support.
     const hash = window.location.hash.replace("#", "");
     return hash.startsWith("blog-") ? hash.replace("blog-", "") : "";
   };
@@ -58,63 +56,115 @@ export async function initBlog({ navigationController } = {}) {
     return `${BLOG_BASE_PATH}${blog.folder}/index.html`;
   };
 
-  const resolveRelativeUrl = (baseUrl, maybeRelativeUrl) => {
-    try {
-      return new URL(maybeRelativeUrl, new URL(baseUrl, window.location.href)).toString();
-    } catch {
-      return maybeRelativeUrl;
-    }
+  const removeDynamicBlogSections = () => {
+    document.querySelectorAll("section.page[data-blog-folder]").forEach((node) => node.remove());
   };
 
   const ensureBlogSection = (blog) => {
-    const sectionId = sectionIdForBlog(blog);
-    let section = document.getElementById(sectionId);
-    if (section) return section;
+    removeDynamicBlogSections();
 
-    section = document.createElement("section");
-    section.id = sectionId;
-    section.className = "page";
+    const section = document.createElement("section");
+    section.id = sectionIdForBlog(blog);
+    section.className = "page project-embedded-page";
     section.dataset.blogFolder = blog.folder;
-    section.innerHTML = '<p class="blog-loading">Loading blog...</p>';
+    section.innerHTML = "";
     mainEl.appendChild(section);
     return section;
   };
 
-  const renderBlogHtmlIntoSection = (section, blogHtml, blogUrl) => {
-    const doc = new DOMParser().parseFromString(blogHtml, "text/html");
-    const contentRoot = document.createElement("div");
-    contentRoot.className = "blog-loaded-content";
+  const createSandboxedBlogFrame = () => {
+    const iframe = document.createElement("iframe");
+    iframe.className = "project-embedded-frame";
+    iframe.loading = "lazy";
+    iframe.referrerPolicy = "no-referrer-when-downgrade";
+    iframe.setAttribute("scrolling", "no");
+    iframe.setAttribute(
+      "sandbox",
+      "allow-forms allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts"
+    );
+    const frameId = `blog-frame-${Math.random().toString(36).slice(2)}`;
+    iframe.dataset.frameId = frameId;
+    embeddedFrameById.set(frameId, iframe);
+    return iframe;
+  };
 
-    // Copy body content and rewrite relative asset links to absolute URLs.
-    contentRoot.innerHTML = doc.body ? doc.body.innerHTML : blogHtml;
-    contentRoot.querySelectorAll("[src]").forEach((el) => {
-      el.setAttribute("src", resolveRelativeUrl(blogUrl, el.getAttribute("src")));
-    });
-    contentRoot.querySelectorAll("[href]").forEach((el) => {
-      const href = el.getAttribute("href");
-      if (!href || href.startsWith("#")) return;
-      el.setAttribute("href", resolveRelativeUrl(blogUrl, href));
-    });
+  const isCrossOriginUrl = (value) => {
+    try {
+      const target = new URL(String(value || ""), window.location.href);
+      return target.origin !== window.location.origin;
+    } catch {
+      return false;
+    }
+  };
 
-    // Execute blog scripts after injecting HTML.
-    const scriptNodes = [...contentRoot.querySelectorAll("script")];
-    scriptNodes.forEach((oldScript) => {
-      const nextScript = document.createElement("script");
-      [...oldScript.attributes].forEach((attr) => {
-        if (attr.name === "src") {
-          nextScript.setAttribute("src", resolveRelativeUrl(blogUrl, attr.value));
-          return;
-        }
-        nextScript.setAttribute(attr.name, attr.value);
-      });
-      if (!oldScript.src) {
-        nextScript.textContent = oldScript.textContent;
-      }
-      oldScript.replaceWith(nextScript);
-    });
+  const renderHtmlIntoSection = (section, html, sourceUrl) => {
+    const iframe = createSandboxedBlogFrame();
+    const frameId = String(iframe.dataset.frameId || "");
 
+    const srcDoc = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="${sourceUrl}" />
+  <style>html,body{margin:0;padding:0;background:transparent;}</style>
+</head>
+<body>${String(html || "")}
+<script>
+(() => {
+  const frameId = ${JSON.stringify(frameId)};
+  let heightScheduled = false;
+  const sendHeight = () => {
+    const bodyHeight = document.body ? document.body.scrollHeight : 0;
+    const htmlHeight = document.documentElement ? document.documentElement.scrollHeight : 0;
+    const height = Math.max(bodyHeight, htmlHeight, 1);
+    parent.postMessage({ type: "blog-frame-height", frameId, height }, "*");
+  };
+  const scheduleHeight = () => {
+    if (heightScheduled) return;
+    heightScheduled = true;
+    requestAnimationFrame(() => {
+      heightScheduled = false;
+      sendHeight();
+    });
+  };
+  window.addEventListener("load", sendHeight);
+  window.addEventListener("resize", scheduleHeight);
+  new MutationObserver(scheduleHeight).observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+  });
+  sendHeight();
+})();
+</script>
+</body>
+</html>`;
+
+    iframe.srcdoc = srcDoc;
     section.innerHTML = "";
-    section.appendChild(contentRoot);
+    section.appendChild(iframe);
+  };
+
+  const renderUrlIntoSection = async (section, sourceUrl) => {
+    try {
+      if (isCrossOriginUrl(sourceUrl)) {
+        const iframe = createSandboxedBlogFrame();
+        iframe.src = sourceUrl;
+        section.innerHTML = "";
+        section.appendChild(iframe);
+        return;
+      }
+
+      const response = await fetch(sourceUrl, { credentials: "include" });
+      if (!response.ok) {
+        throw new Error(`Failed to load blog: ${response.status}`);
+      }
+      const html = await response.text();
+      renderHtmlIntoSection(section, html, sourceUrl);
+    } catch (error) {
+      console.error("[Blog] Failed to load blog page:", error);
+      section.innerHTML = "<p>Failed to load blog content.</p>";
+    }
   };
 
   const openBlog = async (blog, { push = true } = {}) => {
@@ -123,29 +173,7 @@ export async function initBlog({ navigationController } = {}) {
     const section = ensureBlogSection(blog);
     const blogUrl = buildBlogUrl(blog);
 
-    if (!loadedSections.has(sectionId)) {
-      if (!loadingSections.has(sectionId)) {
-        const loadPromise = (async () => {
-          try {
-            const response = await fetch(blogUrl);
-            if (!response.ok) {
-              throw new Error(`Failed to load blog: ${response.status}`);
-            }
-            const html = await response.text();
-            renderBlogHtmlIntoSection(section, html, blogUrl);
-            loadedSections.add(sectionId);
-          } catch (error) {
-            console.error("[Blog] Failed to load blog page:", error);
-            section.innerHTML = "<p>Failed to load blog content.</p>";
-          } finally {
-            loadingSections.delete(sectionId);
-          }
-        })();
-        loadingSections.set(sectionId, loadPromise);
-      }
-
-      await loadingSections.get(sectionId);
-    }
+    await renderUrlIntoSection(section, blogUrl);
 
     if (navigationController && typeof navigationController.navigateTo === "function") {
       navigationController.navigateTo(sectionId, { push });
@@ -309,6 +337,16 @@ export async function initBlog({ navigationController } = {}) {
     if (filtered.length) {
       openBlog(filtered[0], { push: true });
     }
+  });
+
+  window.addEventListener("message", (event) => {
+    const data = event?.data;
+    if (!data || data.type !== "blog-frame-height") return;
+    const frame = embeddedFrameById.get(String(data.frameId || ""));
+    if (!frame) return;
+    const nextHeight = Number(data.height);
+    if (!Number.isFinite(nextHeight) || nextHeight <= 0) return;
+    frame.style.height = `${Math.max(1, Math.round(nextHeight))}px`;
   });
 
   try {

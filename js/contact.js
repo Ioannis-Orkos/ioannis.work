@@ -197,6 +197,21 @@ export function initContactForm() {
 
   if (!formEl || !submitBtnEl) return;
 
+  const showSuccessUi = () => {
+    showSuccessState(formEl, thankYouEl, statusEl, modalCardEl, modalTitleEl);
+  };
+
+  const resetContactUi = () => {
+    resetFormState(
+      formEl,
+      thankYouEl,
+      submitBtnEl,
+      statusEl,
+      modalCardEl,
+      modalTitleEl
+    );
+  };
+
   const scheduleSuccessReset = () => {
     if (resetTimer) {
       window.clearTimeout(resetTimer);
@@ -208,14 +223,7 @@ export function initContactForm() {
 
     resetTimer = window.setTimeout(() => {
       clearSuccessWindow();
-      resetFormState(
-        formEl,
-        thankYouEl,
-        submitBtnEl,
-        statusEl,
-        modalCardEl,
-        modalTitleEl
-      );
+      resetContactUi();
     }, remaining);
   };
 
@@ -224,7 +232,7 @@ export function initContactForm() {
   }
 
   if (isSuccessActive()) {
-    showSuccessState(formEl, thankYouEl, statusEl, modalCardEl, modalTitleEl);
+    showSuccessUi();
     scheduleSuccessReset();
   } else {
     clearSuccessWindow();
@@ -256,14 +264,7 @@ export function initContactForm() {
 
     if (closeButton && contactOverlay && !contactOverlay.hidden) {
       if (isSuccessActive()) return;
-      resetFormState(
-        formEl,
-        thankYouEl,
-        submitBtnEl,
-        statusEl,
-        modalCardEl,
-        modalTitleEl
-      );
+      resetContactUi();
       return;
     }
 
@@ -274,33 +275,19 @@ export function initContactForm() {
       !contactOverlay.hidden
     ) {
       if (isSuccessActive()) return;
-      resetFormState(
-        formEl,
-        thankYouEl,
-        submitBtnEl,
-        statusEl,
-        modalCardEl,
-        modalTitleEl
-      );
+      resetContactUi();
     }
   });
 
   window.addEventListener("hashchange", () => {
     if (window.location.hash !== "#contact") {
       if (isSuccessActive()) return;
-      resetFormState(
-        formEl,
-        thankYouEl,
-        submitBtnEl,
-        statusEl,
-        modalCardEl,
-        modalTitleEl
-      );
+      resetContactUi();
       return;
     }
 
     if (isSuccessActive()) {
-      showSuccessState(formEl, thankYouEl, statusEl, modalCardEl, modalTitleEl);
+      showSuccessUi();
       scheduleSuccessReset();
     }
   });

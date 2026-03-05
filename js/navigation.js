@@ -15,10 +15,20 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
     ["admin", "/admin"],
   ]);
 
-  const getPagesState = () => {
-    const livePages = [...document.querySelectorAll(".page")];
-    const livePageMap = new Map(livePages.map((page) => [page.id, page]));
-    return { livePages, livePageMap };
+  let livePages = [...pages];
+  let livePageMap = new Map(pageMap);
+
+  const refreshPagesState = () => {
+    const nextPages = [...document.querySelectorAll(".page")];
+    if (
+      nextPages.length === livePages.length &&
+      nextPages.every((page, index) => page === livePages[index])
+    ) {
+      return;
+    }
+
+    livePages = nextPages;
+    livePageMap = new Map(livePages.map((page) => [page.id, page]));
   };
 
   const normalizePathname = () => {
@@ -81,7 +91,7 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
     let navTarget = targetId;
     if (targetId.startsWith("blog-")) navTarget = blogNavTarget;
     if (targetId.startsWith("project-")) navTarget = projectNavTarget;
-    navLinks.forEach((link) => {
+    for (const link of navLinks) {
       const isActive = link.dataset.target === navTarget;
       link.classList.toggle("active", isActive);
 
@@ -90,16 +100,16 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
       } else {
         link.removeAttribute("aria-current");
       }
-    });
+    }
   };
 
   const setActivePage = (targetId) => {
-    const { livePages, livePageMap } = getPagesState();
+    refreshPagesState();
     if (!livePageMap.has(targetId)) return false;
 
-    livePages.forEach((page) => {
+    for (const page of livePages) {
       page.classList.toggle("active", page.id === targetId);
-    });
+    }
 
     setActiveLink(targetId);
     return true;
@@ -120,66 +130,85 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
   };
 
   const getDefaultPageId = () => {
-    const { livePages } = getPagesState();
+    refreshPagesState();
     return livePages.find((page) => page.classList.contains("active"))?.id || livePages[0]?.id;
   };
 
   const getActivePageId = () => {
-    const { livePages } = getPagesState();
+    refreshPagesState();
     return livePages.find((page) => page.classList.contains("active"))?.id || getDefaultPageId();
+  };
+
+  const resolveFromHash = (hash) => {
+    if (!hash) return null;
+    refreshPagesState();
+
+    if (livePageMap.has(hash)) {
+      return {
+        pageId: hash,
+        historyTargetId: hash,
+        historyPath: buildPathForTarget(hash),
+      };
+    }
+
+    if (isBlogDetailHash(hash) && livePageMap.has("blog")) {
+      return {
+        pageId: "blog",
+        historyTargetId: hash,
+        historyPath: buildPathForTarget(hash),
+      };
+    }
+
+    if (isProjectDetailHash(hash) && livePageMap.has("project")) {
+      return {
+        pageId: "project",
+        historyTargetId: hash,
+        historyPath: buildPathForTarget(hash),
+      };
+    }
+
+    if (isSharedProjectHash(hash) && livePageMap.has("project")) {
+      return {
+        pageId: "project",
+        historyTargetId: hash,
+        historyPath: `/#${hash}`,
+      };
+    }
+
+    return null;
+  };
+
+  const resolveRouteState = ({ hash, pathTarget }) => {
+    const hashState = resolveFromHash(hash);
+    if (hashState) return hashState;
+
+    refreshPagesState();
+
+    if (pathTarget && livePageMap.has(pathTarget)) {
+      return { pageId: pathTarget };
+    }
+
+    if (pathTarget && pathTarget.startsWith("blog-") && livePageMap.has("blog")) {
+      return { pageId: "blog" };
+    }
+
+    if (pathTarget && pathTarget.startsWith("project-") && livePageMap.has("project")) {
+      return { pageId: "project" };
+    }
+
+    return { pageId: getDefaultPageId() };
   };
 
   const syncFromUrl = () => {
     const hash = window.location.hash.replace("#", "");
     if (isModalHash(hash)) return;
-    const { livePageMap } = getPagesState();
     const pathTarget = getTargetFromPathname();
-    const hasHashPageTarget = Boolean(hash && livePageMap.has(hash));
-    const hasHashBlogTarget = isBlogDetailHash(hash) && livePageMap.has("blog");
-    const hasHashProjectTarget = isProjectDetailHash(hash) && livePageMap.has("project");
-    const hasHashSharedProjectTarget = isSharedProjectHash(hash) && livePageMap.has("project");
+    const resolved = resolveRouteState({ hash, pathTarget });
+    setActivePage(resolved.pageId);
 
-    // Hash-based SPA routes (e.g. /#project) should win over default path '/'.
-    if (hasHashPageTarget) {
-      setActivePage(hash);
-      history.replaceState({ type: "page", targetId: hash }, "", buildPathForTarget(hash));
-      return;
+    if (resolved.historyTargetId && resolved.historyPath) {
+      history.replaceState({ type: "page", targetId: resolved.historyTargetId }, "", resolved.historyPath);
     }
-
-    if (hasHashBlogTarget) {
-      setActivePage("blog");
-      history.replaceState({ type: "page", targetId: hash }, "", buildPathForTarget(hash));
-      return;
-    }
-
-    if (hasHashProjectTarget) {
-      setActivePage("project");
-      history.replaceState({ type: "page", targetId: hash }, "", buildPathForTarget(hash));
-      return;
-    }
-
-    if (hasHashSharedProjectTarget) {
-      setActivePage("project");
-      history.replaceState({ type: "page", targetId: hash }, "", `/#${hash}`);
-      return;
-    }
-
-    if (pathTarget && livePageMap.has(pathTarget)) {
-      setActivePage(pathTarget);
-      return;
-    }
-
-    if (pathTarget && pathTarget.startsWith("blog-") && livePageMap.has("blog")) {
-      setActivePage("blog");
-      return;
-    }
-
-    if (pathTarget && pathTarget.startsWith("project-") && livePageMap.has("project")) {
-      setActivePage("project");
-      return;
-    }
-
-    setActivePage(getDefaultPageId());
   };
 
   window.addEventListener("popstate", syncFromUrl);
@@ -195,56 +224,18 @@ export function initNavigation({ pages, navLinks, pageMap, mobileNavController }
 
   const initialHash = window.location.hash.replace("#", "");
   const initialPathTarget = getTargetFromPathname();
-  const { livePageMap } = getPagesState();
-  const hasInitialHashPageTarget = Boolean(initialHash && livePageMap.has(initialHash));
-  const hasInitialHashBlogTarget = isBlogDetailHash(initialHash) && livePageMap.has("blog");
-  const hasInitialHashProjectTarget = isProjectDetailHash(initialHash) && livePageMap.has("project");
-  const hasInitialHashSharedProjectTarget = isSharedProjectHash(initialHash) && livePageMap.has("project");
-
-  let startPage = getDefaultPageId();
-
-  if (hasInitialHashPageTarget) {
-    startPage = initialHash;
-  } else if (hasInitialHashBlogTarget) {
-    startPage = "blog";
-  } else if (hasInitialHashProjectTarget) {
-    startPage = "project";
-  } else if (hasInitialHashSharedProjectTarget) {
-    startPage = "project";
-  } else if (initialPathTarget && livePageMap.has(initialPathTarget)) {
-    startPage = initialPathTarget;
-  } else if (initialPathTarget && initialPathTarget.startsWith("blog-") && livePageMap.has("blog")) {
-    startPage = "blog";
-  } else if (initialPathTarget && initialPathTarget.startsWith("project-") && livePageMap.has("project")) {
-    startPage = "project";
-  } else if (
-    !isModalHash(initialHash) &&
-    (
-      livePageMap.has(initialHash) ||
-      (isBlogDetailHash(initialHash) && livePageMap.has("blog")) ||
-      (isProjectDetailHash(initialHash) && livePageMap.has("project")) ||
-      (isSharedProjectHash(initialHash) && livePageMap.has("project"))
-    )
-  ) {
-    startPage = isBlogDetailHash(initialHash)
-      ? "blog"
-      : (isProjectDetailHash(initialHash) || isSharedProjectHash(initialHash))
-        ? "project"
-        : initialHash;
-  }
+  const resolvedInitial = resolveRouteState({ hash: initialHash, pathTarget: initialPathTarget });
+  const startPage = resolvedInitial.pageId || getDefaultPageId();
 
   setActivePage(startPage);
 
   if (!initialPathTarget && !initialHash) {
     history.replaceState({ type: "page", targetId: startPage }, "", buildPathForTarget(startPage));
-  } else if (!initialPathTarget && initialHash && !isModalHash(initialHash)) {
-    const targetId = (isBlogDetailHash(initialHash) || isProjectDetailHash(initialHash) || isSharedProjectHash(initialHash))
-      ? initialHash
-      : startPage;
+  } else if (!initialPathTarget && resolvedInitial.historyTargetId && !isModalHash(initialHash)) {
     history.replaceState(
-      { type: "page", targetId },
+      { type: "page", targetId: resolvedInitial.historyTargetId },
       "",
-      isSharedProjectHash(targetId) ? `/#${targetId}` : buildPathForTarget(targetId)
+      resolvedInitial.historyPath
     );
   }
 

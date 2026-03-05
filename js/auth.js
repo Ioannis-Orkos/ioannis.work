@@ -1,20 +1,18 @@
 import { AUTH_API_BASE_URL } from "./config.js";
-
-const TOKEN_KEYS = ["auth-token", "access-token", "site-auth-token"];
+import {
+  clearStoredAuthTokens,
+  getStoredAuthToken,
+  parseJsonSafe,
+  saveAuthToken,
+  setAuthUser,
+  setAuthorizedFlag,
+} from "./auth-session.js";
 
 const endpoints = {
   signup: `${AUTH_API_BASE_URL}/api/auth/signup`,
   login: `${AUTH_API_BASE_URL}/api/auth/login`,
   logout: `${AUTH_API_BASE_URL}/api/auth/logout`,
   me: `${AUTH_API_BASE_URL}/api/auth/me`,
-};
-
-const getStoredAuthToken = () => {
-  for (const key of TOKEN_KEYS) {
-    const value = localStorage.getItem(key) || sessionStorage.getItem(key);
-    if (value) return value;
-  }
-  return "";
 };
 
 const parseJwtPayload = (token) => {
@@ -29,25 +27,9 @@ const parseJwtPayload = (token) => {
   }
 };
 
-const parseJsonSafe = async (response) => {
-  try {
-    return await response.json();
-  } catch {
-    return {};
-  }
-};
-
 const saveToken = (token) => {
-  if (!token) return;
-  TOKEN_KEYS.forEach((key) => {
-    localStorage.setItem(key, token);
-  });
-  window.__IS_AUTHORIZED_USER = true;
+  if (!saveAuthToken(token)) return;
   window.dispatchEvent(new CustomEvent("auth:changed", { detail: { loggedIn: true } }));
-};
-
-const setAuthUser = (user) => {
-  window.__AUTH_USER = user || null;
 };
 
 const getAdminNavLinks = () => [...document.querySelectorAll('a[data-target="admin"]')];
@@ -64,11 +46,8 @@ const setAdminNavVisibility = (visible) => {
 };
 
 const clearTokens = () => {
-  TOKEN_KEYS.forEach((key) => {
-    localStorage.removeItem(key);
-    sessionStorage.removeItem(key);
-  });
-  window.__IS_AUTHORIZED_USER = false;
+  clearStoredAuthTokens();
+  setAuthorizedFlag(false);
   setAuthUser(null);
   setAdminNavVisibility(false);
   window.dispatchEvent(new CustomEvent("auth:changed", { detail: { loggedIn: false } }));
@@ -140,7 +119,7 @@ export function initAuth() {
       });
       if (response.ok) {
         const body = await parseJsonSafe(response);
-        window.__IS_AUTHORIZED_USER = true;
+        setAuthorizedFlag(true);
         setAuthUser(body?.user || null);
         setAdminNavVisibility(String(body?.user?.role || "").toLowerCase() === "admin");
         setNavLoggedState(true);
@@ -153,7 +132,7 @@ export function initAuth() {
 
     const hasToken = Boolean(token);
     setNavLoggedState(hasToken);
-    window.__IS_AUTHORIZED_USER = hasToken;
+    setAuthorizedFlag(hasToken);
     if (hasToken) {
       const payload = parseJwtPayload(token);
       const inferredRole = String(payload?.role || "").toLowerCase();

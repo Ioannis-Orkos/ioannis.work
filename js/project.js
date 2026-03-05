@@ -1,8 +1,13 @@
 import { AUTH_API_BASE_URL } from "./config.js";
+import {
+  authenticatedFetch as apiFetch,
+  ensureAuthorizedSession,
+  isAdminUser,
+  isAuthorizedUser,
+} from "./auth-session.js";
 
 const PROJECT_DATA_URL = "/projects/projects-data.json";
 const PROJECT_BASE_PATH = "/projects/";
-const AUTH_TOKEN_KEYS = ["auth-token", "access-token", "site-auth-token"];
 
 const endpoints = {
   me: `${AUTH_API_BASE_URL}/api/auth/me`,
@@ -10,31 +15,6 @@ const endpoints = {
   requestAccess: (projectRef) => `${AUTH_API_BASE_URL}/api/projects/${encodeURIComponent(String(projectRef))}/request-access`,
   content: (projectId) => `${AUTH_API_BASE_URL}/api/projects/${projectId}/content`,
   ssoToken: (projectId) => `${AUTH_API_BASE_URL}/api/projects/${projectId}/sso-token`,
-};
-
-const getStoredAuthToken = () => {
-  for (const key of AUTH_TOKEN_KEYS) {
-    const value = localStorage.getItem(key) || sessionStorage.getItem(key);
-    if (value) return value;
-  }
-  return "";
-};
-
-const apiFetch = async (url, options = {}) => {
-  const token = getStoredAuthToken();
-  const headers = {
-    ...(options.headers || {}),
-  };
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  return fetch(url, {
-    credentials: "include",
-    ...options,
-    headers,
-  });
 };
 
 export async function initProject({ navigationController } = {}) {
@@ -113,19 +93,7 @@ export async function initProject({ navigationController } = {}) {
     return hash.startsWith("project-") ? hash.replace("project-", "") : "";
   };
 
-  const isAuthorizedUser = () => {
-    if (window.__IS_AUTHORIZED_USER === true) return true;
-    return AUTH_TOKEN_KEYS.some((key) => {
-      try {
-        return Boolean(localStorage.getItem(key) || sessionStorage.getItem(key));
-      } catch {
-        return false;
-      }
-    });
-  };
-
-  const getAuthRole = () => String(window.__AUTH_USER?.role || "").toLowerCase();
-  const isAdminUser = () => getAuthRole() === "admin";
+  const ensureAuthorizedProjectSession = () => ensureAuthorizedSession(endpoints.me);
 
   const getServerProjectStatus = (serverProject) => {
     if (!serverProject) return "not_requested";
@@ -151,31 +119,11 @@ export async function initProject({ navigationController } = {}) {
     return requestStatus === "approved" || requestStatus === "admin";
   };
 
-  const ensureAuthorizedSession = async () => {
-    if (isAuthorizedUser() && window.__AUTH_USER) return true;
-    if (!getStoredAuthToken() && !window.__AUTH_USER) return false;
-
-    try {
-      const response = await apiFetch(endpoints.me, { method: "GET" });
-      if (!response.ok) {
-        window.__IS_AUTHORIZED_USER = false;
-        return false;
-      }
-      const body = await response.json().catch(() => ({}));
-      window.__IS_AUTHORIZED_USER = true;
-      window.__AUTH_USER = body?.user || null;
-      return true;
-    } catch {
-      window.__IS_AUTHORIZED_USER = false;
-      return false;
-    }
-  };
-
   const loadServerProjects = async () => {
     requestNotesBySlug = new Map();
 
     if (!isAuthorizedUser()) {
-      const hasSession = await ensureAuthorizedSession();
+      const hasSession = await ensureAuthorizedProjectSession();
       if (!hasSession) {
         serverProjectsBySlug = new Map();
         return;
@@ -605,7 +553,7 @@ export async function initProject({ navigationController } = {}) {
     ).trim();
 
     if (project.locked) {
-      const hasSession = await ensureAuthorizedSession();
+      const hasSession = await ensureAuthorizedProjectSession();
       if (!hasSession) {
         openLoginWithMessage("This project is locked. Please login and request access.");
         return;
@@ -675,7 +623,7 @@ export async function initProject({ navigationController } = {}) {
       return;
     }
 
-    await ensureAuthorizedSession();
+    await ensureAuthorizedProjectSession();
     await loadServerProjects();
     applyServerProjectCatalog();
 
@@ -712,7 +660,7 @@ export async function initProject({ navigationController } = {}) {
     const normalizedSlug = String(slug || "").trim();
     if (!normalizedSlug) return;
 
-    const hasSession = await ensureAuthorizedSession();
+    const hasSession = await ensureAuthorizedProjectSession();
     if (!hasSession) {
       openLoginWithMessage("This shared project requires login.");
       return;
@@ -932,7 +880,7 @@ export async function initProject({ navigationController } = {}) {
   };
 
   const refreshAuthSensitiveState = async () => {
-    await ensureAuthorizedSession();
+    await ensureAuthorizedProjectSession();
     await loadServerProjects();
     applyServerProjectCatalog();
     renderCategories();
@@ -994,7 +942,7 @@ export async function initProject({ navigationController } = {}) {
       : [];
     projects = baseProjects.map((project) => ({ ...project }));
 
-    await ensureAuthorizedSession();
+    await ensureAuthorizedProjectSession();
     await loadServerProjects();
     applyServerProjectCatalog();
     renderCategories();

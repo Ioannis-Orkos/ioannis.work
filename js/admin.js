@@ -1,6 +1,9 @@
 import { AUTH_API_BASE_URL } from "./config.js";
-
-const AUTH_TOKEN_KEYS = ["auth-token", "access-token", "site-auth-token"];
+import {
+  authenticatedFetch as apiFetch,
+  parseJsonSafe,
+  setAuthUser,
+} from "./auth-session.js";
 
 const endpoints = {
   me: `${AUTH_API_BASE_URL}/api/auth/me`,
@@ -14,28 +17,6 @@ const endpoints = {
   projectDeleteById: (id) => `${AUTH_API_BASE_URL}/api/admin/projects/${id}`,
   userRoleById: (id) => `${AUTH_API_BASE_URL}/api/admin/users/${id}/role`,
   userById: (id) => `${AUTH_API_BASE_URL}/api/admin/users/${id}`,
-};
-
-const getStoredAuthToken = () => {
-  for (const key of AUTH_TOKEN_KEYS) {
-    const value = localStorage.getItem(key) || sessionStorage.getItem(key);
-    if (value) return value;
-  }
-  return "";
-};
-
-const apiFetch = async (url, options = {}) => {
-  const token = getStoredAuthToken();
-  const headers = {
-    ...(options.headers || {}),
-  };
-  if (token) headers.Authorization = `Bearer ${token}`;
-
-  return fetch(url, {
-    credentials: "include",
-    ...options,
-    headers,
-  });
 };
 
 export function initAdmin({ navigationController } = {}) {
@@ -70,14 +51,6 @@ export function initAdmin({ navigationController } = {}) {
 
   const setGateStatus = (message) => {
     gateStatusEl.textContent = message || "";
-  };
-
-  const parseJsonSafe = async (response) => {
-    try {
-      return await response.json();
-    } catch {
-      return {};
-    }
   };
 
   const escapeHtml = (value) =>
@@ -295,7 +268,7 @@ export function initAdmin({ navigationController } = {}) {
         };
       }
       const body = await parseJsonSafe(response);
-      window.__AUTH_USER = body?.user || window.__AUTH_USER || null;
+      setAuthUser(body?.user || window.__AUTH_USER || null);
       const isAdmin = String(body?.user?.role || "").toLowerCase() === "admin";
       if (!isAdmin) {
         return { ok: false, reason: "Admin access required." };

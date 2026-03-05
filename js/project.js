@@ -236,6 +236,9 @@ export async function initProject({ navigationController } = {}) {
       const serverExternalUrl = String(row?.externalUrl || row?.external_url || "").trim();
       const serverImagePath = String(row?.imagePath || row?.image_path || "").trim();
       const serverDate = String(row?.date || row?.updatedAt || row?.updated_at || "").trim();
+      const serverCategories = Array.isArray(row?.categories)
+        ? row.categories.map((item) => String(item).trim()).filter(Boolean)
+        : [];
 
       if (existing) {
         existing.locked = Boolean(row?.locked ?? existing.locked);
@@ -250,6 +253,9 @@ export async function initProject({ navigationController } = {}) {
         }
         if (serverDate) {
           existing.date = serverDate;
+        }
+        if (serverCategories.length) {
+          existing.categories = serverCategories;
         }
         if (!existing.title && row?.title) {
           existing.title = String(row.title);
@@ -274,7 +280,7 @@ export async function initProject({ navigationController } = {}) {
           lockedDelivery: serverDeliveryType === "link" ? "link" : "content",
           serverEndpoint: serverExternalUrl,
           url: serverExternalUrl || `${normalizedSlug}/index.html`,
-          categories: ["Server"],
+          categories: serverCategories.length ? serverCategories : ["Server"],
         },
         baseProjects.length + addedCount
       );

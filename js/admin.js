@@ -132,6 +132,10 @@ export function initAdmin({ navigationController } = {}) {
               <textarea id="admin-project-description" name="description" rows="3"></textarea>
             </div>
             <div class="admin-project-editor-field admin-project-editor-field-full">
+              <label for="admin-project-categories">Categories (comma separated)</label>
+              <input id="admin-project-categories" name="categoriesText" type="text" placeholder="Aviation, Workflow, Frontend" />
+            </div>
+            <div class="admin-project-editor-field admin-project-editor-field-full">
               <label for="admin-project-external-url">External URL</label>
               <input id="admin-project-external-url" name="externalUrl" type="url" placeholder="https://..." />
             </div>
@@ -180,6 +184,10 @@ export function initAdmin({ navigationController } = {}) {
         slug: String(formData.get("slug") || "").trim().toLowerCase(),
         title: String(formData.get("title") || "").trim(),
         description: String(formData.get("description") || "").trim(),
+        categories: String(formData.get("categoriesText") || "")
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean),
         imagePath: String(formData.get("imagePath") || "").trim(),
         deliveryType: String(formData.get("deliveryType") || "content").trim().toLowerCase(),
         locked: String(formData.get("locked") || "false").toLowerCase() === "true",
@@ -250,6 +258,7 @@ export function initAdmin({ navigationController } = {}) {
     const titleInput = projectEditorForm.querySelector("#admin-project-title");
     const descriptionInput = projectEditorForm.querySelector("#admin-project-description");
     const imageInput = projectEditorForm.querySelector("#admin-project-image");
+    const categoriesInput = projectEditorForm.querySelector("#admin-project-categories");
     const deliveryInput = projectEditorForm.querySelector("#admin-project-delivery");
     const lockedInput = projectEditorForm.querySelector("#admin-project-locked");
     const externalUrlInput = projectEditorForm.querySelector("#admin-project-external-url");
@@ -259,6 +268,12 @@ export function initAdmin({ navigationController } = {}) {
     slugInput.dataset.manual = projectEditorMode === "create" && slugInput.value.trim() ? "1" : "0";
     titleInput.value = String(project?.title || "");
     descriptionInput.value = String(project?.description || "");
+    const categoriesValue = Array.isArray(project?.categories)
+      ? project.categories
+      : String(project?.categories_json || "");
+    categoriesInput.value = Array.isArray(categoriesValue)
+      ? categoriesValue.join(", ")
+      : String(categoriesValue);
     imageInput.value = String(project?.image_path || "");
     deliveryInput.value =
       String(project?.delivery_type || "content").toLowerCase() === "link" ? "link" : "content";
@@ -495,6 +510,10 @@ export function initAdmin({ navigationController } = {}) {
               ? (/^https?:\/\//i.test(imagePath) || imagePath.startsWith("/") ? imagePath : `/projects/${imagePath}`)
               : "";
             const dateText = String(project.updated_at || "").slice(0, 10);
+            const categories = Array.isArray(project.categories)
+              ? project.categories.map((item) => String(item).trim()).filter(Boolean)
+              : [];
+            const categoriesText = categories.length ? categories.join(", ") : "No categories";
             return `
               <article class="blog-item project-item ${locked ? "project-item-locked" : ""}"
                        data-project-id="${project.id}"
@@ -509,6 +528,7 @@ export function initAdmin({ navigationController } = {}) {
                   <h3>${escapeHtml(project.title)}</h3>
                   <p class="blog-item-date">${escapeHtml(dateText)}</p>
                   <p class="blog-item-description">${escapeHtml(project.description || "")}</p>
+                  <p class="blog-item-date">categories: ${escapeHtml(categoriesText)}</p>
                   <p class="blog-item-date">slug: ${escapeHtml(project.slug)} | ${locked ? "locked" : "open"} | ${deliveryType}</p>
                 </div>
               </article>

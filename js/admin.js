@@ -351,9 +351,9 @@ export function initAdmin({ navigationController } = {}) {
   };
 
   requestsEl.addEventListener("click", async (event) => {
-    const card = event.target.closest(".admin-item[data-request-id]");
-    if (!card) return;
-    const requestId = Number(card.dataset.requestId);
+    const row = event.target.closest("tr[data-request-id]");
+    if (!row) return;
+    const requestId = Number(row.dataset.requestId);
     if (!Number.isFinite(requestId)) return;
 
     if (event.target.closest(".admin-approve")) {

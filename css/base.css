@@ -475,6 +475,22 @@ section {
     margin: 1.2rem 0;
 }
 
+.project-embedded-frame {
+    display: block;
+    width: 100%;
+    margin: 0 auto;
+    min-height: 0;
+    height: auto;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    overflow: hidden;
+}
+
+.project-embedded-page {
+    padding: 0;
+}
+
 @media (max-width: 900px) {
     .about-figure {
         max-width: 30rem;

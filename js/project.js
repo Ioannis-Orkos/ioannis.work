@@ -59,6 +59,7 @@ export async function initProject({ navigationController } = {}) {
   let requestNotesBySlug = new Map();
   let pendingRequestProject = null;
   let pendingRequestServerProject = null;
+  const embeddedFrameById = new Map();
 
   const setProjectStatus = (message) => {
     if (!projectStatusEl) return;
@@ -145,6 +146,7 @@ export async function initProject({ navigationController } = {}) {
 
   const ensureAuthorizedSession = async () => {
     if (isAuthorizedUser() && window.__AUTH_USER) return true;
+    if (!getStoredAuthToken() && !window.__AUTH_USER) return false;
 
     try {
       const response = await apiFetch(endpoints.me, { method: "GET" });
@@ -226,55 +228,79 @@ export async function initProject({ navigationController } = {}) {
 
     const section = document.createElement("section");
     section.id = sectionIdForProject(project);
-    section.className = "page";
+    section.className = "page project-embedded-page";
     section.dataset.projectFolder = project.folder;
     section.innerHTML = '<p class="blog-loading">Loading project...</p>';
     mainEl.appendChild(section);
     return section;
   };
 
+  const createSandboxedProjectFrame = () => {
+    const iframe = document.createElement("iframe");
+    iframe.className = "project-embedded-frame";
+    iframe.loading = "lazy";
+    iframe.referrerPolicy = "no-referrer-when-downgrade";
+    iframe.setAttribute("scrolling", "no");
+    iframe.setAttribute(
+      "sandbox",
+      "allow-forms allow-pointer-lock allow-presentation allow-scripts"
+    );
+    const frameId = `project-frame-${Math.random().toString(36).slice(2)}`;
+    iframe.dataset.frameId = frameId;
+    embeddedFrameById.set(frameId, iframe);
+    return iframe;
+  };
+
   const renderHtmlIntoSection = (section, html, sourceUrl) => {
-    const doc = new DOMParser().parseFromString(html, "text/html");
-    const contentRoot = document.createElement("div");
-    contentRoot.className = "blog-loaded-content";
+    const iframe = createSandboxedProjectFrame();
+    const frameId = String(iframe.dataset.frameId || "");
 
-    contentRoot.innerHTML = doc.body ? doc.body.innerHTML : html;
+    // Keep project CSS/JS isolated inside iframe so it cannot leak into main site.
+    const srcDoc = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="${sourceUrl}" />
+  <style>html,body{margin:0;padding:0;background:transparent;}</style>
+</head>
+<body>${String(html || "")}
+<script>
+(() => {
+  const frameId = ${JSON.stringify(frameId)};
+  const sendHeight = () => {
+    const bodyHeight = document.body ? document.body.scrollHeight : 0;
+    const htmlHeight = document.documentElement ? document.documentElement.scrollHeight : 0;
+    const height = Math.max(bodyHeight, htmlHeight, 600);
+    parent.postMessage({ type: "project-frame-height", frameId, height }, "*");
+  };
+  window.addEventListener("load", sendHeight);
+  window.addEventListener("resize", sendHeight);
+  new MutationObserver(sendHeight).observe(document.documentElement, { childList: true, subtree: true, attributes: true });
+  setInterval(sendHeight, 800);
+  sendHeight();
+})();
+</script>
+</body>
+</html>`;
 
-    const styleNodes = [...doc.querySelectorAll('head style, head link[rel="stylesheet"]')];
-    styleNodes.reverse().forEach((node) => {
-      const clone = node.cloneNode(true);
-      if (clone.tagName.toLowerCase() === "link") {
-        const href = clone.getAttribute("href");
-        if (href) clone.setAttribute("href", resolveRelativeUrl(sourceUrl, href));
-      }
-      contentRoot.prepend(clone);
-    });
-
-    contentRoot.querySelectorAll("[src]").forEach((el) => {
-      el.setAttribute("src", resolveRelativeUrl(sourceUrl, el.getAttribute("src")));
-    });
-    contentRoot.querySelectorAll("[href]").forEach((el) => {
-      const href = el.getAttribute("href");
-      if (!href || href.startsWith("#")) return;
-      el.setAttribute("href", resolveRelativeUrl(sourceUrl, href));
-    });
-
-    const scriptNodes = [...contentRoot.querySelectorAll("script")];
-    scriptNodes.forEach((oldScript) => {
-      const nextScript = document.createElement("script");
-      [...oldScript.attributes].forEach((attr) => {
-        if (attr.name === "src") {
-          nextScript.setAttribute("src", resolveRelativeUrl(sourceUrl, attr.value));
-          return;
-        }
-        nextScript.setAttribute(attr.name, attr.value);
-      });
-      if (!oldScript.src) nextScript.textContent = oldScript.textContent;
-      oldScript.replaceWith(nextScript);
-    });
-
+    iframe.srcdoc = srcDoc;
     section.innerHTML = "";
-    section.appendChild(contentRoot);
+    section.appendChild(iframe);
+  };
+
+  const renderUrlIntoSection = async (section, sourceUrl) => {
+    try {
+      const response = await fetch(sourceUrl, { credentials: "include" });
+      if (!response.ok) {
+        throw new Error(`Failed to load project: ${response.status}`);
+      }
+      const html = await response.text();
+      renderHtmlIntoSection(section, html, sourceUrl);
+    } catch (error) {
+      console.error("[Project] Failed to load project page:", error);
+      section.innerHTML = "<p>Failed to load project content.</p>";
+    }
   };
 
   const openLoginWithMessage = (message) => {
@@ -455,17 +481,7 @@ export async function initProject({ navigationController } = {}) {
     const section = ensureProjectSection(project);
     const projectUrl = buildProjectUrl(project);
 
-    try {
-      const response = await fetch(projectUrl, { credentials: "include" });
-      if (!response.ok) {
-        throw new Error(`Failed to load project: ${response.status}`);
-      }
-      const html = await response.text();
-      renderHtmlIntoSection(section, html, projectUrl);
-    } catch (error) {
-      console.error("[Project] Failed to load project page:", error);
-      section.innerHTML = "<p>Failed to load project content.</p>";
-    }
+    await renderUrlIntoSection(section, projectUrl);
 
     if (navigationController && typeof navigationController.navigateTo === "function") {
       navigationController.navigateTo(sectionId, { push });
@@ -672,6 +688,15 @@ export async function initProject({ navigationController } = {}) {
   });
 
   window.addEventListener("auth:changed", refreshAuthSensitiveState);
+  window.addEventListener("message", (event) => {
+    const data = event?.data;
+    if (!data || data.type !== "project-frame-height") return;
+    const frame = embeddedFrameById.get(String(data.frameId || ""));
+    if (!frame) return;
+    const nextHeight = Number(data.height);
+    if (!Number.isFinite(nextHeight) || nextHeight <= 0) return;
+    frame.style.height = `${Math.max(600, Math.round(nextHeight))}px`;
+  });
 
   if (requestAccessFormEl && requestAccessConfirmBtn) {
     requestAccessFormEl.addEventListener("submit", async (event) => {

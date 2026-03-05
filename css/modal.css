@@ -73,14 +73,14 @@
 }
 
 #request-access-modal .modal-card.request-access-waiting {
-    background: #334155;
-    color: #e2e8f0;
-    border: 1px solid rgba(148, 163, 184, 0.55);
+    background: #e2e8f0;
+    color: #0f172a;
+    border: 1px solid rgba(100, 116, 139, 0.45);
 }
 
 #request-access-modal .modal-card.request-access-waiting .modal-form textarea {
-    background: rgba(15, 23, 42, 0.42);
-    border-color: rgba(148, 163, 184, 0.6);
+    background: rgba(255, 255, 255, 0.85);
+    border-color: rgba(100, 116, 139, 0.55);
 }
 
 #request-access-modal .modal-card.request-access-waiting .modal-submit {
@@ -88,6 +88,18 @@
     color: #fff7ed;
     opacity: 0.65;
     cursor: not-allowed;
+}
+
+:root[data-theme="dark"] #request-access-modal .modal-card.request-access-waiting {
+    background: #334155;
+    color: #e2e8f0;
+    border: 1px solid rgba(148, 163, 184, 0.55);
+}
+
+:root[data-theme="dark"] #request-access-modal .modal-card.request-access-waiting .modal-form textarea {
+    background: rgba(15, 23, 42, 0.42);
+    border-color: rgba(148, 163, 184, 0.6);
+    color: #e2e8f0;
 }
 
 .auth-switch {

@@ -72,6 +72,27 @@
     margin-top: 0.8rem;
 }
 
+.auth-switch {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.8rem;
+    margin-top: 1.2rem;
+}
+
+.auth-switch-button {
+    border: 1px solid rgba(148, 163, 184, 0.45);
+    border-radius: 0.8rem;
+    background: transparent;
+    color: inherit;
+    padding: 0.8rem 1rem;
+    cursor: pointer;
+}
+
+.auth-switch-button.active {
+    border-color: var(--color-nav-active-hover);
+    background: rgba(217, 119, 6, 0.14);
+}
+
 .error-message {
     min-height: 1.2rem;
     margin-top: -0.2rem;

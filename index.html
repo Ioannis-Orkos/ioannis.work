@@ -257,6 +257,11 @@
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
       <button type="button" class="modal-close" data-modal-close aria-label="Close login form">×</button>
       <h2 id="login-modal-title">Login</h2>
+      <div class="auth-switch" role="tablist" aria-label="Authentication mode">
+        <button type="button" class="auth-switch-button active" id="show-login" aria-controls="login-form">Login</button>
+        <button type="button" class="auth-switch-button" id="show-signup" aria-controls="signup-form">Sign Up</button>
+      </div>
+
       <form id="login-form" class="modal-form">
         <label for="login-email">Email</label>
         <input id="login-email" name="email" type="email" required />
@@ -265,6 +270,18 @@
         <input id="login-password" name="password" type="password" required minlength="6" />
 
         <button type="submit" class="modal-submit">Sign In</button>
+      </form>
+      <form id="signup-form" class="modal-form" hidden>
+        <label for="signup-fullname">Full Name</label>
+        <input id="signup-fullname" name="fullName" type="text" />
+
+        <label for="signup-email">Email</label>
+        <input id="signup-email" name="email" type="email" required />
+
+        <label for="signup-password">Password</label>
+        <input id="signup-password" name="password" type="password" required minlength="6" />
+
+        <button type="submit" class="modal-submit">Create Account</button>
       </form>
       <p id="login-status" class="modal-status" aria-live="polite"></p>
     </div>

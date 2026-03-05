@@ -7,6 +7,7 @@ import { initModals } from "./modals.js";
 import { initBlog } from "./blog.js";
 import { initProject } from "./project.js";
 import { initContactForm } from "./contact.js";
+import { initAuth } from "./auth.js";
 
 const refs = getDomRefs();
 
@@ -47,4 +48,6 @@ if (hasRequiredDom(refs)) {
   initProject({
     navigationController,
   });
+
+  initAuth();
 }

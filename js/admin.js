@@ -52,6 +52,16 @@ export function initAdmin({ navigationController } = {}) {
 
   let isLoading = false;
   let pollTimer = null;
+  let usersCache = [];
+  let userSearchQuery = "";
+  let userRoleFilter = "all";
+  let requestFilter = "pending";
+  let requestSearchQuery = "";
+  let requestsCache = [];
+  let projectEditorModal = null;
+  let projectEditorForm = null;
+  let projectEditorStatus = null;
+  let editingProjectId = null;
 
   const setGateStatus = (message) => {
     gateStatusEl.textContent = message || "";
@@ -63,6 +73,136 @@ export function initAdmin({ navigationController } = {}) {
     } catch {
       return {};
     }
+  };
+
+  const escapeHtml = (value) =>
+    String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+
+  const ensureProjectEditorModal = () => {
+    if (projectEditorModal) return;
+
+    const overlay = document.createElement("div");
+    overlay.id = "admin-project-editor-modal";
+    overlay.className = "modal-overlay";
+    overlay.hidden = true;
+    overlay.innerHTML = `
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="admin-project-editor-title">
+        <button type="button" class="modal-close admin-project-editor-close" aria-label="Close project editor">×</button>
+        <h2 id="admin-project-editor-title">Edit Project</h2>
+        <form id="admin-project-editor-form" class="modal-form admin-project-editor-form">
+          <div class="admin-project-editor-grid">
+            <div class="admin-project-editor-field">
+              <label for="admin-project-title">Title</label>
+              <input id="admin-project-title" name="title" type="text" required />
+            </div>
+            <div class="admin-project-editor-field">
+              <label for="admin-project-image">Image</label>
+              <input id="admin-project-image" name="imagePath" type="text" placeholder="folder/asset/preview.webp" />
+            </div>
+            <div class="admin-project-editor-field">
+              <label for="admin-project-delivery">Delivery</label>
+              <select id="admin-project-delivery" name="deliveryType">
+                <option value="content">content</option>
+                <option value="link">link</option>
+              </select>
+            </div>
+            <div class="admin-project-editor-field">
+              <label for="admin-project-locked">Locked</label>
+              <select id="admin-project-locked" name="locked">
+                <option value="false">open</option>
+                <option value="true">locked</option>
+              </select>
+            </div>
+            <div class="admin-project-editor-field admin-project-editor-field-full">
+              <label for="admin-project-description">Description</label>
+              <textarea id="admin-project-description" name="description" rows="3"></textarea>
+            </div>
+            <div class="admin-project-editor-field admin-project-editor-field-full">
+              <label for="admin-project-external-url">External URL</label>
+              <input id="admin-project-external-url" name="externalUrl" type="url" placeholder="https://..." />
+            </div>
+            <div class="admin-project-editor-field admin-project-editor-field-full">
+              <label for="admin-project-content">Content</label>
+              <textarea id="admin-project-content" name="htmlContent" rows="10" placeholder="Project HTML content..."></textarea>
+            </div>
+          </div>
+          <button type="submit" class="modal-submit">Save Project</button>
+        </form>
+        <p id="admin-project-editor-status" class="modal-status" aria-live="polite"></p>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    projectEditorModal = overlay;
+    projectEditorForm = overlay.querySelector("#admin-project-editor-form");
+    projectEditorStatus = overlay.querySelector("#admin-project-editor-status");
+
+    overlay.addEventListener("click", (event) => {
+      if (event.target === overlay || event.target.closest(".admin-project-editor-close")) {
+        overlay.hidden = true;
+        editingProjectId = null;
+        if (projectEditorStatus) projectEditorStatus.textContent = "";
+      }
+    });
+
+    projectEditorForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!Number.isFinite(editingProjectId)) return;
+
+      const formData = new FormData(projectEditorForm);
+      const payload = {
+        title: String(formData.get("title") || "").trim(),
+        description: String(formData.get("description") || "").trim(),
+        imagePath: String(formData.get("imagePath") || "").trim(),
+        deliveryType: String(formData.get("deliveryType") || "content").trim().toLowerCase(),
+        locked: String(formData.get("locked") || "false").toLowerCase() === "true",
+        externalUrl: String(formData.get("externalUrl") || "").trim(),
+        htmlContent: String(formData.get("htmlContent") || ""),
+      };
+
+      try {
+        const response = await apiFetch(endpoints.projectById(editingProjectId), {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const body = await parseJsonSafe(response);
+        if (!response.ok) {
+          throw new Error(body.error || "Failed to save project.");
+        }
+        projectEditorModal.hidden = true;
+        editingProjectId = null;
+        if (projectEditorStatus) projectEditorStatus.textContent = "";
+        await loadAdminData();
+      } catch (error) {
+        if (projectEditorStatus) {
+          projectEditorStatus.textContent = error.message || "Failed to save project.";
+        }
+      }
+    });
+  };
+
+  const openProjectEditor = (project) => {
+    ensureProjectEditorModal();
+    editingProjectId = Number(project?.id);
+    if (!Number.isFinite(editingProjectId)) return;
+    if (!projectEditorForm) return;
+
+    projectEditorForm.elements.title.value = String(project?.title || "");
+    projectEditorForm.elements.description.value = String(project?.description || "");
+    projectEditorForm.elements.imagePath.value = String(project?.image_path || "");
+    projectEditorForm.elements.deliveryType.value =
+      String(project?.delivery_type || "content").toLowerCase() === "link" ? "link" : "content";
+    projectEditorForm.elements.locked.value = Boolean(project?.locked) ? "true" : "false";
+    projectEditorForm.elements.externalUrl.value = String(project?.external_url || "");
+    projectEditorForm.elements.htmlContent.value = String(project?.html_content || "");
+    if (projectEditorStatus) projectEditorStatus.textContent = "";
+    projectEditorModal.hidden = false;
   };
 
   const ensureAdmin = async () => {
@@ -103,8 +243,46 @@ export function initAdmin({ navigationController } = {}) {
     }
 
     const currentUserId = Number(window.__AUTH_USER?.id || 0);
+    const normalizedQuery = userSearchQuery.trim().toLowerCase();
+    const filtered = users.filter((user) => {
+      const role = String(user.role || "").toLowerCase();
+      const roleMatch = userRoleFilter === "all" ? true : role === userRoleFilter;
+      if (!roleMatch) return false;
+      if (!normalizedQuery) return true;
+      const haystack = [
+        user.full_name,
+        user.email,
+        user.role,
+        user.status,
+      ].join(" ").toLowerCase();
+      return haystack.includes(normalizedQuery);
+    });
+
+    if (!filtered.length) {
+      usersEl.innerHTML = `
+        <div class="admin-toolbar" style="justify-content:flex-start;margin-bottom:0.8rem;">
+          <input type="search" class="admin-users-search" placeholder="Search users..." value="${escapeHtml(userSearchQuery)}" />
+          <select class="admin-users-role-filter">
+            <option value="all" ${userRoleFilter === "all" ? "selected" : ""}>All Roles</option>
+            <option value="admin" ${userRoleFilter === "admin" ? "selected" : ""}>Admins</option>
+            <option value="user" ${userRoleFilter === "user" ? "selected" : ""}>Users</option>
+          </select>
+        </div>
+        <p>No users match current filters.</p>
+      `;
+      return;
+    }
+
     usersEl.innerHTML = `
-      <table class="admin-table">
+      <div class="admin-toolbar" style="justify-content:flex-start;margin-bottom:0.8rem;">
+        <input type="search" class="admin-users-search" placeholder="Search users..." value="${escapeHtml(userSearchQuery)}" />
+        <select class="admin-users-role-filter">
+          <option value="all" ${userRoleFilter === "all" ? "selected" : ""}>All Roles</option>
+          <option value="admin" ${userRoleFilter === "admin" ? "selected" : ""}>Admins</option>
+          <option value="user" ${userRoleFilter === "user" ? "selected" : ""}>Users</option>
+        </select>
+      </div>
+      <table class="admin-table admin-users-table">
         <thead>
           <tr>
             <th>Name</th>
@@ -115,18 +293,19 @@ export function initAdmin({ navigationController } = {}) {
           </tr>
         </thead>
         <tbody>
-          ${users
+          ${filtered
             .map((user) => {
               const canDelete = Number(user.id) !== currentUserId;
-              const canUpgrade = String(user.role || "").toLowerCase() !== "admin" && canDelete;
+              const isAdminRole = String(user.role || "").toLowerCase() === "admin";
+              const canToggleRole = canDelete;
               return `
                 <tr data-user-id="${user.id}">
-                  <td>${user.full_name || "No Name"}</td>
-                  <td>${user.email}</td>
-                  <td><span class="admin-badge">${user.role}</span></td>
-                  <td><span class="admin-badge">${user.status}</span></td>
+                  <td>${escapeHtml(user.full_name || "No Name")}</td>
+                  <td>${escapeHtml(user.email)}</td>
+                  <td><span class="admin-badge">${escapeHtml(user.role)}</span></td>
+                  <td><span class="admin-badge">${escapeHtml(user.status)}</span></td>
                   <td class="admin-actions-cell">
-                    <button type="button" class="auth-switch-button admin-upgrade-user" ${canUpgrade ? "" : "disabled"}>Make Admin</button>
+                    <button type="button" class="auth-switch-button admin-toggle-user-role" data-next-role="${isAdminRole ? "user" : "admin"}" ${canToggleRole ? "" : "disabled"}>${isAdminRole ? "Make User" : "Make Admin"}</button>
                     <button type="button" class="auth-switch-button admin-delete-user" ${canDelete ? "" : "disabled"}>Delete</button>
                   </td>
                 </tr>
@@ -144,7 +323,44 @@ export function initAdmin({ navigationController } = {}) {
       return;
     }
 
+    const sorted = [...requests].sort((a, b) => {
+      const aPending = String(a.status || "") === "pending" ? 0 : 1;
+      const bPending = String(b.status || "") === "pending" ? 0 : 1;
+      if (aPending !== bPending) return aPending - bPending;
+      return String(b.requested_at || "").localeCompare(String(a.requested_at || ""));
+    });
+    const filtered = requestFilter === "all"
+      ? sorted
+      : sorted.filter((request) => String(request.status || "") === "pending");
+    const query = requestSearchQuery.trim().toLowerCase();
+    const searched = query
+      ? filtered.filter((request) => {
+          const haystack = [
+            request.title,
+            request.full_name,
+            request.email,
+            request.status,
+            request.user_message,
+            request.user_note,
+            request.note,
+          ].join(" ").toLowerCase();
+          return haystack.includes(query);
+        })
+      : filtered;
+    const counts = {
+      pending: requests.filter((r) => r.status === "pending").length,
+      approved: requests.filter((r) => r.status === "approved").length,
+      rejected: requests.filter((r) => r.status === "rejected").length,
+      all: requests.length,
+    };
+
     requestsEl.innerHTML = `
+      <div class="admin-toolbar" style="justify-content:flex-start;margin-bottom:0.8rem;">
+        <button type="button" class="auth-switch-button admin-req-filter-toggle ${requestFilter === "all" ? "active" : ""}" data-filter-toggle="1">
+          ${requestFilter === "all" ? `Show Pending` : `Show All`}
+        </button>
+        <input type="search" class="admin-requests-search" placeholder="Search requests..." value="${escapeHtml(requestSearchQuery)}" />
+      </div>
       <table class="admin-table">
         <thead>
           <tr>
@@ -156,9 +372,11 @@ export function initAdmin({ navigationController } = {}) {
           </tr>
         </thead>
         <tbody>
-          ${requests
+          ${searched
             .map((request) => {
-              const isPending = request.status === "pending";
+              const status = String(request.status || "").toLowerCase();
+              const isApproved = status === "approved";
+              const isRejected = status === "rejected";
               const userMessage = String(
                 request.user_message ||
                 request.userMessage ||
@@ -175,8 +393,14 @@ export function initAdmin({ navigationController } = {}) {
                   <td><span class="admin-badge">${request.status}</span></td>
                   <td>${userMessage || "No message"}</td>
                   <td class="admin-actions-cell">
-                    <button type="button" class="modal-submit admin-approve" ${isPending ? "" : "disabled"}>Approve</button>
-                    <button type="button" class="auth-switch-button admin-reject" ${isPending ? "" : "disabled"}>Reject</button>
+                    <button
+                      type="button"
+                      class="modal-submit admin-request-toggle ${isApproved ? "active" : ""}"
+                      data-status="${isApproved ? "rejected" : "approved"}"
+                      aria-pressed="${isApproved ? "true" : "false"}"
+                    >
+                      ${isApproved ? "Reject" : "Approve"}
+                    </button>
                   </td>
                 </tr>
               `;
@@ -194,53 +418,36 @@ export function initAdmin({ navigationController } = {}) {
     }
 
     projectsEl.innerHTML = `
-      <table class="admin-table admin-table-projects">
-        <thead>
-          <tr>
-            <th>Title</th>
-            <th>Slug</th>
-            <th>Image</th>
-            <th>Status</th>
-            <th>Delivery</th>
-            <th>External URL</th>
-            <th>Content</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${projects
-            .map((project) => {
-              const locked = Boolean(project.locked);
-              const content = String(project.html_content || "").trim();
-              const deliveryType = String(project.delivery_type || "content").toLowerCase() === "link" ? "link" : "content";
-              const externalUrl = String(project.external_url || "").trim();
-              const imagePath = String(project.image_path || "").trim();
-              return `
-                <tr data-project-id="${project.id}" data-locked="${locked ? "1" : "0"}">
-                  <td>${project.title}</td>
-                  <td>${project.slug}</td>
-                  <td><input class="admin-image-path-input" type="text" value="${imagePath}" placeholder="folder/asset/preview.webp" /></td>
-                  <td><span class="admin-badge">${locked ? "locked" : "open"}</span></td>
-                  <td>
-                    <select class="admin-delivery-select">
-                      <option value="content" ${deliveryType === "content" ? "selected" : ""}>content</option>
-                      <option value="link" ${deliveryType === "link" ? "selected" : ""}>link</option>
-                    </select>
-                  </td>
-                  <td><input class="admin-external-url-input" type="url" value="${externalUrl}" placeholder="https://..." /></td>
-                  <td>
-                    <textarea class="admin-content-input" rows="2" placeholder="Project HTML content...">${content}</textarea>
-                  </td>
-                  <td class="admin-actions-cell">
-                    <button type="button" class="auth-switch-button admin-toggle-lock">${locked ? "Unlock" : "Lock"}</button>
-                    <button type="button" class="modal-submit admin-save-content">Save Content</button>
-                  </td>
-                </tr>
-              `;
-            })
-            .join("")}
-        </tbody>
-      </table>
+      <div class="project-list">
+        ${projects
+          .map((project) => {
+            const locked = Boolean(project.locked);
+            const deliveryType = String(project.delivery_type || "content").toLowerCase() === "link" ? "link" : "content";
+            const imagePath = String(project.image_path || "").trim();
+            const imageUrl = imagePath
+              ? (/^https?:\/\//i.test(imagePath) || imagePath.startsWith("/") ? imagePath : `/projects/${imagePath}`)
+              : "";
+            const dateText = String(project.updated_at || "").slice(0, 10);
+            return `
+              <article class="blog-item project-item ${locked ? "project-item-locked" : ""}"
+                       data-project-id="${project.id}"
+                       data-locked="${locked ? "1" : "0"}"
+                       data-project='${escapeHtml(JSON.stringify(project))}'>
+                <button type="button" class="admin-edit-project-icon" aria-label="Edit project" title="Edit project">✎</button>
+                <div class="blog-item-media ${imageUrl ? "" : "blog-item-media-empty"}">
+                  ${imageUrl ? `<img class="blog-item-image" src="${escapeHtml(imageUrl)}" alt="${escapeHtml(project.title)}" />` : ""}
+                </div>
+                <div class="blog-item-details">
+                  <h3>${escapeHtml(project.title)}</h3>
+                  <p class="blog-item-date">${escapeHtml(dateText)}</p>
+                  <p class="blog-item-description">${escapeHtml(project.description || "")}</p>
+                  <p class="blog-item-date">slug: ${escapeHtml(project.slug)} | ${locked ? "locked" : "open"} | ${deliveryType}</p>
+                </div>
+              </article>
+            `;
+          })
+          .join("")}
+      </div>
     `;
   };
 
@@ -315,7 +522,9 @@ export function initAdmin({ navigationController } = {}) {
       }
 
       const users = Array.isArray(usersBody?.users) ? usersBody.users : [];
+      usersCache = users;
       const requests = Array.isArray(requestsBody?.requests) ? requestsBody.requests : [];
+      requestsCache = requests;
       const projects = Array.isArray(projectsBody?.projects) ? projectsBody.projects : [];
       const fallbackOverview = {
         usersTotal: users.length,
@@ -351,29 +560,57 @@ export function initAdmin({ navigationController } = {}) {
   };
 
   requestsEl.addEventListener("click", async (event) => {
+    const filterBtn = event.target.closest(".admin-req-filter-toggle[data-filter-toggle]");
+    if (filterBtn) {
+      requestFilter = requestFilter === "all" ? "pending" : "all";
+      renderRequests(requestsCache);
+      return;
+    }
+
     const row = event.target.closest("tr[data-request-id]");
     if (!row) return;
     const requestId = Number(row.dataset.requestId);
     if (!Number.isFinite(requestId)) return;
 
-    if (event.target.closest(".admin-approve")) {
+    const toggleBtn = event.target.closest(".admin-request-toggle[data-status]");
+    if (toggleBtn) {
       try {
-        await updateAccessRequest(requestId, "approved");
-        await loadAdminData();
+        const nextStatus = String(toggleBtn.dataset.status || "").toLowerCase();
+        if (!["approved", "rejected"].includes(nextStatus)) return;
+        toggleBtn.disabled = true;
+        await updateAccessRequest(requestId, nextStatus);
+        requestsCache = requestsCache.map((request) =>
+          Number(request.id) === requestId ? { ...request, status: nextStatus } : request
+        );
+        requestFilter = "all";
+        renderRequests(requestsCache);
       } catch (error) {
-        setGateStatus(error.message || "Failed to approve request.");
+        setGateStatus(error.message || "Failed to update request.");
       }
       return;
     }
+  });
 
-    if (event.target.closest(".admin-reject")) {
-      try {
-        await updateAccessRequest(requestId, "rejected");
-        await loadAdminData();
-      } catch (error) {
-        setGateStatus(error.message || "Failed to reject request.");
-      }
-    }
+  requestsEl.addEventListener("input", (event) => {
+    const searchInput = event.target.closest(".admin-requests-search");
+    if (!searchInput) return;
+    requestSearchQuery = String(searchInput.value || "");
+    renderRequests(requestsCache);
+  });
+
+  usersEl.addEventListener("input", (event) => {
+    const searchInput = event.target.closest(".admin-users-search");
+    if (!searchInput) return;
+    userSearchQuery = String(searchInput.value || "");
+    renderUsers(usersCache);
+  });
+
+  usersEl.addEventListener("change", (event) => {
+    const roleFilter = event.target.closest(".admin-users-role-filter");
+    if (!roleFilter) return;
+    const nextFilter = String(roleFilter.value || "all").toLowerCase();
+    userRoleFilter = ["all", "admin", "user"].includes(nextFilter) ? nextFilter : "all";
+    renderUsers(usersCache);
   });
 
   usersEl.addEventListener("click", async (event) => {
@@ -382,20 +619,25 @@ export function initAdmin({ navigationController } = {}) {
     const userId = Number(row.dataset.userId);
     if (!Number.isFinite(userId)) return;
 
-    if (event.target.closest(".admin-upgrade-user")) {
+    if (event.target.closest(".admin-toggle-user-role")) {
       try {
+        const toggleBtn = event.target.closest(".admin-toggle-user-role");
+        const nextRole = String(toggleBtn?.dataset.nextRole || "").toLowerCase() === "user" ? "user" : "admin";
         const response = await apiFetch(endpoints.userRoleById(userId), {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ role: "admin" }),
+          body: JSON.stringify({ role: nextRole }),
         });
         const body = await parseJsonSafe(response);
         if (!response.ok) {
           throw new Error(body.error || "Failed to update user role.");
         }
-        await loadAdminData();
+        usersCache = usersCache.map((user) =>
+          Number(user.id) === userId ? { ...user, role: nextRole } : user
+        );
+        renderUsers(usersCache);
       } catch (error) {
         setGateStatus(error.message || "Failed to update user role.");
       }
@@ -411,7 +653,8 @@ export function initAdmin({ navigationController } = {}) {
         if (!response.ok) {
           throw new Error(body.error || "Failed to delete user.");
         }
-        await loadAdminData();
+        usersCache = usersCache.filter((user) => Number(user.id) !== userId);
+        renderUsers(usersCache);
       } catch (error) {
         setGateStatus(error.message || "Failed to delete user.");
       }
@@ -419,65 +662,20 @@ export function initAdmin({ navigationController } = {}) {
   });
 
   projectsEl.addEventListener("click", async (event) => {
-    const row = event.target.closest("tr[data-project-id]");
-    if (!row) return;
-    const projectId = Number(row.dataset.projectId);
+    const card = event.target.closest("[data-project-id]");
+    if (!card) return;
+    const projectId = Number(card.dataset.projectId);
     if (!Number.isFinite(projectId)) return;
 
-    const isLocked = String(row.dataset.locked || "") === "1";
-
-    if (event.target.closest(".admin-save-content")) {
-      const contentInput = row.querySelector(".admin-content-input");
-      const externalUrlInput = row.querySelector(".admin-external-url-input");
-      const deliverySelect = row.querySelector(".admin-delivery-select");
-      const imagePathInput = row.querySelector(".admin-image-path-input");
-      const htmlContent = String(contentInput?.value || "");
-      const externalUrl = String(externalUrlInput?.value || "").trim();
-      const deliveryType = String(deliverySelect?.value || "content").toLowerCase();
-      const imagePath = String(imagePathInput?.value || "").trim();
+    if (event.target.closest(".admin-edit-project-icon")) {
       try {
-        const response = await apiFetch(endpoints.projectById(projectId), {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            htmlContent,
-            externalUrl,
-            deliveryType,
-            imagePath,
-          }),
-        });
-        const body = await parseJsonSafe(response);
-        if (!response.ok) {
-          throw new Error(body.error || "Failed to save project content.");
-        }
-        await loadAdminData();
-      } catch (error) {
-        setGateStatus(error.message || "Failed to save project content.");
+        const raw = card.getAttribute("data-project") || "{}";
+        const parsed = JSON.parse(raw);
+        openProjectEditor(parsed);
+      } catch {
+        setGateStatus("Failed to open project editor.");
       }
       return;
-    }
-
-    if (!event.target.closest(".admin-toggle-lock")) return;
-
-    try {
-      const response = await apiFetch(endpoints.projectById(projectId), {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          locked: !isLocked,
-        }),
-      });
-      const body = await parseJsonSafe(response);
-      if (!response.ok) {
-        throw new Error(body.error || "Failed to update project.");
-      }
-      await loadAdminData();
-    } catch (error) {
-      setGateStatus(error.message || "Failed to update project.");
     }
   });
 

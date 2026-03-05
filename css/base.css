@@ -584,8 +584,49 @@ section {
     font-size: 1.8rem;
 }
 
+.admin-panel-projects .project-item {
+    position: relative;
+}
+
+.admin-edit-project-icon {
+    position: absolute;
+    top: 0.8rem;
+    right: 0.8rem;
+    z-index: 2;
+    width: 2.8rem;
+    height: 2.8rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-body-text);
+    cursor: pointer;
+    line-height: 1;
+}
+
+.admin-edit-project-icon:hover {
+    border-color: var(--color-nav-active-hover);
+}
+
+.admin-panel-projects .project-item.project-item-locked {
+    opacity: 0.68;
+    filter: grayscale(0.9);
+}
+
+.admin-panel-projects .project-item.project-item-locked .admin-edit-project-icon {
+    opacity: 1;
+    filter: none;
+}
+
 .admin-list {
     display: block;
+}
+
+.admin-list .admin-table {
+    min-width: 68rem;
+}
+
+.admin-list {
+    overflow-x: auto;
 }
 
 .admin-table {
@@ -623,6 +664,26 @@ section {
     align-items: center;
 }
 
+.admin-delete-request {
+    border-color: rgba(239, 68, 68, 0.7);
+    background: rgba(239, 68, 68, 0.12);
+    color: #b91c1c;
+}
+
+.admin-delete-request:hover {
+    background: rgba(239, 68, 68, 0.2);
+}
+
+.admin-request-toggle {
+    padding: 0.55rem 0.85rem;
+    font-size: 1.2rem;
+    line-height: 1.2;
+}
+
+.admin-requests-table .admin-actions-cell {
+    justify-content: center;
+}
+
 .admin-content-input {
     width: 100%;
     border: 1px solid var(--color-border);
@@ -642,6 +703,16 @@ section {
     background: var(--color-body);
     color: inherit;
     padding: 0.45rem 0.6rem;
+}
+
+.admin-users-search,
+.admin-requests-search,
+.admin-users-role-filter {
+    border: 1px solid var(--color-border);
+    border-radius: 0.6rem;
+    background: var(--color-body);
+    color: inherit;
+    padding: 0.55rem 0.75rem;
 }
 
 @media (max-width: 900px) {
@@ -682,4 +753,59 @@ section {
     .admin-table {
         font-size: 1.2rem;
     }
+
+    .admin-toolbar {
+        gap: 0.5rem;
+        justify-content: flex-start;
+    }
+
+    .admin-req-filter {
+        padding: 0.6rem 0.8rem;
+        font-size: 1.2rem;
+        white-space: nowrap;
+    }
+
+    .admin-actions-cell {
+        gap: 0.4rem;
+    }
+
+    .admin-list .admin-table {
+        min-width: 58rem;
+    }
+
+    .admin-requests-table {
+        min-width: 0 !important;
+        border-collapse: separate;
+        border-spacing: 0 0.8rem;
+    }
+
+    .admin-requests-table thead {
+        display: none;
+    }
+
+    .admin-requests-table tbody,
+    .admin-requests-table tr,
+    .admin-requests-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .admin-requests-table tr {
+        border: 1px solid var(--color-border);
+        border-radius: 0.8rem;
+        background: var(--color-surface);
+        padding: 0.6rem 0.8rem;
+    }
+
+    .admin-requests-table td {
+        border: 0;
+        padding: 0.35rem 0;
+        word-break: break-word;
+    }
+
+    .admin-requests-table td:nth-child(1)::before { content: "Project: "; font-weight: 700; }
+    .admin-requests-table td:nth-child(2)::before { content: "User: "; font-weight: 700; }
+    .admin-requests-table td:nth-child(3)::before { content: "Status: "; font-weight: 700; }
+    .admin-requests-table td:nth-child(4)::before { content: "Message: "; font-weight: 700; }
+    .admin-requests-table td:nth-child(5)::before { content: "Actions: "; font-weight: 700; display: block; margin-bottom: 0.3rem; }
 }

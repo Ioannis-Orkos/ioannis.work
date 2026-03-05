@@ -49,12 +49,49 @@
 }
 
 .modal-form input,
-.modal-form textarea {
+.modal-form textarea,
+.modal-form select {
     border: 1px solid rgba(148, 163, 184, 0.45);
     border-radius: 0.8rem;
     background: transparent;
     color: inherit;
     padding: 0.9rem 1rem;
+}
+
+#admin-project-editor-modal .modal-card {
+    width: min(100%, 82rem);
+    max-height: min(86vh, 90rem);
+    overflow: auto;
+}
+
+.admin-project-editor-form {
+    gap: 1.2rem;
+}
+
+.admin-project-editor-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.admin-project-editor-field {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.admin-project-editor-field-full {
+    grid-column: 1 / -1;
+}
+
+#admin-project-content {
+    min-height: 24rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+@media (max-width: 720px) {
+    .admin-project-editor-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .modal-submit {
@@ -121,6 +158,11 @@
 .auth-switch-button.active {
     border-color: var(--color-nav-active-hover);
     background: rgba(217, 119, 6, 0.14);
+}
+
+.modal-submit.active {
+    box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.32);
+    filter: saturate(1.05);
 }
 
 .error-message {

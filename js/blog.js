@@ -26,6 +26,8 @@ export async function initBlog({ navigationController } = {}) {
     messageType: "blog-frame-height",
     failureMessage: "Failed to load blog content.",
     failureLogLabel: "[Blog] Failed to load blog page:",
+    sectionClassName: "page blog-embedded-page",
+    frameClassName: "blog-embedded-frame",
   });
 
   const normalizeBlog = (blog, index) => ({

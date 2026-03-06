@@ -469,6 +469,26 @@ section {
     overflow: hidden;
 }
 
+.blog-embedded-frame {
+    display: block;
+    width: 100%;
+    max-width: 82rem;
+    margin: 0 auto;
+    min-height: 0;
+    height: auto;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    overflow: hidden;
+}
+
+.blog-embedded-page {
+    padding: 0;
+    width: 100%;
+    max-width: 82rem;
+    margin: 0 auto;
+}
+
 .project-embedded-page {
     padding: 0;
     width: 100vw;

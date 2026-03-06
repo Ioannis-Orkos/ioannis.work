@@ -11,64 +11,51 @@
   </script>
   <style>
     :root{
-      color-scheme: light dark;
-      --bg:#0b1220;
-      --card:#101a2e;
-      --text:#e7eefc;
-      --muted:#a8b3cf;
-      --line:rgba(255,255,255,.10);
-      --shadow:0 12px 30px rgba(0,0,0,.35);
+      color-scheme: light;
+      --bg:var(--color-body, #dfe9e1);
+      --card:var(--color-surface, #f8fcf7);
+      --text:var(--color-body-text, #203029);
+      --muted:color-mix(in srgb, var(--color-body-text, #203029) 68%, transparent);
+      --line:var(--color-border, #b8cbbf);
+      --shadow:var(--box-shadow, 0 1.4rem 3.4rem rgba(29, 59, 46, 0.12));
       --radius:16px;
-      --focus:rgba(207,226,255,.45);
-      --accent:#60a5fa;
-      --btnbg:rgba(255,255,255,.06);
+      --focus:var(--color-input-focus-shadow, 0 0 0 4px rgba(47, 122, 95, 0.2));
+      --accent:var(--color-nav-active-hover, #2f7a5f);
+      --btnbg:color-mix(in srgb, var(--color-surface, #f8fcf7) 82%, var(--color-nav-active-hover, #2f7a5f) 8%);
     }
-    @media (prefers-color-scheme: light){
-      :root{
-        --bg:#f3f4f6;
-        --card:#ffffff;
-        --text:#111827;
-        --muted:#4b5563;
-        --line:rgba(17,24,39,.12);
-        --shadow:0 12px 30px rgba(0,0,0,.12);
-        --focus:rgba(59,130,246,.25);
-        --accent:#2563eb;
-        --btnbg:rgba(17,24,39,.04);
-      }
-    }
+    :root[data-theme="dark"]{ color-scheme: dark; }
 
     *{box-sizing:border-box}
     body{
       margin:0;
-      font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
+      font:var(--font-body, 1.6rem/1.7 "Manrope", "Segoe UI", Arial, sans-serif);
       color:var(--text);
       background:
-        radial-gradient(1200px 700px at 20% -10%, rgba(96,165,250,.18) 0%, transparent 60%),
-        radial-gradient(900px 600px at 120% 10%, rgba(167,139,250,.16) 0%, transparent 55%),
+        radial-gradient(1200px 700px at 20% -10%, color-mix(in srgb, var(--accent) 18%, transparent) 0%, transparent 60%),
+        radial-gradient(900px 600px at 120% 10%, color-mix(in srgb, var(--accent) 12%, transparent) 0%, transparent 55%),
         var(--bg);
     }
 
-    .wrap{max-width:980px;margin:0 auto;padding:16px 14px 40px}
-    header{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;margin-bottom:12px}
-    h1{margin:0;font-size:22px}
+    header{display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;margin:0 auto 10px;max-width:980px;padding:16px 14px 0;text-align:center;background:var(--bg);box-shadow:none;border:0;outline:0;filter:none}
+    h1{margin:0;font-size:28px;font-family:var(--font-heading, "Sora", "Manrope", "Segoe UI", Arial, sans-serif);background:transparent;box-shadow:none;border:0;text-shadow:none}
     .sub{margin:0;color:var(--muted);font-size:13px}
 
     .card{
-      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      background:var(--card);
       border:1px solid var(--line);
       border-radius:var(--radius);
       box-shadow:var(--shadow);
       overflow:hidden;
     }
-    .hd{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .hd{padding:12px 14px;border-bottom:0;background:transparent;display:flex;align-items:center;justify-content:space-between;gap:10px}
     .bd{padding:12px 14px}
-    .grid{display:grid;grid-template-columns:1fr;gap:12px}
+    .grid{display:grid;grid-template-columns:1fr;gap:2px;max-width:980px;margin:0 auto;padding:0 14px 36px}
 
     /* expandable category */
     details.cat{
       border:1px solid var(--line);
       border-radius:14px;
-      background:color-mix(in srgb, var(--card) 86%, transparent);
+      background:color-mix(in srgb, var(--card) 92%, transparent);
       overflow:hidden;
     }
     details.cat > summary{
@@ -109,7 +96,7 @@
     .catBtn:active{transform:scale(.99)}
     .catBtn[aria-pressed="true"]{
       border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
-      box-shadow:0 0 0 4px var(--focus);
+      box-shadow:var(--focus);
       background: color-mix(in srgb, var(--accent) 14%, var(--btnbg));
     }
 
@@ -119,24 +106,23 @@
       padding:11px 12px;
       border-radius:12px;
       border:1px solid var(--line);
-      background:color-mix(in srgb, var(--card) 92%, transparent);
+      background:color-mix(in srgb, var(--card) 96%, transparent);
       color:var(--text);
       outline:none;
       font:inherit;
     }
     input:focus, select:focus, button:focus{
-      box-shadow:0 0 0 4px var(--focus);
+      box-shadow:var(--focus);
       border-color: color-mix(in srgb, var(--accent) 45%, transparent);
     }
 
     .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    @media (max-width: 650px){ .row{grid-template-columns:1fr} }
 
     .result{
       border:1px solid var(--line);
       border-radius:14px;
       padding:12px;
-      background:color-mix(in srgb, var(--card) 86%, transparent);
+      background:color-mix(in srgb, var(--card) 94%, transparent);
       margin-top:10px;
     }
     .big{
@@ -153,20 +139,34 @@
     .hint{color:var(--muted);font-size:12px;margin-top:8px}
     .hidden{display:none !important}
     .sep{height:1px;background:var(--line);margin:12px 0}
+
+    @media (max-width: 650px){
+      header{padding:12px 10px 0}
+      h1{font-size:24px}
+      .grid{gap:8px;padding:0 10px 26px}
+      .grid > .card + .card{margin-top:10px}
+      .row{grid-template-columns:1fr;gap:12px}
+      .hd{padding:10px 12px}
+      .bd{padding:10px 12px}
+      .catBody{padding:10px 12px}
+      .topbar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+      .catBtn{padding:10px 8px}
+      input, select, button{min-height:44px}
+      .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+      .big{font-size:20px}
+    }
   </style>
 </head>
 
 <body>
-  <div class="wrap">
-    <header>
-      <div>
-        <h1>Unit Converter</h1>
-        <p class="sub">Simple categories + simple input.</p>
-      </div>
-      <!-- <div class="sub">TV friendly: Tab + Enter works.</div> -->
-    </header>
+  <header>
+    <div>
+      <h1>Unit Converter</h1>
+    </div>
+    <!-- <div class="sub">TV friendly: Tab + Enter works.</div> -->
+  </header>
 
-    <div class="grid">
+  <div class="grid">
       <!-- Expandable Category -->
       <section class="card">
         <div class="hd">
@@ -245,10 +245,9 @@
           
         </div>
       </section>
-    </div>
   </div>
 
-  <script>
+<script>
     // ---------- helpers ----------
     const $ = (id)=>document.getElementById(id);
     const valEl = $("val");

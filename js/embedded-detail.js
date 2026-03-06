@@ -30,20 +30,71 @@ function isCrossOriginUrl(value) {
   }
 }
 
+function escapeHtmlAttribute(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function extractDocumentParts(html) {
+  const parser = new DOMParser();
+  const parsed = parser.parseFromString(String(html || ""), "text/html");
+  const { head, body } = parsed;
+  const title = head?.querySelector("title")?.textContent?.trim() || "";
+  const headMarkup = head ? head.innerHTML : "";
+  const bodyMarkup = body ? body.innerHTML : String(html || "");
+
+  return {
+    title,
+    headMarkup,
+    bodyMarkup,
+  };
+}
+
+function buildSharedStylesheetLinks() {
+  const sharedHeadLinks = [
+    '<link rel="preconnect" href="https://fonts.googleapis.com" />',
+    '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />',
+    '<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Sora:wght@600;700&display=swap" rel="stylesheet" />',
+  ];
+  const sharedStylesheets = [
+    "/css/reset.css",
+    "/css/styles.css",
+  ];
+
+  return [
+    ...sharedHeadLinks,
+    ...sharedStylesheets.map((href) => `<link rel="stylesheet" href="${escapeHtmlAttribute(href)}" />`),
+  ].join("\n");
+}
+
 function buildFrameSrcDoc({ frameId, html, sourceUrl, messageType }) {
+  const { title, headMarkup, bodyMarkup } = extractDocumentParts(html);
+
   return `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <base href="${sourceUrl}" />
+  ${title ? `<title>${escapeHtmlAttribute(title)}</title>` : ""}
+  ${buildSharedStylesheetLinks()}
+  ${headMarkup}
   <style>html,body{margin:0;padding:0;background:transparent;}</style>
 </head>
-<body>${String(html || "")}
+<body>${bodyMarkup}
 <script>
 (() => {
   const frameId = ${JSON.stringify(frameId)};
   let heightScheduled = false;
+  const syncTheme = () => {
+    try {
+      const parentTheme = parent?.document?.documentElement?.getAttribute("data-theme") || "light";
+      document.documentElement.setAttribute("data-theme", parentTheme);
+    } catch {}
+  };
   const sendHeight = () => {
     const bodyHeight = document.body ? document.body.scrollHeight : 0;
     const htmlHeight = document.documentElement ? document.documentElement.scrollHeight : 0;
@@ -58,6 +109,19 @@ function buildFrameSrcDoc({ frameId, html, sourceUrl, messageType }) {
       sendHeight();
     });
   };
+  syncTheme();
+  try {
+    const parentRoot = parent?.document?.documentElement;
+    if (parentRoot) {
+      new MutationObserver(() => {
+        syncTheme();
+        scheduleHeight();
+      }).observe(parentRoot, {
+        attributes: true,
+        attributeFilter: ["data-theme"],
+      });
+    }
+  } catch {}
   window.addEventListener("load", sendHeight);
   window.addEventListener("resize", scheduleHeight);
   new MutationObserver(scheduleHeight).observe(document.documentElement, {

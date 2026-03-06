@@ -42,6 +42,8 @@ export function initAdmin({ navigationController } = {}) {
   let requestSearchQuery = "";
   let requestsCache = [];
   let projectsCache = [];
+  let hasLoadedAdminData = false;
+  let activeAdminTab = "users";
   let projectEditorModal = null;
   let projectEditorForm = null;
   let projectEditorStatus = null;
@@ -192,6 +194,8 @@ export function initAdmin({ navigationController } = {}) {
           }
           renderProjects(projectsCache);
         }
+        activeAdminTab = "projects";
+        await refreshAdminData();
         projectEditorModal.hidden = true;
         editingProjectId = null;
         projectEditorMode = "edit";
@@ -413,7 +417,7 @@ export function initAdmin({ navigationController } = {}) {
         </button>
         <input type="search" class="admin-requests-search" placeholder="Search requests..." value="${escapeHtml(requestSearchQuery)}" />
       </div>
-      <table class="admin-table">
+      <table class="admin-table admin-requests-table">
         <thead>
           <tr>
             <th>Project</th>
@@ -470,7 +474,7 @@ export function initAdmin({ navigationController } = {}) {
     }
 
     projectsEl.innerHTML = `
-      <div class="admin-toolbar" style="justify-content:flex-start;margin-bottom:0.8rem;">
+      <div class="admin-toolbar" style="justify-content:center;margin-bottom:0.8rem;">
         <button type="button" class="auth-switch-button admin-add-project">Add Project</button>
       </div>
       <div class="project-list">
@@ -512,8 +516,14 @@ export function initAdmin({ navigationController } = {}) {
     `;
   };
 
+  const refreshAdminData = async () => {
+    hasLoadedAdminData = false;
+    await loadAdminData({ force: true });
+  };
+
   const setActiveTab = (tabId) => {
-    const activeTab = String(tabId || "users");
+    const activeTab = String(tabId || activeAdminTab || "users");
+    activeAdminTab = activeTab;
     const tabMap = new Map([
       ["users", tabUsersBtn],
       ["requests", tabRequestsBtn],
@@ -540,14 +550,18 @@ export function initAdmin({ navigationController } = {}) {
     }
   };
 
-  const loadAdminData = async () => {
+  const loadAdminData = async ({ force = false } = {}) => {
     if (isLoading) return;
+    if (!force && hasLoadedAdminData && navigationController?.getActivePageId?.() === "admin") {
+      return;
+    }
     isLoading = true;
     setGateStatus("");
 
     const authState = await ensureAdmin();
     setControlsVisibility(Boolean(authState?.ok));
     if (!authState?.ok) {
+      hasLoadedAdminData = false;
       setGateStatus("");
       if (navigationController?.getActivePageId?.() === "admin") {
         navigationController.navigateTo("home", { push: false });
@@ -603,8 +617,11 @@ export function initAdmin({ navigationController } = {}) {
       renderUsers(users);
       renderRequests(requests);
       renderProjects(projects);
+      setActiveTab(activeAdminTab);
+      hasLoadedAdminData = true;
       setGateStatus("");
     } catch {
+      hasLoadedAdminData = false;
       setGateStatus("");
     } finally {
       isLoading = false;
@@ -649,7 +666,8 @@ export function initAdmin({ navigationController } = {}) {
           Number(request.id) === requestId ? { ...request, status: nextStatus } : request
         );
         requestFilter = "all";
-        renderRequests(requestsCache);
+        activeAdminTab = "requests";
+        await refreshAdminData();
       } catch (error) {
         setGateStatus(error.message || "Failed to update request.");
       }
@@ -703,7 +721,8 @@ export function initAdmin({ navigationController } = {}) {
         usersCache = usersCache.map((user) =>
           Number(user.id) === userId ? { ...user, role: nextRole } : user
         );
-        renderUsers(usersCache);
+        activeAdminTab = "users";
+        await refreshAdminData();
       } catch (error) {
         setGateStatus(error.message || "Failed to update user role.");
       }
@@ -720,7 +739,8 @@ export function initAdmin({ navigationController } = {}) {
           throw new Error(body.error || "Failed to delete user.");
         }
         usersCache = usersCache.filter((user) => Number(user.id) !== userId);
-        renderUsers(usersCache);
+        activeAdminTab = "users";
+        await refreshAdminData();
       } catch (error) {
         setGateStatus(error.message || "Failed to delete user.");
       }
@@ -771,7 +791,8 @@ export function initAdmin({ navigationController } = {}) {
           throw new Error(body.error || "Failed to delete project.");
         }
         projectsCache = projectsCache.filter((project) => Number(project.id) !== projectId);
-        renderProjects(projectsCache);
+        activeAdminTab = "projects";
+        await refreshAdminData();
       } catch (error) {
         setGateStatus(error.message || "Failed to delete project.");
       }
@@ -784,8 +805,9 @@ export function initAdmin({ navigationController } = {}) {
   if (tabProjectsBtn) tabProjectsBtn.addEventListener("click", () => setActiveTab("projects"));
 
   window.addEventListener("auth:changed", () => {
+    hasLoadedAdminData = false;
     if (navigationController?.getActivePageId?.() === "admin") {
-      loadAdminData();
+      loadAdminData({ force: true });
     } else {
       setControlsVisibility(false);
       setGateStatus("Login as admin to manage access requests.");

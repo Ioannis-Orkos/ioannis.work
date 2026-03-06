@@ -1,3 +1,8 @@
+import {
+  createEmbeddedDetailController,
+  getFolderFromLocation,
+} from "./embedded-detail.js";
+
 const BLOG_DATA_URL = "/blogs/blog-data.json";
 const BLOG_BASE_PATH = "/blogs/";
 
@@ -12,7 +17,16 @@ export async function initBlog({ navigationController } = {}) {
 
   let blogs = [];
   let selectedCategories = new Set();
-  const embeddedFrameById = new Map();
+
+  const embeddedDetailController = createEmbeddedDetailController({
+    mainEl,
+    sectionDataAttribute: "data-blog-folder",
+    sectionDatasetKey: "blogFolder",
+    frameIdPrefix: "blog-frame",
+    messageType: "blog-frame-height",
+    failureMessage: "Failed to load blog content.",
+    failureLogLabel: "[Blog] Failed to load blog page:",
+  });
 
   const normalizeBlog = (blog, index) => ({
     id: String(blog?.id || `blog-${index + 1}`),
@@ -29,151 +43,38 @@ export async function initBlog({ navigationController } = {}) {
 
   const sectionIdForBlog = (blog) => `blog-${blog.folder}`;
 
-  const getFolderFromLocation = () => {
-    const pathname = (window.location.pathname || "/").replace(/\/+$/, "") || "/";
-    if (pathname.startsWith("/blogs/")) {
-      const folder = pathname.slice("/blogs/".length).split("/")[0];
-      if (folder) return folder;
-    }
-
-    if (pathname.startsWith("/blog/")) {
-      const folder = pathname.slice("/blog/".length).split("/")[0];
-      if (folder) return folder;
-    }
-
-    const hash = window.location.hash.replace("#", "");
-    return hash.startsWith("blog-") ? hash.replace("blog-", "") : "";
-  };
+  const getBlogFolderFromLocation = () =>
+    getFolderFromLocation({
+      primaryPathPrefix: "/blogs/",
+      legacyPathPrefix: "/blog/",
+      hashPrefix: "blog-",
+    });
 
   const buildImageUrl = (blog) => {
-    if (!blog.image) return "";
-    return `${BLOG_BASE_PATH}${blog.image.replace(/^\/+/, "")}`;
+    const rawImage = String(blog?.image || "").trim();
+    if (!rawImage) return "";
+    if (/^https?:\/\//i.test(rawImage) || rawImage.startsWith("/")) return rawImage;
+    return `${BLOG_BASE_PATH}${rawImage.replace(/^\/+/, "")}`;
   };
 
   const buildBlogUrl = (blog) => {
-    if (/^https?:\/\//i.test(blog.url)) return blog.url;
-    if (blog.url) return `${BLOG_BASE_PATH}${blog.url.replace(/^\/+/, "")}`;
+    const rawUrl = String(blog?.url || "").trim();
+    if (/^https?:\/\//i.test(rawUrl) || rawUrl.startsWith("/")) return rawUrl;
+    if (rawUrl) return `${BLOG_BASE_PATH}${rawUrl.replace(/^\/+/, "")}`;
     return `${BLOG_BASE_PATH}${blog.folder}/index.html`;
-  };
-
-  const removeDynamicBlogSections = () => {
-    document.querySelectorAll("section.page[data-blog-folder]").forEach((node) => node.remove());
-  };
-
-  const ensureBlogSection = (blog) => {
-    removeDynamicBlogSections();
-
-    const section = document.createElement("section");
-    section.id = sectionIdForBlog(blog);
-    section.className = "page project-embedded-page";
-    section.dataset.blogFolder = blog.folder;
-    section.innerHTML = "";
-    mainEl.appendChild(section);
-    return section;
-  };
-
-  const createSandboxedBlogFrame = () => {
-    const iframe = document.createElement("iframe");
-    iframe.className = "project-embedded-frame";
-    iframe.loading = "lazy";
-    iframe.referrerPolicy = "no-referrer-when-downgrade";
-    iframe.setAttribute("scrolling", "no");
-    iframe.setAttribute(
-      "sandbox",
-      "allow-forms allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts"
-    );
-    const frameId = `blog-frame-${Math.random().toString(36).slice(2)}`;
-    iframe.dataset.frameId = frameId;
-    embeddedFrameById.set(frameId, iframe);
-    return iframe;
-  };
-
-  const isCrossOriginUrl = (value) => {
-    try {
-      const target = new URL(String(value || ""), window.location.href);
-      return target.origin !== window.location.origin;
-    } catch {
-      return false;
-    }
-  };
-
-  const renderHtmlIntoSection = (section, html, sourceUrl) => {
-    const iframe = createSandboxedBlogFrame();
-    const frameId = String(iframe.dataset.frameId || "");
-
-    const srcDoc = `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <base href="${sourceUrl}" />
-  <style>html,body{margin:0;padding:0;background:transparent;}</style>
-</head>
-<body>${String(html || "")}
-<script>
-(() => {
-  const frameId = ${JSON.stringify(frameId)};
-  let heightScheduled = false;
-  const sendHeight = () => {
-    const bodyHeight = document.body ? document.body.scrollHeight : 0;
-    const htmlHeight = document.documentElement ? document.documentElement.scrollHeight : 0;
-    const height = Math.max(bodyHeight, htmlHeight, 1);
-    parent.postMessage({ type: "blog-frame-height", frameId, height }, "*");
-  };
-  const scheduleHeight = () => {
-    if (heightScheduled) return;
-    heightScheduled = true;
-    requestAnimationFrame(() => {
-      heightScheduled = false;
-      sendHeight();
-    });
-  };
-  window.addEventListener("load", sendHeight);
-  window.addEventListener("resize", scheduleHeight);
-  new MutationObserver(scheduleHeight).observe(document.documentElement, {
-    childList: true,
-    subtree: true,
-  });
-  sendHeight();
-})();
-</script>
-</body>
-</html>`;
-
-    iframe.srcdoc = srcDoc;
-    section.innerHTML = "";
-    section.appendChild(iframe);
-  };
-
-  const renderUrlIntoSection = async (section, sourceUrl) => {
-    try {
-      if (isCrossOriginUrl(sourceUrl)) {
-        const iframe = createSandboxedBlogFrame();
-        iframe.src = sourceUrl;
-        section.innerHTML = "";
-        section.appendChild(iframe);
-        return;
-      }
-
-      const response = await fetch(sourceUrl, { credentials: "include" });
-      if (!response.ok) {
-        throw new Error(`Failed to load blog: ${response.status}`);
-      }
-      const html = await response.text();
-      renderHtmlIntoSection(section, html, sourceUrl);
-    } catch (error) {
-      console.error("[Blog] Failed to load blog page:", error);
-      section.innerHTML = "<p>Failed to load blog content.</p>";
-    }
   };
 
   const openBlog = async (blog, { push = true } = {}) => {
     if (!blog || !blog.folder) return;
+
     const sectionId = sectionIdForBlog(blog);
-    const section = ensureBlogSection(blog);
+    const section = embeddedDetailController.ensureSection({
+      sectionId,
+      folder: blog.folder,
+    });
     const blogUrl = buildBlogUrl(blog);
 
-    await renderUrlIntoSection(section, blogUrl);
+    await embeddedDetailController.renderUrlIntoSection(section, blogUrl);
 
     if (navigationController && typeof navigationController.navigateTo === "function") {
       navigationController.navigateTo(sectionId, { push });
@@ -324,8 +225,8 @@ export async function initBlog({ navigationController } = {}) {
     return filtered;
   };
 
-  const tryOpenFromHash = () => {
-    const folderFromLocation = getFolderFromLocation();
+  const tryOpenFromLocation = () => {
+    const folderFromLocation = getBlogFolderFromLocation();
     if (!folderFromLocation) return;
     openBlogByFolder(folderFromLocation, { push: false });
   };
@@ -339,18 +240,8 @@ export async function initBlog({ navigationController } = {}) {
     }
   });
 
-  window.addEventListener("message", (event) => {
-    const data = event?.data;
-    if (!data || data.type !== "blog-frame-height") return;
-    const frame = embeddedFrameById.get(String(data.frameId || ""));
-    if (!frame) return;
-    const nextHeight = Number(data.height);
-    if (!Number.isFinite(nextHeight) || nextHeight <= 0) return;
-    frame.style.height = `${Math.max(1, Math.round(nextHeight))}px`;
-  });
-
   try {
-    const initialFolder = getFolderFromLocation();
+    const initialFolder = getBlogFolderFromLocation();
     if (initialFolder) {
       openBlogByFolder(initialFolder, { push: false });
     }
@@ -368,9 +259,9 @@ export async function initBlog({ navigationController } = {}) {
 
     renderCategories();
     renderBlogs();
-    tryOpenFromHash();
-    window.addEventListener("popstate", tryOpenFromHash);
-    window.addEventListener("hashchange", tryOpenFromHash);
+    tryOpenFromLocation();
+    window.addEventListener("popstate", tryOpenFromLocation);
+    window.addEventListener("hashchange", tryOpenFromLocation);
   } catch (error) {
     console.error("[Blog] Failed to initialize blog module:", error);
     blogListEl.innerHTML = "<p>Failed to load blogs.</p>";

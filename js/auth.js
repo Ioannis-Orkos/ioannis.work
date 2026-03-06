@@ -53,7 +53,7 @@ const clearTokens = () => {
   window.dispatchEvent(new CustomEvent("auth:changed", { detail: { loggedIn: false } }));
 };
 
-const getNavLinks = () => [...document.querySelectorAll("#nav-login-link")];
+const getNavLinks = () => [...document.querySelectorAll("[data-auth-link]")];
 
 const setNavLoggedState = (isLoggedIn) => {
   getNavLinks().forEach((link) => {
@@ -234,7 +234,7 @@ export function initAuth() {
   });
 
   document.addEventListener("click", async (event) => {
-    const link = event.target.closest("#nav-login-link");
+    const link = event.target.closest("[data-auth-link]");
     if (!link) return;
 
     const action = link.dataset.authAction;

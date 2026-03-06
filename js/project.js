@@ -5,6 +5,10 @@ import {
   isAdminUser,
   isAuthorizedUser,
 } from "./auth-session.js";
+import {
+  createEmbeddedDetailController,
+  getFolderFromLocation,
+} from "./embedded-detail.js";
 
 const PROJECT_DATA_URL = "/projects/projects-data.json";
 const PROJECT_BASE_PATH = "/projects/";
@@ -40,7 +44,15 @@ export async function initProject({ navigationController } = {}) {
   let requestNotesBySlug = new Map();
   let pendingRequestProject = null;
   let pendingRequestServerProject = null;
-  const embeddedFrameById = new Map();
+  const embeddedDetailController = createEmbeddedDetailController({
+    mainEl,
+    sectionDataAttribute: "data-project-folder",
+    sectionDatasetKey: "projectFolder",
+    frameIdPrefix: "project-frame",
+    messageType: "project-frame-height",
+    failureMessage: "Failed to load project content.",
+    failureLogLabel: "[Project] Failed to load project page:",
+  });
 
   const setProjectStatus = (message) => {
     if (!projectStatusEl) return;
@@ -71,27 +83,17 @@ export async function initProject({ navigationController } = {}) {
 
   const sectionIdForProject = (project) => `project-${project.folder}`;
 
-  const getSharedFolderFromLocation = () => {
-    const hash = String(window.location.hash || "").replace(/^#/, "").trim();
-    if (!hash.startsWith("s-")) return "";
-    return hash.slice(2).trim();
-  };
+  const getSharedFolderFromLocation = () =>
+    getFolderFromLocation({
+      hashPrefix: "s-",
+    });
 
-  const getFolderFromLocation = () => {
-    const pathname = (window.location.pathname || "/").replace(/\/+$/, "") || "/";
-    if (pathname.startsWith("/projects/")) {
-      const folder = pathname.slice("/projects/".length).split("/")[0];
-      if (folder) return folder;
-    }
-
-    if (pathname.startsWith("/project/")) {
-      const folder = pathname.slice("/project/".length).split("/")[0];
-      if (folder) return folder;
-    }
-
-    const hash = window.location.hash.replace("#", "");
-    return hash.startsWith("project-") ? hash.replace("project-", "") : "";
-  };
+  const getProjectFolderFromLocation = () =>
+    getFolderFromLocation({
+      primaryPathPrefix: "/projects/",
+      legacyPathPrefix: "/project/",
+      hashPrefix: "project-",
+    });
 
   const ensureAuthorizedProjectSession = () => ensureAuthorizedSession(endpoints.me);
 
@@ -276,126 +278,6 @@ export async function initProject({ navigationController } = {}) {
     return `${PROJECT_BASE_PATH}${project.folder}/index.html`;
   };
 
-  const resolveRelativeUrl = (baseUrl, maybeRelativeUrl) => {
-    try {
-      return new URL(maybeRelativeUrl, new URL(baseUrl, window.location.href)).toString();
-    } catch {
-      return maybeRelativeUrl;
-    }
-  };
-
-  const removeDynamicProjectSections = () => {
-    document.querySelectorAll("section.page[data-project-folder]").forEach((node) => node.remove());
-  };
-
-  const ensureProjectSection = (project) => {
-    removeDynamicProjectSections();
-
-    const section = document.createElement("section");
-    section.id = sectionIdForProject(project);
-    section.className = "page project-embedded-page";
-    section.dataset.projectFolder = project.folder;
-    section.innerHTML = "";
-    mainEl.appendChild(section);
-    return section;
-  };
-
-  const createSandboxedProjectFrame = () => {
-    const iframe = document.createElement("iframe");
-    iframe.className = "project-embedded-frame";
-    iframe.loading = "lazy";
-    iframe.referrerPolicy = "no-referrer-when-downgrade";
-    iframe.setAttribute("scrolling", "no");
-    iframe.setAttribute(
-      "sandbox",
-      "allow-forms allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts"
-    );
-    const frameId = `project-frame-${Math.random().toString(36).slice(2)}`;
-    iframe.dataset.frameId = frameId;
-    embeddedFrameById.set(frameId, iframe);
-    return iframe;
-  };
-
-  const isCrossOriginUrl = (value) => {
-    try {
-      const target = new URL(String(value || ""), window.location.href);
-      return target.origin !== window.location.origin;
-    } catch {
-      return false;
-    }
-  };
-
-  const renderHtmlIntoSection = (section, html, sourceUrl) => {
-    const iframe = createSandboxedProjectFrame();
-    const frameId = String(iframe.dataset.frameId || "");
-
-    // Keep project CSS/JS isolated inside iframe so it cannot leak into main site.
-    const srcDoc = `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <base href="${sourceUrl}" />
-  <style>html,body{margin:0;padding:0;background:transparent;}</style>
-</head>
-<body>${String(html || "")}
-<script>
-(() => {
-  const frameId = ${JSON.stringify(frameId)};
-  let heightScheduled = false;
-  const sendHeight = () => {
-    const bodyHeight = document.body ? document.body.scrollHeight : 0;
-    const htmlHeight = document.documentElement ? document.documentElement.scrollHeight : 0;
-    const height = Math.max(bodyHeight, htmlHeight, 1);
-    parent.postMessage({ type: "project-frame-height", frameId, height }, "*");
-  };
-  const scheduleHeight = () => {
-    if (heightScheduled) return;
-    heightScheduled = true;
-    requestAnimationFrame(() => {
-      heightScheduled = false;
-      sendHeight();
-    });
-  };
-  window.addEventListener("load", sendHeight);
-  window.addEventListener("resize", scheduleHeight);
-  new MutationObserver(scheduleHeight).observe(document.documentElement, {
-    childList: true,
-    subtree: true,
-  });
-  sendHeight();
-})();
-</script>
-</body>
-</html>`;
-
-    iframe.srcdoc = srcDoc;
-    section.innerHTML = "";
-    section.appendChild(iframe);
-  };
-
-  const renderUrlIntoSection = async (section, sourceUrl) => {
-    try {
-      if (isCrossOriginUrl(sourceUrl)) {
-        const iframe = createSandboxedProjectFrame();
-        iframe.src = sourceUrl;
-        section.innerHTML = "";
-        section.appendChild(iframe);
-        return;
-      }
-
-      const response = await fetch(sourceUrl, { credentials: "include" });
-      if (!response.ok) {
-        throw new Error(`Failed to load project: ${response.status}`);
-      }
-      const html = await response.text();
-      renderHtmlIntoSection(section, html, sourceUrl);
-    } catch (error) {
-      console.error("[Project] Failed to load project page:", error);
-      section.innerHTML = "<p>Failed to load project content.</p>";
-    }
-  };
-
   const openLoginWithMessage = (message) => {
     setProjectStatus(message || "Login required for this project.");
     window.dispatchEvent(new CustomEvent("app:open-modal", { detail: { modalId: "login" } }));
@@ -528,8 +410,15 @@ export async function initProject({ navigationController } = {}) {
         return;
       }
 
-      const section = ensureProjectSection(project);
-      renderHtmlIntoSection(section, String(body.htmlContent || ""), endpoints.content(serverProject.id));
+      const section = embeddedDetailController.ensureSection({
+        sectionId: sectionIdForProject(project),
+        folder: project.folder,
+      });
+      embeddedDetailController.renderHtmlIntoSection(
+        section,
+        String(body.htmlContent || ""),
+        endpoints.content(serverProject.id)
+      );
       if (navigationController && typeof navigationController.navigateTo === "function") {
         navigationController.navigateTo(sectionIdForProject(project), { push });
         const sharedSlug = String(project?.serverProjectSlug || project?.folder || "").trim();
@@ -595,10 +484,13 @@ export async function initProject({ navigationController } = {}) {
     }
 
     const sectionId = sectionIdForProject(project);
-    const section = ensureProjectSection(project);
+    const section = embeddedDetailController.ensureSection({
+      sectionId,
+      folder: project.folder,
+    });
     const projectUrl = buildProjectUrl(project);
 
-    await renderUrlIntoSection(section, projectUrl);
+    await embeddedDetailController.renderUrlIntoSection(section, projectUrl);
 
     if (navigationController && typeof navigationController.navigateTo === "function") {
       navigationController.navigateTo(sectionId, { push });
@@ -874,7 +766,7 @@ export async function initProject({ navigationController } = {}) {
       openSharedProjectBySlug(sharedFolder, { push: false });
       return;
     }
-    const folderFromLocation = getFolderFromLocation();
+    const folderFromLocation = getProjectFolderFromLocation();
     if (!folderFromLocation) return;
     openProjectByFolder(folderFromLocation, { push: false, allowFallback: false });
   };
@@ -898,15 +790,6 @@ export async function initProject({ navigationController } = {}) {
   });
 
   window.addEventListener("auth:changed", refreshAuthSensitiveState);
-  window.addEventListener("message", (event) => {
-    const data = event?.data;
-    if (!data || data.type !== "project-frame-height") return;
-    const frame = embeddedFrameById.get(String(data.frameId || ""));
-    if (!frame) return;
-    const nextHeight = Number(data.height);
-    if (!Number.isFinite(nextHeight) || nextHeight <= 0) return;
-    frame.style.height = `${Math.max(1, Math.round(nextHeight))}px`;
-  });
 
   if (requestAccessFormEl && requestAccessConfirmBtn) {
     requestAccessFormEl.addEventListener("submit", async (event) => {

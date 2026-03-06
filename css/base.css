@@ -644,10 +644,15 @@ section {
 .admin-table th,
 .admin-table td {
     border: 1px solid var(--color-border);
-    padding: 0.6rem 0.7rem;
+    padding: 0.45rem 0.6rem;
     text-align: left;
     vertical-align: middle;
     word-break: break-word;
+}
+
+.admin-users-table th,
+.admin-users-table td {
+    white-space: nowrap;
 }
 
 .admin-table th {
@@ -672,10 +677,30 @@ section {
 .admin-actions-cell .auth-switch-button,
 .admin-actions-cell .modal-submit,
 .admin-toolbar .auth-switch-button {
-    min-width: 12rem;
+    min-width: 8rem;
     justify-content: center;
     display: inline-flex;
     align-items: center;
+}
+
+.admin-actions-cell .admin-icon-button {
+    min-width: 4rem;
+    width: 4rem;
+    padding: 0;
+    flex: 0 0 4rem;
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.admin-users-table .admin-actions-cell {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+}
+
+.admin-users-table .admin-actions-cell .auth-switch-button:not(.admin-icon-button) {
+    min-width: 8.4rem;
+    padding-inline: 0.8rem;
+    font-size: 1.15rem;
 }
 
 .admin-delete-request {
@@ -689,11 +714,39 @@ section {
 }
 
 .admin-request-toggle {
-    min-width: 12rem;
+    min-width: 8.8rem;
+    min-height: 3.4rem;
+    padding: 0.55rem 0.85rem;
+    font-size: 1.15rem;
 }
 
 .admin-requests-table .admin-actions-cell {
     justify-content: center;
+}
+
+.admin-request-user-cell {
+    line-height: 1.25;
+}
+
+.admin-request-user-name,
+.admin-request-user-email {
+    display: block;
+}
+
+.admin-request-user-email {
+    margin-top: 0.2rem;
+    font-size: 1.15rem;
+    opacity: 0.72;
+}
+
+.admin-requests-col-status {
+    width: 10rem;
+    white-space: nowrap;
+}
+
+.admin-requests-col-actions {
+    width: 9.4rem;
+    white-space: nowrap;
 }
 
 .admin-content-input {
@@ -826,6 +879,12 @@ section {
         align-items: stretch;
     }
 
+    .admin-users-table .admin-actions-cell {
+        flex-direction: row;
+        align-items: center;
+        flex-wrap: nowrap;
+    }
+
     .admin-list .admin-table {
         min-width: 0;
     }
@@ -837,21 +896,16 @@ section {
         width: 100%;
     }
 
-    .admin-users-table,
     .admin-requests-table {
         min-width: 0 !important;
         border-collapse: separate;
         border-spacing: 0 0.8rem;
     }
 
-    .admin-users-table thead,
     .admin-requests-table thead {
         display: none;
     }
 
-    .admin-users-table tbody,
-    .admin-users-table tr,
-    .admin-users-table td,
     .admin-requests-table tbody,
     .admin-requests-table tr,
     .admin-requests-table td {
@@ -859,7 +913,6 @@ section {
         width: 100%;
     }
 
-    .admin-users-table tr,
     .admin-requests-table tr {
         border: 1px solid var(--color-border);
         border-radius: 0.8rem;
@@ -867,18 +920,11 @@ section {
         padding: 0.8rem;
     }
 
-    .admin-users-table td,
     .admin-requests-table td {
         border: 0;
         padding: 0.35rem 0;
         word-break: break-word;
     }
-
-    .admin-users-table td:nth-child(1)::before { content: "Name: "; font-weight: 700; }
-    .admin-users-table td:nth-child(2)::before { content: "Email: "; font-weight: 700; }
-    .admin-users-table td:nth-child(3)::before { content: "Role: "; font-weight: 700; }
-    .admin-users-table td:nth-child(4)::before { content: "Status: "; font-weight: 700; }
-    .admin-users-table td:nth-child(5)::before { content: "Actions: "; font-weight: 700; display: block; margin-bottom: 0.3rem; }
 
     .admin-panel-projects .project-list {
         grid-template-columns: 1fr;

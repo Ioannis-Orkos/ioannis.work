@@ -362,7 +362,13 @@ export function initAdmin({ navigationController } = {}) {
                   <td><span class="admin-badge">${escapeHtml(user.status)}</span></td>
                   <td class="admin-actions-cell">
                     <button type="button" class="auth-switch-button admin-toggle-user-role" data-next-role="${isAdminRole ? "user" : "admin"}" ${canToggleRole ? "" : "disabled"}>${isAdminRole ? "Make User" : "Make Admin"}</button>
-                    <button type="button" class="auth-switch-button admin-delete-user" ${canDelete ? "" : "disabled"}>Delete</button>
+                    <button
+                      type="button"
+                      class="auth-switch-button admin-delete-user admin-icon-button"
+                      aria-label="Delete user"
+                      title="Delete user"
+                      ${canDelete ? "" : "disabled"}
+                    >🗑</button>
                   </td>
                 </tr>
               `;
@@ -422,9 +428,9 @@ export function initAdmin({ navigationController } = {}) {
           <tr>
             <th>Project</th>
             <th>User</th>
-            <th>Status</th>
+            <th class="admin-requests-col-status">Status</th>
             <th>Message</th>
-            <th>Actions</th>
+            <th class="admin-requests-col-actions">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -445,10 +451,13 @@ export function initAdmin({ navigationController } = {}) {
               return `
                 <tr data-request-id="${request.id}">
                   <td>${request.title}</td>
-                  <td>${request.full_name || request.email}</td>
-                  <td><span class="admin-badge">${request.status}</span></td>
+                  <td class="admin-request-user-cell">
+                    <span class="admin-request-user-name">${request.full_name || "No Name"}</span>
+                    <span class="admin-request-user-email">${request.email || ""}</span>
+                  </td>
+                  <td class="admin-requests-col-status"><span class="admin-badge">${request.status}</span></td>
                   <td>${userMessage || "No message"}</td>
-                  <td class="admin-actions-cell">
+                  <td class="admin-actions-cell admin-requests-col-actions">
                     <button
                       type="button"
                       class="modal-submit admin-request-toggle ${isApproved ? "active" : ""}"

@@ -66,7 +66,7 @@ header.is-hidden-on-scroll {
     height: 3.6rem;
     border: 0;
     border-radius: 50%;
-    background: rgba(148, 163, 184, 0.2);
+    background: var(--color-theme-toggle-bg);
     color: var(--color-header-text);
     cursor: pointer;
     transition: transform var(--transition), background-color var(--transition), color var(--transition);
@@ -74,7 +74,7 @@ header.is-hidden-on-scroll {
 
 .theme-toggle:hover {
     transform: translateY(-0.1rem);
-    background: rgba(217, 119, 6, 0.2);
+    background: var(--color-theme-toggle-hover-bg);
 }
 
 .h-burger-menu {

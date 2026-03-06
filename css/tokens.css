@@ -1,3 +1,11 @@
+/* Theme switcher:
+   Enable exactly one theme import below.
+   Active: tokens.copper.css
+*/
+/* @import url("./tokens.copper.css"); */
+/* @import url("./tokens.red.css"); */
+@import url("./tokens.forest.css");
+
 :root {
     color-scheme: light;
 
@@ -6,22 +14,6 @@
     --font-body: 1.6rem/1.7 "Manrope", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     --font-heading: "Sora", "Manrope", "Segoe UI", Arial, sans-serif;
 
-    --color-header: #ffffff;
-    --color-header-text: #111827;
-    --color-nav-active-hover: #d97706;
-    --color-burger-line: #111827;
-    --color-mobile-nav: #f8fafc;
-    --color-mobile-nav-text: #0f172a;
-    --color-body: #eef2f7;
-    --color-body-text: #0f172a;
-    --color-surface: #ffffff;
-    --color-border: #cbd5e1;
-    --color-footer: #ffffff;
-    --color-footer-text: #111827;
-    --color-nav-auth-group-background: rgba(148, 163, 184, 0.14);
-    --nav-border-auth-group: 1px solid rgba(148, 163, 184, 0.32);
-
-    --box-shadow: 0 1.2rem 3.2rem rgba(15, 23, 42, 0.12);
     --header-height: 7rem;
     --radius: 1.2rem;
     --transition: 0.25s ease;
@@ -29,21 +21,4 @@
 
 :root[data-theme="dark"] {
     color-scheme: dark;
-
-    --color-header: #0f172a;
-    --color-header-text: #e2e8f0;
-    --color-nav-active-hover: #f59e0b;
-    --color-burger-line: #e2e8f0;
-    --color-mobile-nav: #111827;
-    --color-mobile-nav-text: #f8fafc;
-    --color-body: #030712;
-    --color-body-text: #f8fafc;
-    --color-surface: #0b1220;
-    --color-border: #2f3f57;
-    --color-footer: #0f172a;
-    --color-footer-text: #e2e8f0;
-    --color-nav-auth-group-background: rgba(148, 163, 184, 0.22);
-    --nav-border-auth-group: 1px solid rgba(148, 163, 184, 0.42);
-
-    --box-shadow: 0 0.8rem 2.4rem rgba(0, 0, 0, 0.35);
 }

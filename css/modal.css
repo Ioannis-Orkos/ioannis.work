@@ -1,7 +1,7 @@
 .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(2, 6, 23, 0.6);
+    background: var(--color-overlay-backdrop);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -35,7 +35,7 @@
     height: 3rem;
     border: 0;
     border-radius: 50%;
-    background: rgba(148, 163, 184, 0.25);
+    background: var(--color-modal-close-bg);
     color: inherit;
     font-size: 2.2rem;
     line-height: 1;
@@ -51,7 +51,7 @@
 .modal-form input,
 .modal-form textarea,
 .modal-form select {
-    border: 1px solid rgba(148, 163, 184, 0.45);
+    border: 1px solid var(--color-input-border-strong);
     border-radius: 0.8rem;
     background: transparent;
     color: inherit;
@@ -109,7 +109,7 @@
     margin-top: 0.6rem;
     border: 1px solid var(--color-nav-active-hover);
     background: var(--color-nav-active-hover);
-    color: #fff;
+    color: var(--color-button-primary-text);
     cursor: pointer;
 }
 
@@ -119,33 +119,21 @@
 }
 
 #request-access-modal .modal-card.request-access-waiting {
-    background: #e2e8f0;
-    color: #0f172a;
-    border: 1px solid rgba(100, 116, 139, 0.45);
+    background: var(--color-request-waiting-bg);
+    color: var(--color-request-waiting-text);
+    border: 1px solid var(--color-request-waiting-border);
 }
 
 #request-access-modal .modal-card.request-access-waiting .modal-form textarea {
-    background: rgba(255, 255, 255, 0.85);
-    border-color: rgba(100, 116, 139, 0.55);
+    background: var(--color-request-waiting-input-bg);
+    border-color: var(--color-request-waiting-input-border);
 }
 
 #request-access-modal .modal-card.request-access-waiting .modal-submit {
-    background: #b45309;
-    color: #fff7ed;
+    background: var(--color-request-waiting-submit-bg);
+    color: var(--color-request-waiting-submit-text);
     opacity: 0.65;
     cursor: not-allowed;
-}
-
-:root[data-theme="dark"] #request-access-modal .modal-card.request-access-waiting {
-    background: #334155;
-    color: #e2e8f0;
-    border: 1px solid rgba(148, 163, 184, 0.55);
-}
-
-:root[data-theme="dark"] #request-access-modal .modal-card.request-access-waiting .modal-form textarea {
-    background: rgba(15, 23, 42, 0.42);
-    border-color: rgba(148, 163, 184, 0.6);
-    color: #e2e8f0;
 }
 
 .auth-switch {
@@ -156,7 +144,7 @@
 }
 
 .auth-switch-button {
-    border: 1px solid rgba(148, 163, 184, 0.45);
+    border: 1px solid var(--color-button-secondary-border);
     background: transparent;
     color: inherit;
     cursor: pointer;
@@ -169,18 +157,18 @@
 
 .auth-switch-button.active {
     border-color: var(--color-nav-active-hover);
-    background: rgba(217, 119, 6, 0.14);
+    background: var(--color-button-secondary-active-bg);
 }
 
 .modal-submit.active {
-    box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.32);
+    box-shadow: 0 0 0 2px var(--color-button-primary-active-ring);
     filter: saturate(1.05);
 }
 
 .error-message {
     min-height: 1.2rem;
     margin-top: -0.2rem;
-    color: #ef4444;
+    color: var(--color-danger);
     font-size: 0.85rem;
 }
 

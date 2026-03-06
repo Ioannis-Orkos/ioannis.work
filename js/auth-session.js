@@ -1,7 +1,19 @@
+import {
+  AUTH_API_FALLBACK_BASE_URL,
+  AUTH_API_PRIMARY_BASE_URL,
+} from "./config.js";
+
 export const AUTH_TOKEN_KEYS = Object.freeze([
   "auth-token",
   "access-token",
   "site-auth-token",
+]);
+
+const API_RETRYABLE_STATUS_CODES = new Set([502, 503, 504]);
+const AUTH_API_SELECTED_BASE_URL_KEY = "auth-api-selected-base-url";
+const KNOWN_API_BASE_URLS = Object.freeze([
+  AUTH_API_PRIMARY_BASE_URL,
+  AUTH_API_FALLBACK_BASE_URL,
 ]);
 
 function readStorageValue(storage, key) {
@@ -10,6 +22,47 @@ function readStorageValue(storage, key) {
   } catch {
     return "";
   }
+}
+
+function writeStorageValue(storage, key, value) {
+  try {
+    storage.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function removeStorageValue(storage, key) {
+  try {
+    storage.removeItem(key);
+  } catch {
+    // Ignore storage cleanup failures.
+  }
+}
+
+function isKnownApiBaseUrl(value) {
+  return KNOWN_API_BASE_URLS.includes(String(value || "").trim());
+}
+
+function getSelectedApiBaseUrl() {
+  const storedValue =
+    readStorageValue(localStorage, AUTH_API_SELECTED_BASE_URL_KEY) ||
+    readStorageValue(sessionStorage, AUTH_API_SELECTED_BASE_URL_KEY);
+  return isKnownApiBaseUrl(storedValue) ? storedValue : AUTH_API_PRIMARY_BASE_URL;
+}
+
+function saveSelectedApiBaseUrl(baseUrl) {
+  const normalizedBaseUrl = String(baseUrl || "").trim();
+  if (!isKnownApiBaseUrl(normalizedBaseUrl)) return false;
+  const wroteLocal = writeStorageValue(localStorage, AUTH_API_SELECTED_BASE_URL_KEY, normalizedBaseUrl);
+  const wroteSession = writeStorageValue(sessionStorage, AUTH_API_SELECTED_BASE_URL_KEY, normalizedBaseUrl);
+  return wroteLocal || wroteSession;
+}
+
+function clearSelectedApiBaseUrl() {
+  removeStorageValue(localStorage, AUTH_API_SELECTED_BASE_URL_KEY);
+  removeStorageValue(sessionStorage, AUTH_API_SELECTED_BASE_URL_KEY);
 }
 
 export function getStoredAuthToken() {
@@ -80,6 +133,7 @@ export function clearStoredAuthTokens() {
       // Ignore storage cleanup failures.
     }
   });
+  clearSelectedApiBaseUrl();
 }
 
 export async function parseJsonSafe(response) {
@@ -101,11 +155,85 @@ export async function authenticatedFetch(url, options = {}) {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  return fetch(url, {
+  const requestOptions = {
     credentials: "include",
     ...options,
     headers,
-  });
+  };
+
+  const originalUrl = String(url || "");
+  const preferredUrl = applySelectedApiBaseUrl(originalUrl);
+  const fallbackUrl = getAlternativeApiUrl(preferredUrl);
+
+  try {
+    const response = await fetch(preferredUrl, requestOptions);
+    if (response.ok) {
+      persistApiBaseUrlFromUrl(preferredUrl);
+      return response;
+    }
+
+    if (fallbackUrl && API_RETRYABLE_STATUS_CODES.has(response.status)) {
+      const fallbackResponse = await fetch(fallbackUrl, requestOptions);
+      if (fallbackResponse.ok) {
+        persistApiBaseUrlFromUrl(fallbackUrl);
+      }
+      return fallbackResponse;
+    }
+
+    return response;
+  } catch (error) {
+    if (!fallbackUrl) {
+      throw error;
+    }
+
+    const fallbackResponse = await fetch(fallbackUrl, requestOptions);
+    if (fallbackResponse.ok) {
+      persistApiBaseUrlFromUrl(fallbackUrl);
+    }
+    return fallbackResponse;
+  }
+}
+
+function applySelectedApiBaseUrl(url) {
+  const normalizedUrl = String(url || "");
+  if (!isApiUrl(normalizedUrl)) return normalizedUrl;
+  const selectedBaseUrl = getSelectedApiBaseUrl();
+  return replaceApiBaseUrl(normalizedUrl, selectedBaseUrl);
+}
+
+function getAlternativeApiUrl(url) {
+  const normalizedUrl = String(url || "");
+  if (!isApiUrl(normalizedUrl)) return "";
+
+  const currentBaseUrl = getApiBaseUrlFromUrl(normalizedUrl);
+  if (currentBaseUrl === AUTH_API_PRIMARY_BASE_URL) {
+    return replaceApiBaseUrl(normalizedUrl, AUTH_API_FALLBACK_BASE_URL);
+  }
+  if (currentBaseUrl === AUTH_API_FALLBACK_BASE_URL) {
+    return replaceApiBaseUrl(normalizedUrl, AUTH_API_PRIMARY_BASE_URL);
+  }
+  return "";
+}
+
+function replaceApiBaseUrl(url, nextBaseUrl) {
+  const currentBaseUrl = getApiBaseUrlFromUrl(url);
+  if (!currentBaseUrl || !isKnownApiBaseUrl(nextBaseUrl)) return String(url || "");
+  return String(url || "").replace(currentBaseUrl, nextBaseUrl);
+}
+
+function getApiBaseUrlFromUrl(url) {
+  const normalizedUrl = String(url || "");
+  return KNOWN_API_BASE_URLS.find((baseUrl) => normalizedUrl.startsWith(baseUrl)) || "";
+}
+
+function isApiUrl(url) {
+  return Boolean(getApiBaseUrlFromUrl(url));
+}
+
+function persistApiBaseUrlFromUrl(url) {
+  const baseUrl = getApiBaseUrlFromUrl(url);
+  if (!baseUrl) return false;
+  return saveSelectedApiBaseUrl(baseUrl);
 }
 
 export async function ensureAuthorizedSession(meEndpoint) {

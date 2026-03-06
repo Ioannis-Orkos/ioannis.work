@@ -1,5 +1,6 @@
 import { AUTH_API_BASE_URL } from "./config.js";
 import {
+  authenticatedFetch,
   clearStoredAuthTokens,
   getStoredAuthToken,
   parseJsonSafe,
@@ -108,9 +109,8 @@ export function initAuth() {
   const bootstrapSession = async () => {
     const token = getStoredAuthToken();
     try {
-      const response = await fetch(endpoints.me, {
+      const response = await authenticatedFetch(endpoints.me, {
         method: "GET",
-        credentials: "include",
         headers: token
           ? {
               Authorization: `Bearer ${token}`,
@@ -167,9 +167,8 @@ export function initAuth() {
     }
 
     try {
-      const response = await fetch(endpoints.signup, {
+      const response = await authenticatedFetch(endpoints.signup, {
         method: "POST",
-        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
@@ -206,9 +205,8 @@ export function initAuth() {
     }
 
     try {
-      const response = await fetch(endpoints.login, {
+      const response = await authenticatedFetch(endpoints.login, {
         method: "POST",
-        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
@@ -243,9 +241,8 @@ export function initAuth() {
     event.preventDefault();
 
     try {
-      await fetch(endpoints.logout, {
+      await authenticatedFetch(endpoints.logout, {
         method: "POST",
-        credentials: "include",
       });
     } catch {
       // Continue clearing local state even if server call fails.

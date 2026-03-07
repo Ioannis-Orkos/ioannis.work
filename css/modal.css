@@ -118,6 +118,13 @@
     margin-top: 0.8rem;
 }
 
+#request-access-message {
+    white-space: pre-line;
+    text-align: center;
+    line-height: 1.45;
+    margin-top: 0.4rem;
+}
+
 #request-access-modal .modal-card.request-access-waiting {
     background: var(--color-request-waiting-bg);
     color: var(--color-request-waiting-text);
@@ -134,6 +141,11 @@
     color: var(--color-request-waiting-submit-text);
     opacity: 0.65;
     cursor: not-allowed;
+}
+
+#request-access-modal .modal-card.request-access-rejected {
+    border: 1px solid var(--color-danger-border);
+    box-shadow: 0 0 0 1px var(--color-danger-border);
 }
 
 .auth-switch {

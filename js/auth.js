@@ -16,6 +16,13 @@ const endpoints = {
   me: `${AUTH_API_BASE_URL}/api/auth/me`,
 };
 
+const formatStatusDate = (value) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString();
+};
+
 const parseJwtPayload = (token) => {
   try {
     const payload = String(token || "").split(".")[1];
@@ -181,7 +188,12 @@ export function initAuth() {
         return;
       }
 
-      setStatus("Signup successful. Verify your email before login.");
+      const sentAt = formatStatusDate(body?.verificationSentAt);
+      setStatus(
+        sentAt
+          ? `Wait verification. Verification sent on ${sentAt}. After that, admin approval is required.`
+          : "Wait verification. Verification sent. After that, admin approval is required."
+      );
       setMode("login");
       loginForm.querySelector("#login-email").value = payload.email;
       signupForm.reset();

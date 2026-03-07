@@ -42,6 +42,7 @@ export async function initProject({ navigationController } = {}) {
   let selectedCategories = new Set();
   let serverProjectsBySlug = new Map();
   let requestNotesBySlug = new Map();
+  let reviewNotesBySlug = new Map();
   let pendingRequestProject = null;
   let pendingRequestServerProject = null;
   const embeddedDetailController = createEmbeddedDetailController({
@@ -123,6 +124,7 @@ export async function initProject({ navigationController } = {}) {
 
   const loadServerProjects = async () => {
     requestNotesBySlug = new Map();
+    reviewNotesBySlug = new Map();
 
     if (!isAuthorizedUser()) {
       const hasSession = await ensureAuthorizedProjectSession();
@@ -151,9 +153,13 @@ export async function initProject({ navigationController } = {}) {
       const rows = Array.isArray(payload?.projects) ? payload.projects : [];
       rows.forEach((row) => {
         const slug = String(row?.slug || "").trim();
-        const note = String(row?.accessRequestNote || "").trim();
-        if (slug && note) {
-          requestNotesBySlug.set(slug, note);
+        const requestNote = String(row?.accessRequestNote || "").trim();
+        const reviewNote = String(row?.accessReviewNote || "").trim();
+        if (slug && requestNote) {
+          requestNotesBySlug.set(slug, requestNote);
+        }
+        if (slug && reviewNote) {
+          reviewNotesBySlug.set(slug, reviewNote);
         }
       });
       serverProjectsBySlug = new Map(
@@ -288,29 +294,36 @@ export async function initProject({ navigationController } = {}) {
     pendingRequestServerProject = serverProject;
     const canSubmit = Boolean(serverProject?.id || project?.serverProjectSlug || project?.folder);
 
-    if (requestAccessMessageEl) {
-      if (requestStatus === "pending") {
-        requestAccessMessageEl.textContent =
-          `Your request for "${project.title}" is waiting approval from admin.`;
-      } else if (requestStatus === "rejected") {
-        requestAccessMessageEl.textContent =
-          `Your request for "${project.title}" was rejected. Send a new message for review.`;
-      } else {
-        requestAccessMessageEl.textContent =
-          `You do not have access to "${project.title}" yet. Send a request message to admin?`;
-      }
-    }
-    if (requestAccessFormEl) requestAccessFormEl.reset();
-
     const slugKey = String(project?.serverProjectSlug || project?.folder || "").trim();
     const previousNote = String(
       serverProject?.accessRequestNote ||
       requestNotesBySlug.get(slugKey) ||
       ""
     ).trim();
+    const reviewNote = String(
+      serverProject?.accessReviewNote ||
+      reviewNotesBySlug.get(slugKey) ||
+      ""
+    ).trim();
+
+    if (requestAccessMessageEl) {
+      if (requestStatus === "pending") {
+        requestAccessMessageEl.textContent =
+          `Your request for "${project.title}" is waiting approval from admin.`;
+      } else if (requestStatus === "rejected") {
+        requestAccessMessageEl.textContent = reviewNote
+          ? `Access to\n"${project.title}" was rejected.\nYour previous message: ${previousNote || "No message provided."}\nAdmin message: ${reviewNote}\n\nContact admin to continue.`
+          : `Your request for "${project.title}" was rejected. Contact admin or send a new message for review.`;
+      } else {
+        requestAccessMessageEl.textContent =
+          `You do not have access to "${project.title}" yet. Send a request message to admin?`;
+      }
+    }
+    if (requestAccessFormEl) requestAccessFormEl.reset();
     const isPending = requestStatus === "pending";
     if (requestAccessModalCardEl) {
       requestAccessModalCardEl.classList.toggle("request-access-waiting", isPending);
+      requestAccessModalCardEl.classList.toggle("request-access-rejected", requestStatus === "rejected");
     }
 
     if (requestAccessNoteEl) {

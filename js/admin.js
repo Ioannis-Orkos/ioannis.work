@@ -17,6 +17,8 @@ const endpoints = {
   projectDeleteById: (id) => `${AUTH_API_BASE_URL}/api/admin/projects/${id}`,
   userRoleById: (id) => `${AUTH_API_BASE_URL}/api/admin/users/${id}/role`,
   userById: (id) => `${AUTH_API_BASE_URL}/api/admin/users/${id}`,
+  userStatusById: (id) => `${AUTH_API_BASE_URL}/api/admin/users/${id}/status`,
+  userProjectByIds: (userId, projectId) => `${AUTH_API_BASE_URL}/api/admin/users/${userId}/projects/${projectId}`,
 };
 
 export function initAdmin({ navigationController } = {}) {
@@ -49,6 +51,14 @@ export function initAdmin({ navigationController } = {}) {
   let projectEditorStatus = null;
   let editingProjectId = null;
   let projectEditorMode = "edit";
+  let userProjectsModal = null;
+  let userProjectsBody = null;
+  let userProjectsStatus = null;
+  let editingUserProjectsId = null;
+  let requestReviewModal = null;
+  let requestReviewForm = null;
+  let requestReviewStatus = null;
+  let editingRequestId = null;
   const loadingMarkup = '<div class="admin-loading"><span class="admin-spinner" aria-hidden="true"></span><span>Loading...</span></div>';
 
   const setGateStatus = (message) => {
@@ -224,6 +234,153 @@ export function initAdmin({ navigationController } = {}) {
     });
   };
 
+  const getRequestRecord = (userId, projectId) =>
+    requestsCache.find(
+      (request) => Number(request.user_id) === Number(userId) && Number(request.project_id) === Number(projectId)
+    ) || null;
+
+  const ensureUserProjectsModal = () => {
+    if (userProjectsModal) return;
+
+    const overlay = document.createElement("div");
+    overlay.id = "admin-user-projects-modal";
+    overlay.className = "modal-overlay";
+    overlay.hidden = true;
+    overlay.innerHTML = `
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="admin-user-projects-title">
+        <button type="button" class="modal-close admin-user-projects-close" aria-label="Close user projects">×</button>
+        <h2 id="admin-user-projects-title">User Projects</h2>
+        <div id="admin-user-projects-body" class="admin-user-projects-body"></div>
+        <p id="admin-user-projects-status" class="modal-status" aria-live="polite"></p>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    userProjectsModal = overlay;
+    userProjectsBody = overlay.querySelector("#admin-user-projects-body");
+    userProjectsStatus = overlay.querySelector("#admin-user-projects-status");
+
+    overlay.addEventListener("click", (event) => {
+      if (event.target === overlay || event.target.closest(".admin-user-projects-close")) {
+        overlay.hidden = true;
+        editingUserProjectsId = null;
+        if (userProjectsStatus) userProjectsStatus.textContent = "";
+      }
+    });
+  };
+
+  const ensureRequestReviewModal = () => {
+    if (requestReviewModal) return;
+
+    const overlay = document.createElement("div");
+    overlay.id = "admin-request-review-modal";
+    overlay.className = "modal-overlay";
+    overlay.hidden = true;
+    overlay.innerHTML = `
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="admin-request-review-title">
+        <button type="button" class="modal-close admin-request-review-close" aria-label="Close review modal">×</button>
+        <h2 id="admin-request-review-title">Reject Request</h2>
+        <form id="admin-request-review-form" class="modal-form">
+          <label for="admin-request-review-note">Message to user</label>
+          <textarea id="admin-request-review-note" name="note" rows="5" placeholder="Explain why access is rejected..." required></textarea>
+          <button type="submit" class="modal-submit">Send Rejection</button>
+        </form>
+        <p id="admin-request-review-status" class="modal-status" aria-live="polite"></p>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    requestReviewModal = overlay;
+    requestReviewForm = overlay.querySelector("#admin-request-review-form");
+    requestReviewStatus = overlay.querySelector("#admin-request-review-status");
+
+    overlay.addEventListener("click", (event) => {
+      if (event.target === overlay || event.target.closest(".admin-request-review-close")) {
+        overlay.hidden = true;
+        editingRequestId = null;
+        if (requestReviewStatus) requestReviewStatus.textContent = "";
+        if (requestReviewForm) requestReviewForm.reset();
+      }
+    });
+
+    requestReviewForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!Number.isFinite(editingRequestId)) return;
+      const formData = new FormData(requestReviewForm);
+      const reviewNote = String(formData.get("note") || "").trim();
+      if (!reviewNote) {
+        if (requestReviewStatus) requestReviewStatus.textContent = "A rejection message is required.";
+        return;
+      }
+
+      try {
+        const submitBtn = requestReviewForm.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
+        if (requestReviewStatus) requestReviewStatus.innerHTML = loadingMarkup;
+        await updateAccessRequest(editingRequestId, "rejected", reviewNote);
+        requestsCache = requestsCache.map((request) =>
+          Number(request.id) === editingRequestId
+            ? { ...request, status: "rejected", review_note: reviewNote }
+            : request
+        );
+        requestFilter = "all";
+        activeAdminTab = "requests";
+        await refreshAdminData();
+        if (requestReviewForm) requestReviewForm.reset();
+        if (requestReviewStatus) requestReviewStatus.textContent = "";
+        requestReviewModal.hidden = true;
+        editingRequestId = null;
+      } catch (error) {
+        if (requestReviewStatus) {
+          requestReviewStatus.textContent = error.message || "Failed to reject request.";
+        }
+      } finally {
+        const submitBtn = requestReviewForm.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    });
+  };
+
+  const renderUserProjectsModal = (user) => {
+    ensureUserProjectsModal();
+    if (!userProjectsBody) return;
+
+    const projectRows = projectsCache.length
+      ? projectsCache
+            .map((project) => {
+              const request = getRequestRecord(user.id, project.id);
+            const status = String(request?.status || (project.locked ? "none" : "open")).toLowerCase();
+            const isAssigned = status === "approved";
+            const action = project.locked ? (isAssigned ? "remove" : "assign") : "noop";
+            const label = project.locked ? (isAssigned ? "Remove" : "Add") : "Open";
+              return `
+              <div class="admin-user-project-item" data-project-id="${project.id}">
+                <div class="admin-user-project-meta">
+                  <strong>${escapeHtml(project.title)}</strong>
+                  <span>${escapeHtml(project.slug)} | ${project.locked ? "locked" : "open"} | ${escapeHtml(status)}</span>
+                </div>
+                <button
+                  type="button"
+                  class="auth-switch-button admin-user-project-toggle"
+                  data-project-toggle="${action}"
+                  ${project.locked && String(user.role || "").toLowerCase() !== "admin" ? "" : "disabled"}
+                >${label}</button>
+              </div>
+            `;
+          })
+          .join("")
+      : "<p>No projects found.</p>";
+
+    userProjectsBody.innerHTML = `
+      <div class="admin-user-projects-header">
+        <p>Manage project access for <strong>${escapeHtml(user.full_name || user.email || "User")}</strong>.</p>
+      </div>
+      <div class="admin-user-projects-list">${projectRows}</div>
+    `;
+    if (userProjectsStatus) userProjectsStatus.textContent = "";
+    userProjectsModal.hidden = false;
+  };
+
   const openProjectEditor = (project, { mode = "edit" } = {}) => {
     ensureProjectEditorModal();
     projectEditorMode = mode === "create" ? "create" : "edit";
@@ -286,6 +443,7 @@ export function initAdmin({ navigationController } = {}) {
   const renderOverview = (overview) => {
     overviewEl.innerHTML = `
       <article class="admin-stat"><h4>Users</h4><p>${Number(overview?.usersTotal || 0)}</p></article>
+      <article class="admin-stat"><h4>Pending Users</h4><p>${Number(overview?.pendingUsers || 0)}</p></article>
       <article class="admin-stat"><h4>Pending</h4><p>${Number(overview?.pendingRequests || 0)}</p></article>
       <article class="admin-stat"><h4>Approved</h4><p>${Number(overview?.approvedRequests || 0)}</p></article>
       <article class="admin-stat"><h4>Rejected</h4><p>${Number(overview?.rejectedRequests || 0)}</p></article>
@@ -310,6 +468,7 @@ export function initAdmin({ navigationController } = {}) {
         user.email,
         user.role,
         user.status,
+        user.email_verified ? "verified" : "unverified",
       ].join(" ").toLowerCase();
       return haystack.includes(normalizedQuery);
     });
@@ -358,9 +517,15 @@ export function initAdmin({ navigationController } = {}) {
                 <tr data-user-id="${user.id}">
                   <td>${escapeHtml(user.full_name || "No Name")}</td>
                   <td>${escapeHtml(user.email)}</td>
-                  <td><span class="admin-badge">${escapeHtml(user.role)}</span></td>
-                  <td><span class="admin-badge">${escapeHtml(user.status)}</span></td>
+                  <td class="admin-users-col-role"><span class="admin-badge">${escapeHtml(user.role)}</span></td>
+                  <td class="admin-users-col-status"><span class="admin-badge">${escapeHtml(user.status)}</span></td>
                   <td class="admin-actions-cell">
+                    ${isAdminRole ? "" : '<button type="button" class="auth-switch-button admin-manage-user-projects">Projects</button>'}
+                    <button
+                      type="button"
+                      class="auth-switch-button admin-approve-user"
+                      ${String(user.status || "").toLowerCase() === "pending" && user.email_verified ? "" : "disabled"}
+                    >Approve</button>
                     <button type="button" class="auth-switch-button admin-toggle-user-role" data-next-role="${isAdminRole ? "user" : "admin"}" ${canToggleRole ? "" : "disabled"}>${isAdminRole ? "Make User" : "Make Admin"}</button>
                     <button
                       type="button"
@@ -438,7 +603,6 @@ export function initAdmin({ navigationController } = {}) {
             .map((request) => {
               const status = String(request.status || "").toLowerCase();
               const isApproved = status === "approved";
-              const isRejected = status === "rejected";
               const userMessage = String(
                 request.user_message ||
                 request.userMessage ||
@@ -448,6 +612,7 @@ export function initAdmin({ navigationController } = {}) {
                 request.note ||
                 ""
               ).trim();
+              const reviewMessage = String(request.review_note || request.reviewNote || "").trim();
               return `
                 <tr data-request-id="${request.id}">
                   <td>${request.title}</td>
@@ -455,16 +620,26 @@ export function initAdmin({ navigationController } = {}) {
                     <span class="admin-request-user-name">${request.full_name || "No Name"}</span>
                     <span class="admin-request-user-email">${request.email || ""}</span>
                   </td>
-                  <td class="admin-requests-col-status"><span class="admin-badge">${request.status}</span></td>
-                  <td>${userMessage || "No message"}</td>
+                  <td class="admin-requests-col-status"><span class="admin-badge" data-status="${escapeHtml(status)}">${request.status}</span></td>
+                  <td>
+                    <div>${userMessage || "No message"}</div>
+                    ${reviewMessage ? `<div class="admin-request-review-note">Admin: ${escapeHtml(reviewMessage)}</div>` : ""}
+                  </td>
                   <td class="admin-actions-cell admin-requests-col-actions">
                     <button
                       type="button"
-                      class="modal-submit admin-request-toggle ${isApproved ? "active" : ""}"
-                      data-status="${isApproved ? "rejected" : "approved"}"
+                      class="modal-submit admin-request-approve ${isApproved ? "active" : ""}"
+                      data-status="approved"
                       aria-pressed="${isApproved ? "true" : "false"}"
                     >
-                      ${isApproved ? "Reject" : "Approve"}
+                      Approve
+                    </button>
+                    <button
+                      type="button"
+                      class="auth-switch-button admin-request-reject"
+                      data-status="rejected"
+                    >
+                      Reject
                     </button>
                   </td>
                 </tr>
@@ -617,6 +792,7 @@ export function initAdmin({ navigationController } = {}) {
       projectsCache = projects;
       const fallbackOverview = {
         usersTotal: users.length,
+        pendingUsers: users.filter((user) => user.status === "pending").length,
         pendingRequests: requests.filter((r) => r.status === "pending").length,
         approvedRequests: requests.filter((r) => r.status === "approved").length,
         rejectedRequests: requests.filter((r) => r.status === "rejected").length,
@@ -637,7 +813,7 @@ export function initAdmin({ navigationController } = {}) {
     }
   };
 
-  const updateAccessRequest = async (requestId, status) => {
+  const updateAccessRequest = async (requestId, status, note = null) => {
     const response = await apiFetch(endpoints.accessRequestById(requestId), {
       method: "PATCH",
       headers: {
@@ -645,6 +821,7 @@ export function initAdmin({ navigationController } = {}) {
       },
       body: JSON.stringify({
         status,
+        note,
       }),
     });
     const body = await parseJsonSafe(response);
@@ -664,22 +841,34 @@ export function initAdmin({ navigationController } = {}) {
     const requestId = Number(row.dataset.requestId);
     if (!Number.isFinite(requestId)) return;
 
-    const toggleBtn = event.target.closest(".admin-request-toggle[data-status]");
-    if (toggleBtn) {
+    const approveBtn = event.target.closest(".admin-request-approve[data-status]");
+    if (approveBtn) {
       try {
-        const nextStatus = String(toggleBtn.dataset.status || "").toLowerCase();
-        if (!["approved", "rejected"].includes(nextStatus)) return;
-        toggleBtn.disabled = true;
-        await updateAccessRequest(requestId, nextStatus);
+        approveBtn.disabled = true;
+        await updateAccessRequest(requestId, "approved");
         requestsCache = requestsCache.map((request) =>
-          Number(request.id) === requestId ? { ...request, status: nextStatus } : request
+          Number(request.id) === requestId ? { ...request, status: "approved" } : request
         );
         requestFilter = "all";
         activeAdminTab = "requests";
         await refreshAdminData();
       } catch (error) {
         setGateStatus(error.message || "Failed to update request.");
+      } finally {
+        approveBtn.disabled = false;
       }
+      return;
+    }
+
+    const rejectBtn = event.target.closest(".admin-request-reject[data-status]");
+    if (rejectBtn) {
+      ensureRequestReviewModal();
+      editingRequestId = requestId;
+      if (requestReviewStatus) requestReviewStatus.textContent = "";
+      if (requestReviewForm) requestReviewForm.reset();
+      requestReviewModal.hidden = false;
+      const noteField = requestReviewForm?.querySelector("#admin-request-review-note");
+      if (noteField) noteField.focus();
       return;
     }
   });
@@ -712,6 +901,17 @@ export function initAdmin({ navigationController } = {}) {
     const userId = Number(row.dataset.userId);
     if (!Number.isFinite(userId)) return;
 
+    if (event.target.closest(".admin-manage-user-projects")) {
+      const user = usersCache.find((item) => Number(item.id) === userId);
+      if (!user) {
+        setGateStatus("User not found.");
+        return;
+      }
+      editingUserProjectsId = userId;
+      renderUserProjectsModal(user);
+      return;
+    }
+
     if (event.target.closest(".admin-toggle-user-role")) {
       try {
         const toggleBtn = event.target.closest(".admin-toggle-user-role");
@@ -738,6 +938,30 @@ export function initAdmin({ navigationController } = {}) {
       return;
     }
 
+    if (event.target.closest(".admin-approve-user")) {
+      try {
+        const response = await apiFetch(endpoints.userStatusById(userId), {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ status: "active" }),
+        });
+        const body = await parseJsonSafe(response);
+        if (!response.ok) {
+          throw new Error(body.error || "Failed to approve user.");
+        }
+        usersCache = usersCache.map((user) =>
+          Number(user.id) === userId ? { ...user, status: "active" } : user
+        );
+        activeAdminTab = "users";
+        await refreshAdminData();
+      } catch (error) {
+        setGateStatus(error.message || "Failed to approve user.");
+      }
+      return;
+    }
+
     if (event.target.closest(".admin-delete-user")) {
       try {
         const response = await apiFetch(endpoints.userById(userId), {
@@ -753,6 +977,48 @@ export function initAdmin({ navigationController } = {}) {
       } catch (error) {
         setGateStatus(error.message || "Failed to delete user.");
       }
+    }
+  });
+
+  document.addEventListener("click", async (event) => {
+    const toggleBtn = event.target.closest(".admin-user-project-toggle[data-project-toggle]");
+    if (!toggleBtn || !userProjectsModal || userProjectsModal.hidden) return;
+    if (!Number.isFinite(editingUserProjectsId)) return;
+
+    const action = String(toggleBtn.dataset.projectToggle || "");
+    if (!["assign", "remove"].includes(action)) return;
+
+    const projectRow = toggleBtn.closest("[data-project-id]");
+    const projectId = Number(projectRow?.dataset.projectId);
+    if (!Number.isFinite(projectId)) return;
+
+    try {
+      toggleBtn.disabled = true;
+      if (userProjectsStatus) userProjectsStatus.innerHTML = loadingMarkup;
+      const response = await apiFetch(endpoints.userProjectByIds(editingUserProjectsId, projectId), {
+        method: action === "assign" ? "POST" : "DELETE",
+      });
+      const body = await parseJsonSafe(response);
+      if (!response.ok) {
+        throw new Error(body.error || "Failed to update project access.");
+      }
+
+      activeAdminTab = "users";
+      await refreshAdminData();
+      const user = usersCache.find((item) => Number(item.id) === Number(editingUserProjectsId));
+      if (user) {
+        renderUserProjectsModal(user);
+      }
+      if (userProjectsStatus) {
+        userProjectsStatus.textContent =
+          action === "assign" ? "Project added to user." : "Project removed from user.";
+      }
+    } catch (error) {
+      if (userProjectsStatus) {
+        userProjectsStatus.textContent = error.message || "Failed to update project access.";
+      }
+    } finally {
+      toggleBtn.disabled = false;
     }
   });
 

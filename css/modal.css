@@ -167,6 +167,12 @@
     transform: translateY(-1px);
 }
 
+.modal-submit:disabled,
+.auth-switch-button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
 .auth-switch-button.active {
     border-color: var(--color-nav-active-hover);
     background: var(--color-button-secondary-active-bg);

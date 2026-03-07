@@ -511,20 +511,35 @@ export function initAdmin({ navigationController } = {}) {
           ${filtered
             .map((user) => {
               const canDelete = Number(user.id) !== currentUserId;
+              const status = String(user.status || "").toLowerCase();
               const isAdminRole = String(user.role || "").toLowerCase() === "admin";
+              const isPendingUser = status === "pending";
+              const isEmailVerified = Boolean(user.email_verified);
               const canToggleRole = canDelete;
+              const approveTitle = !isPendingUser
+                ? "Only pending users can be approved."
+                : isEmailVerified
+                  ? "Approve user"
+                  : "Approve user. Email verification is still required before login.";
               return `
                 <tr data-user-id="${user.id}">
                   <td>${escapeHtml(user.full_name || "No Name")}</td>
                   <td>${escapeHtml(user.email)}</td>
                   <td class="admin-users-col-role"><span class="admin-badge">${escapeHtml(user.role)}</span></td>
-                  <td class="admin-users-col-status"><span class="admin-badge">${escapeHtml(user.status)}</span></td>
+                  <td class="admin-users-col-status">
+                    <div class="admin-user-status-stack">
+                      <span class="admin-badge">${escapeHtml(user.status)}</span>
+                      <span class="admin-user-verify-state">${isEmailVerified ? "Email verified" : "Email not verified"}</span>
+                    </div>
+                  </td>
                   <td class="admin-actions-cell">
                     ${isAdminRole ? "" : '<button type="button" class="auth-switch-button admin-manage-user-projects">Projects</button>'}
                     <button
                       type="button"
                       class="auth-switch-button admin-approve-user"
-                      ${String(user.status || "").toLowerCase() === "pending" && user.email_verified ? "" : "disabled"}
+                      data-email-verified="${isEmailVerified ? "1" : "0"}"
+                      title="${escapeHtml(approveTitle)}"
+                      ${isPendingUser ? "" : "disabled"}
                     >Approve</button>
                     <button type="button" class="auth-switch-button admin-toggle-user-role" data-next-role="${isAdminRole ? "user" : "admin"}" ${canToggleRole ? "" : "disabled"}>${isAdminRole ? "Make User" : "Make Admin"}</button>
                     <button
@@ -939,7 +954,14 @@ export function initAdmin({ navigationController } = {}) {
     }
 
     if (event.target.closest(".admin-approve-user")) {
+      const approveBtn = event.target.closest(".admin-approve-user");
+      const user = usersCache.find((item) => Number(item.id) === userId);
+      if (!user) {
+        setGateStatus("User not found.");
+        return;
+      }
       try {
+        approveBtn.disabled = true;
         const response = await apiFetch(endpoints.userStatusById(userId), {
           method: "PATCH",
           headers: {
@@ -956,8 +978,15 @@ export function initAdmin({ navigationController } = {}) {
         );
         activeAdminTab = "users";
         await refreshAdminData();
+        setGateStatus(
+          user.email_verified
+            ? "User approved."
+            : "User approved. Email verification is still required before login."
+        );
       } catch (error) {
         setGateStatus(error.message || "Failed to approve user.");
+      } finally {
+        approveBtn.disabled = false;
       }
       return;
     }

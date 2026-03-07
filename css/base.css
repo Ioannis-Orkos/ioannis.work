@@ -680,7 +680,20 @@ section {
 }
 
 .admin-users-col-status {
-    width: 2.4rem;
+    width: 8.5rem;
+}
+
+.admin-user-status-stack {
+    display: grid;
+    gap: 0.3rem;
+    justify-items: start;
+}
+
+.admin-user-verify-state {
+    font-size: 1rem;
+    line-height: 1.15;
+    opacity: 0.72;
+    white-space: normal;
 }
 
 .admin-table th {

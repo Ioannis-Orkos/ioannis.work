@@ -515,6 +515,12 @@ export function initAdmin({ navigationController } = {}) {
               const isAdminRole = String(user.role || "").toLowerCase() === "admin";
               const isPendingUser = status === "pending";
               const isEmailVerified = Boolean(user.email_verified);
+              const verificationStateLabel =
+                status === "active" && !isEmailVerified
+                  ? "Login enabled by admin"
+                  : isEmailVerified
+                    ? "Email verified"
+                    : "Email not verified";
               const canToggleRole = canDelete;
               const approveTitle = !isPendingUser
                 ? "Only pending users can be approved."
@@ -529,7 +535,7 @@ export function initAdmin({ navigationController } = {}) {
                   <td class="admin-users-col-status">
                     <div class="admin-user-status-stack">
                       <span class="admin-badge">${escapeHtml(user.status)}</span>
-                      <span class="admin-user-verify-state">${isEmailVerified ? "Email verified" : "Email not verified"}</span>
+                      <span class="admin-user-verify-state">${escapeHtml(verificationStateLabel)}</span>
                     </div>
                   </td>
                   <td class="admin-actions-cell">

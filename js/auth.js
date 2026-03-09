@@ -292,8 +292,8 @@ export function initAuth() {
       const sentAt = formatStatusDate(body?.verificationSentAt);
       setStatus(
         sentAt
-          ? `Wait verification. Verification sent on ${sentAt}. After that, admin approval is required.`
-          : "Wait verification. Verification sent. After that, admin approval is required."
+          ? `Verify your email. Verification sent on ${sentAt}.`
+          : "Verify your email. Verification sent."
       );
       setMode("login");
       loginForm.querySelector("#login-email").value = payload.email;

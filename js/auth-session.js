@@ -1,6 +1,9 @@
 import {
   AUTH_API_FALLBACK_BASE_URL,
+  AUTH_API_LOCAL_BASE_URL,
+  AUTH_API_BASE_URL,
   AUTH_API_PRIMARY_BASE_URL,
+  IS_LOCAL_FRONTEND,
 } from "./config.js";
 
 export const AUTH_TOKEN_KEYS = Object.freeze([
@@ -11,10 +14,11 @@ export const AUTH_TOKEN_KEYS = Object.freeze([
 
 const API_RETRYABLE_STATUS_CODES = new Set([502, 503, 504]);
 const AUTH_API_SELECTED_BASE_URL_KEY = "auth-api-selected-base-url";
-const KNOWN_API_BASE_URLS = Object.freeze([
-  AUTH_API_PRIMARY_BASE_URL,
-  AUTH_API_FALLBACK_BASE_URL,
-]);
+const KNOWN_API_BASE_URLS = Object.freeze(
+  IS_LOCAL_FRONTEND
+    ? [AUTH_API_LOCAL_BASE_URL]
+    : [AUTH_API_PRIMARY_BASE_URL, AUTH_API_FALLBACK_BASE_URL]
+);
 
 function readStorageValue(storage, key) {
   try {
@@ -46,13 +50,17 @@ function isKnownApiBaseUrl(value) {
 }
 
 function getSelectedApiBaseUrl() {
+  if (IS_LOCAL_FRONTEND) {
+    return AUTH_API_LOCAL_BASE_URL;
+  }
   const storedValue =
     readStorageValue(localStorage, AUTH_API_SELECTED_BASE_URL_KEY) ||
     readStorageValue(sessionStorage, AUTH_API_SELECTED_BASE_URL_KEY);
-  return isKnownApiBaseUrl(storedValue) ? storedValue : AUTH_API_PRIMARY_BASE_URL;
+  return isKnownApiBaseUrl(storedValue) ? storedValue : AUTH_API_BASE_URL;
 }
 
 function saveSelectedApiBaseUrl(baseUrl) {
+  if (IS_LOCAL_FRONTEND) return false;
   const normalizedBaseUrl = String(baseUrl || "").trim();
   if (!isKnownApiBaseUrl(normalizedBaseUrl)) return false;
   const wroteLocal = writeStorageValue(localStorage, AUTH_API_SELECTED_BASE_URL_KEY, normalizedBaseUrl);
@@ -92,8 +100,7 @@ export function setAuthorizedFlag(isAuthorized) {
 }
 
 export function isAuthorizedUser() {
-  if (window.__IS_AUTHORIZED_USER === true) return true;
-  return hasStoredAuthToken();
+  return window.__IS_AUTHORIZED_USER === true && Boolean(getAuthUser()?.id);
 }
 
 export function getAuthRole() {
@@ -115,7 +122,6 @@ export function saveAuthToken(token) {
       // Ignore storage write failures and rely on cookie session fallback.
     }
   });
-  setAuthorizedFlag(true);
   return true;
 }
 
@@ -202,6 +208,9 @@ function applySelectedApiBaseUrl(url) {
 }
 
 function getAlternativeApiUrl(url) {
+  if (IS_LOCAL_FRONTEND) {
+    return "";
+  }
   const normalizedUrl = String(url || "");
   if (!isApiUrl(normalizedUrl)) return "";
 

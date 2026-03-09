@@ -41,6 +41,10 @@ select {
   font: inherit;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

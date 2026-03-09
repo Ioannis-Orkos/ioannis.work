@@ -72,6 +72,16 @@
         <li><a href="#contact" data-modal="contact">Contact</a></li>
         <li class="nav-auth-group">
             <a href="#login" data-auth-link="1" data-modal="login">Login</a>
+            <button
+              id="settings-toggle"
+              class="theme-toggle settings-toggle"
+              type="button"
+              data-modal="settings"
+              aria-label="Open account settings"
+              hidden
+            >
+                <span id="settings-icon" aria-hidden="true">⚙</span>
+            </button>
             <button id="theme-toggle" class="theme-toggle" aria-label="Toggle Theme">
                 <span id="theme-icon">🌙</span>
             </button>
@@ -241,6 +251,16 @@
       <li><a href="#contact" data-modal="contact">Contact</a></li>
       <li class="nav-auth-group">
           <a href="#login" data-auth-link="1" data-modal="login">Login</a>
+          <button
+            id="settings-toggle-mobile"
+            class="theme-toggle settings-toggle"
+            type="button"
+            data-modal="settings"
+            aria-label="Open account settings"
+            hidden
+          >
+              <span id="settings-icon-mobile" aria-hidden="true">⚙</span>
+          </button>
           <button id="theme-toggle-mobile" class="theme-toggle" aria-label="Toggle Theme">
               <span id="theme-icon-mobile">🌙</span>
           </button>
@@ -300,6 +320,13 @@
         <button type="button" class="auth-switch-button" id="show-signup" aria-controls="signup-form">Sign Up</button>
       </div>
 
+      <div class="auth-social">
+        <button type="button" class="auth-google-button" id="auth-google-button">
+          Continue with Google
+        </button>
+        <p class="auth-divider" aria-hidden="true"><span>or use email</span></p>
+      </div>
+
       <form id="login-form" class="modal-form">
         <label for="login-email">Email</label>
         <input id="login-email" name="email" type="email" required />
@@ -322,6 +349,103 @@
         <button type="submit" class="modal-submit">Create Account</button>
       </form>
       <p id="login-status" class="modal-status" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <div id="settings-modal" class="modal-overlay" data-modal-id="settings" hidden>
+    <div class="modal-card settings-modal-card" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
+      <button type="button" class="modal-close" data-modal-close aria-label="Close account settings">×</button>
+      <div class="settings-shell">
+        <header class="settings-hero">
+          <div class="settings-hero-copy">
+            <p class="settings-eyebrow">Account</p>
+            <h2 id="settings-modal-title">Settings</h2>
+            <p class="settings-intro">Manage your profile, password, and account details from one place.</p>
+          </div>
+          <div class="settings-hero-meta">
+            <div class="settings-hero-chip">
+              <span>Role</span>
+              <strong id="settings-role">-</strong>
+            </div>
+            <div class="settings-hero-chip">
+              <span>Status</span>
+              <strong id="settings-status">-</strong>
+            </div>
+          </div>
+        </header>
+
+        <div class="settings-grid">
+          <div class="settings-primary">
+            <section class="settings-section">
+              <div class="settings-section-head">
+                <div>
+                  <p class="settings-section-kicker">Profile</p>
+                  <h3>Public account name</h3>
+                </div>
+                <p>Update the name shown across your account.</p>
+              </div>
+              <form id="settings-profile-form" class="modal-form settings-form">
+                <label for="settings-fullname">Username</label>
+                <input id="settings-fullname" name="fullName" type="text" required maxlength="120" />
+                <button type="submit" class="modal-submit">Save Profile</button>
+              </form>
+              <p id="settings-profile-status" class="modal-status" aria-live="polite"></p>
+            </section>
+
+            <section class="settings-section">
+              <div class="settings-section-head">
+                <div>
+                  <p class="settings-section-kicker">Security</p>
+                  <h3>Password</h3>
+                </div>
+                <p>Keep your account secure with a strong password.</p>
+              </div>
+              <form id="settings-password-form" class="modal-form settings-form">
+                <div id="settings-current-password-group">
+                  <label for="settings-current-password">Current Password</label>
+                  <input id="settings-current-password" name="currentPassword" type="password" autocomplete="current-password" />
+                </div>
+                <label for="settings-new-password">New Password</label>
+                <input id="settings-new-password" name="newPassword" type="password" required minlength="8" autocomplete="new-password" />
+                <button type="submit" class="modal-submit" id="settings-password-submit">Update Password</button>
+              </form>
+              <p id="settings-password-status" class="modal-status" aria-live="polite"></p>
+            </section>
+          </div>
+
+          <aside class="settings-section settings-summary-section">
+            <div class="settings-section-head">
+              <div>
+                <p class="settings-section-kicker">Overview</p>
+                <h3>Account details</h3>
+              </div>
+              <p>Current login and identity information.</p>
+            </div>
+            <div class="settings-summary-list">
+              <div class="settings-summary-row">
+                <span>Email</span>
+                <strong id="settings-email">-</strong>
+              </div>
+              <div class="settings-summary-row">
+                <span>Login</span>
+                <strong id="settings-auth-method">-</strong>
+              </div>
+              <div class="settings-summary-row">
+                <span>Role</span>
+                <strong class="settings-summary-pill" data-settings-role-copy="1">-</strong>
+              </div>
+              <div class="settings-summary-row">
+                <span>Status</span>
+                <strong class="settings-summary-pill" data-settings-status-copy="1">-</strong>
+              </div>
+            </div>
+            <div class="settings-note">
+              <p>Use logout when you are finished, especially on a shared device.</p>
+            </div>
+            <button type="button" class="auth-switch-button settings-logout-button" id="settings-logout">Logout</button>
+          </aside>
+        </div>
+      </div>
     </div>
   </div>
 

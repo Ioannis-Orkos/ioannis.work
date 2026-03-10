@@ -1,0 +1,43 @@
+.error-message {
+    min-height: 1.2rem;
+    margin-top: -0.2rem;
+    color: var(--color-danger);
+    font-size: 0.85rem;
+}
+
+.contact-thank-you {
+    margin-top: 1rem;
+    padding: 1.4rem;
+    border-radius: 0.8rem;
+    background: var(--color-surface);
+    color: var(--color-body-text);
+    border: 1px solid var(--color-border);
+}
+
+#contact-modal .modal-card.contact-success {
+    min-height: 22rem;
+    display: flex;
+    padding: 0;
+}
+
+#contact-modal .modal-card.contact-success .modal-form,
+#contact-modal .modal-card.contact-success #contact-modal-title,
+#contact-modal .modal-card.contact-success #contact-status {
+    display: none !important;
+}
+
+#contact-modal .modal-card.contact-success .contact-thank-you {
+    width: 100%;
+    height: 100%;
+    min-height: 22rem;
+    margin-top: 0;
+    border-radius: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 1.8rem;
+    font-weight: 600;
+    line-height: 1.5;
+    padding: 2.4rem;
+}

@@ -1,15 +1,5 @@
-import { AUTH_API_BASE_URL } from "../shared/config.js";
+import { API_ENDPOINTS } from "./endpoints.js";
 import { requestJson } from "./http.js";
-
-const endpoints = Object.freeze({
-  signup: `${AUTH_API_BASE_URL}/api/auth/signup`,
-  login: `${AUTH_API_BASE_URL}/api/auth/login`,
-  logout: `${AUTH_API_BASE_URL}/api/auth/logout`,
-  me: `${AUTH_API_BASE_URL}/api/auth/me`,
-  profile: `${AUTH_API_BASE_URL}/api/auth/profile`,
-  password: `${AUTH_API_BASE_URL}/api/auth/password`,
-  google: `${AUTH_API_BASE_URL}/api/auth/google`,
-});
 
 function withJsonBody(method, payload) {
   return {
@@ -22,23 +12,23 @@ function withJsonBody(method, payload) {
 }
 
 export const authApi = Object.freeze({
-  endpoints,
+  endpoints: API_ENDPOINTS.auth,
   getCurrentSession() {
-    return requestJson(endpoints.me, { method: "GET" });
+    return requestJson(API_ENDPOINTS.auth.me, { method: "GET" });
   },
   signup(payload) {
-    return requestJson(endpoints.signup, withJsonBody("POST", payload));
+    return requestJson(API_ENDPOINTS.auth.signup, withJsonBody("POST", payload));
   },
   login(payload) {
-    return requestJson(endpoints.login, withJsonBody("POST", payload));
+    return requestJson(API_ENDPOINTS.auth.login, withJsonBody("POST", payload));
   },
   logout() {
-    return requestJson(endpoints.logout, { method: "POST" });
+    return requestJson(API_ENDPOINTS.auth.logout, { method: "POST" });
   },
   updateProfile(payload) {
-    return requestJson(endpoints.profile, withJsonBody("PATCH", payload));
+    return requestJson(API_ENDPOINTS.auth.profile, withJsonBody("PATCH", payload));
   },
   updatePassword(payload) {
-    return requestJson(endpoints.password, withJsonBody("PATCH", payload));
+    return requestJson(API_ENDPOINTS.auth.password, withJsonBody("PATCH", payload));
   },
 });

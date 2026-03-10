@@ -281,6 +281,7 @@
     <div class="footer-copy">COPYRIGHT © 2025 Ioannis Orkos</div>
   </footer>
 
+  <!-- UI: Contact modal -->
   <div id="contact-modal" class="modal-overlay" data-modal-id="contact" hidden>
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="contact-modal-title">
       <button type="button" class="modal-close" data-modal-close aria-label="Close contact form">×</button>
@@ -311,6 +312,7 @@
     </div>
   </div>
 
+  <!-- UI: Auth modal -->
   <div id="login-modal" class="modal-overlay" data-modal-id="login" hidden>
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
       <button type="button" class="modal-close" data-modal-close aria-label="Close login form">×</button>
@@ -352,6 +354,7 @@
     </div>
   </div>
 
+  <!-- UI: Settings modal -->
   <div id="settings-modal" class="modal-overlay" data-modal-id="settings" hidden>
     <div class="modal-card settings-modal-card" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
       <button type="button" class="modal-close" data-modal-close aria-label="Close account settings">×</button>
@@ -449,6 +452,87 @@
     </div>
   </div>
 
+  <!-- UI: Admin user projects modal -->
+  <div id="admin-user-projects-modal" class="modal-overlay" data-modal-id="admin-user-projects" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="admin-user-projects-title">
+      <button type="button" class="modal-close" data-modal-close aria-label="Close user projects">×</button>
+      <h2 id="admin-user-projects-title">User Projects</h2>
+      <div id="admin-user-projects-body" class="admin-user-projects-body"></div>
+      <p id="admin-user-projects-status" class="modal-status" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <!-- UI: Admin project editor modal -->
+  <div id="admin-project-editor-modal" class="modal-overlay" data-modal-id="admin-project-editor" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="admin-project-editor-title">
+      <button type="button" class="modal-close" data-modal-close aria-label="Close project editor">×</button>
+      <h2 id="admin-project-editor-title">Edit Project</h2>
+      <form id="admin-project-editor-form" class="modal-form admin-project-editor-form">
+        <div class="admin-project-editor-grid">
+          <div class="admin-project-editor-field">
+            <label for="admin-project-slug">Slug</label>
+            <input id="admin-project-slug" name="slug" type="text" required />
+          </div>
+          <div class="admin-project-editor-field">
+            <label for="admin-project-title">Title</label>
+            <input id="admin-project-title" name="title" type="text" required />
+          </div>
+          <div class="admin-project-editor-field">
+            <label for="admin-project-image">Image</label>
+            <input id="admin-project-image" name="imagePath" type="text" placeholder="folder/asset/preview.webp" />
+          </div>
+          <div class="admin-project-editor-field">
+            <label for="admin-project-delivery">Delivery</label>
+            <select id="admin-project-delivery" name="deliveryType">
+              <option value="content">content</option>
+              <option value="link">link</option>
+            </select>
+          </div>
+          <div class="admin-project-editor-field">
+            <label for="admin-project-locked">Locked</label>
+            <select id="admin-project-locked" name="locked">
+              <option value="false">open</option>
+              <option value="true">locked</option>
+            </select>
+          </div>
+          <div class="admin-project-editor-field admin-project-editor-field-full">
+            <label for="admin-project-description">Description</label>
+            <textarea id="admin-project-description" name="description" rows="3"></textarea>
+          </div>
+          <div class="admin-project-editor-field admin-project-editor-field-full">
+            <label for="admin-project-categories">Categories (comma separated)</label>
+            <input id="admin-project-categories" name="categoriesText" type="text" placeholder="Aviation, Workflow, Frontend" />
+          </div>
+          <div class="admin-project-editor-field admin-project-editor-field-full">
+            <label for="admin-project-external-url">External URL</label>
+            <input id="admin-project-external-url" name="externalUrl" type="url" placeholder="https://..." />
+          </div>
+          <div class="admin-project-editor-field admin-project-editor-field-full">
+            <label for="admin-project-content">Content</label>
+            <textarea id="admin-project-content" name="htmlContent" rows="10" placeholder="Project HTML content..."></textarea>
+          </div>
+        </div>
+        <button type="submit" class="modal-submit">Save Project</button>
+      </form>
+      <p id="admin-project-editor-status" class="modal-status" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <!-- UI: Admin request review modal -->
+  <div id="admin-request-review-modal" class="modal-overlay" data-modal-id="admin-request-review" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="admin-request-review-title">
+      <button type="button" class="modal-close" data-modal-close aria-label="Close review modal">×</button>
+      <h2 id="admin-request-review-title">Reject Request</h2>
+      <form id="admin-request-review-form" class="modal-form">
+        <label for="admin-request-review-note">Message to user</label>
+        <textarea id="admin-request-review-note" name="note" rows="5" placeholder="Explain why access is rejected..." required></textarea>
+        <button type="submit" class="modal-submit">Send Rejection</button>
+      </form>
+      <p id="admin-request-review-status" class="modal-status" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <!-- UI: Project access request modal -->
   <div id="request-access-modal" class="modal-overlay" data-modal-id="request-access" hidden>
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="request-access-title">
       <button type="button" class="modal-close" data-modal-close aria-label="Close request access dialog">×</button>
@@ -464,7 +548,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-  <script type="module" src="js/main.js"></script>
+  <script type="module" src="js/app/main.js"></script>
 </body>
 
 </html>

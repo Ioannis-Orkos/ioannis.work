@@ -1,19 +1,5 @@
-import { AUTH_API_BASE_URL } from "../shared/config.js";
+import { API_ENDPOINTS } from "./endpoints.js";
 import { requestJson } from "./http.js";
-
-const endpoints = Object.freeze({
-  overview: `${AUTH_API_BASE_URL}/api/admin/overview`,
-  users: `${AUTH_API_BASE_URL}/api/admin/users`,
-  projects: `${AUTH_API_BASE_URL}/api/admin/projects`,
-  accessRequests: `${AUTH_API_BASE_URL}/api/admin/access-requests`,
-  accessRequestById: (id) => `${AUTH_API_BASE_URL}/api/admin/access-requests/${id}`,
-  projectById: (id) => `${AUTH_API_BASE_URL}/api/admin/projects/${id}`,
-  userRoleById: (id) => `${AUTH_API_BASE_URL}/api/admin/users/${id}/role`,
-  userById: (id) => `${AUTH_API_BASE_URL}/api/admin/users/${id}`,
-  userStatusById: (id) => `${AUTH_API_BASE_URL}/api/admin/users/${id}/status`,
-  userProjectByIds: (userId, projectId) =>
-    `${AUTH_API_BASE_URL}/api/admin/users/${userId}/projects/${projectId}`,
-});
 
 function withJsonBody(method, payload) {
   return {
@@ -26,42 +12,50 @@ function withJsonBody(method, payload) {
 }
 
 export const adminApi = Object.freeze({
-  endpoints,
+  endpoints: API_ENDPOINTS.admin,
   getOverview() {
-    return requestJson(endpoints.overview, { method: "GET" });
+    return requestJson(API_ENDPOINTS.admin.overview, { method: "GET" });
   },
   getUsers() {
-    return requestJson(endpoints.users, { method: "GET" });
+    return requestJson(API_ENDPOINTS.admin.users, { method: "GET" });
   },
   getProjects() {
-    return requestJson(endpoints.projects, { method: "GET" });
+    return requestJson(API_ENDPOINTS.admin.projects, { method: "GET" });
   },
   getAccessRequests() {
-    return requestJson(endpoints.accessRequests, { method: "GET" });
+    return requestJson(API_ENDPOINTS.admin.accessRequests, { method: "GET" });
   },
   updateAccessRequest(requestId, status, note = null) {
-    return requestJson(endpoints.accessRequestById(requestId), withJsonBody("PATCH", { status, note }));
+    return requestJson(
+      API_ENDPOINTS.admin.accessRequestById(requestId),
+      withJsonBody("PATCH", { status, note })
+    );
   },
   saveProject(projectId, payload) {
     return requestJson(
-      Number.isFinite(projectId) ? endpoints.projectById(projectId) : endpoints.projects,
+      Number.isFinite(projectId)
+        ? API_ENDPOINTS.admin.projectById(projectId)
+        : API_ENDPOINTS.admin.projects,
       withJsonBody(Number.isFinite(projectId) ? "PATCH" : "POST", payload)
     );
   },
   deleteProject(projectId) {
-    return requestJson(endpoints.projectById(projectId), { method: "DELETE" });
+    return requestJson(API_ENDPOINTS.admin.projectById(projectId), { method: "DELETE" });
   },
   updateUserRole(userId, role) {
-    return requestJson(endpoints.userRoleById(userId), withJsonBody("PATCH", { role }));
+    return requestJson(API_ENDPOINTS.admin.userRoleById(userId), withJsonBody("PATCH", { role }));
   },
   updateUserStatus(userId, status) {
-    return requestJson(endpoints.userStatusById(userId), withJsonBody("PATCH", { status }));
+    return requestJson(
+      API_ENDPOINTS.admin.userStatusById(userId),
+      withJsonBody("PATCH", { status })
+    );
   },
   deleteUser(userId) {
-    return requestJson(endpoints.userById(userId), { method: "DELETE" });
+    return requestJson(API_ENDPOINTS.admin.userById(userId), { method: "DELETE" });
   },
   updateUserProjectAccess(userId, projectId, action) {
-    return requestJson(endpoints.userProjectByIds(userId, projectId), {
+    return requestJson(API_ENDPOINTS.admin.userProjectByIds(userId, projectId), {
       method: action === "assign" ? "POST" : "DELETE",
     });
   },

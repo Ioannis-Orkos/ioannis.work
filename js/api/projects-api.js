@@ -1,21 +1,13 @@
-import { AUTH_API_BASE_URL } from "../shared/config.js";
+import { API_ENDPOINTS } from "./endpoints.js";
 import { requestJson } from "./http.js";
 
-const endpoints = Object.freeze({
-  list: `${AUTH_API_BASE_URL}/api/projects`,
-  requestAccess: (projectRef) =>
-    `${AUTH_API_BASE_URL}/api/projects/${encodeURIComponent(String(projectRef))}/request-access`,
-  content: (projectId) => `${AUTH_API_BASE_URL}/api/projects/${projectId}/content`,
-  ssoToken: (projectId) => `${AUTH_API_BASE_URL}/api/projects/${projectId}/sso-token`,
-});
-
 export const projectsApi = Object.freeze({
-  endpoints,
+  endpoints: API_ENDPOINTS.projects,
   list() {
-    return requestJson(endpoints.list, { method: "GET" });
+    return requestJson(API_ENDPOINTS.projects.list, { method: "GET" });
   },
   requestAccess(projectRef, payload) {
-    return requestJson(endpoints.requestAccess(projectRef), {
+    return requestJson(API_ENDPOINTS.projects.requestAccess(projectRef), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -24,9 +16,9 @@ export const projectsApi = Object.freeze({
     });
   },
   getContent(projectId) {
-    return requestJson(endpoints.content(projectId), { method: "GET" });
+    return requestJson(API_ENDPOINTS.projects.content(projectId), { method: "GET" });
   },
   getSsoToken(projectId) {
-    return requestJson(endpoints.ssoToken(projectId), { method: "GET" });
+    return requestJson(API_ENDPOINTS.projects.ssoToken(projectId), { method: "GET" });
   },
 });

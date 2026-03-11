@@ -1,5 +1,8 @@
 function getAdminNavLinks() {
-  return [...document.querySelectorAll('a[data-target="admin"]')];
+  return [
+    ...document.querySelectorAll("[data-admin-entry-link]"),
+    ...document.querySelectorAll('a[data-target="admin"]'),
+  ];
 }
 
 function getSettingsButtons() {

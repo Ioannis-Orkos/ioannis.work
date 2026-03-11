@@ -6,7 +6,12 @@ function parseModalHash() {
   return MODAL_ROUTE_IDS.includes(hash) ? hash : null;
 }
 
-export function createModalRouterUi({ mobileNavController, navigationController }) {
+export function createModalRouterUi({
+  mobileNavController,
+  navigationController,
+  fallbackPageId = "home",
+  fallbackPath = "/",
+}) {
   const modalOverlays = [...document.querySelectorAll(".modal-overlay[data-modal-id]")];
   const modalTriggers = [...document.querySelectorAll("[data-modal]")];
   const modalMap = new Map(modalOverlays.map((overlay) => [overlay.dataset.modalId, overlay]));
@@ -33,11 +38,11 @@ export function createModalRouterUi({ mobileNavController, navigationController 
   const openModal = (modalId, { push = true } = {}) => {
     if (!modalMap.has(modalId)) return;
 
-    if (mobileNavController.isOpen()) {
+    if (mobileNavController?.isOpen?.()) {
       mobileNavController.close();
     }
 
-    const previousPageId = navigationController.getActivePageId();
+    const previousPageId = navigationController?.getActivePageId?.() || fallbackPageId;
     showModal(modalId);
 
     if (push) {
@@ -55,8 +60,8 @@ export function createModalRouterUi({ mobileNavController, navigationController 
     }
 
     hideAllModals();
-    navigationController.navigateTo("home", { push: false });
-    history.replaceState({ type: "page", targetId: "home" }, "", "/");
+    navigationController?.navigateTo?.(fallbackPageId, { push: false });
+    history.replaceState({ type: "page", targetId: fallbackPageId }, "", fallbackPath);
   };
 
   const syncModalFromUrl = () => {
@@ -68,8 +73,8 @@ export function createModalRouterUi({ mobileNavController, navigationController 
 
     if (!showModal(modalId)) {
       hideAllModals();
-      navigationController.navigateTo("home", { push: false });
-      history.replaceState({ type: "page", targetId: "home" }, "", "/");
+      navigationController?.navigateTo?.(fallbackPageId, { push: false });
+      history.replaceState({ type: "page", targetId: fallbackPageId }, "", fallbackPath);
     }
   };
 

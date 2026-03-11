@@ -1,15 +1,337 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Redirecting to Admin</title>
-  <meta http-equiv="refresh" content="0; url=/#admin" />
-  <script>
-    window.location.replace('/#admin');
-  </script>
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="author" content="Ioannis Orkos" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>Ioannis Orkos Admin</title>
+
+  <link rel="icon" type="image/png" sizes="32x32" href="../images/logo.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="../images/logo.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="../images/logo.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Sora:wght@600;700&display=swap"
+    rel="stylesheet" />
+
+  <link rel="stylesheet" href="../css/reset.css" />
+  <link rel="stylesheet" href="../css/admin/index.css" />
 </head>
+
 <body>
-  <p>Redirecting to admin...</p>
+  <header>
+    <div class="h-logo">
+      <img src="../images/logo.png" alt="Ioannis logo" width="50" height="50" />
+    </div>
+
+    <nav class="h-desktop-nav">
+      <ul>
+        <li><a href="/admin/" aria-current="page">Dashboard</a></li>
+        <li><a href="/">Public Site</a></li>
+        <li class="nav-auth-group">
+          <a href="#login" data-auth-link="1" data-modal="login">Login</a>
+          <button id="settings-toggle" class="theme-toggle settings-toggle" type="button" data-modal="settings"
+            aria-label="Open account settings" hidden>
+            <span id="settings-icon" aria-hidden="true">⚙</span>
+          </button>
+          <button id="theme-toggle" class="theme-toggle" aria-label="Toggle Theme">
+            <span id="theme-icon">🌙</span>
+          </button>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="h-burger-menu" id="h-burger-menu">
+      <div class="h-line"></div>
+      <div class="h-line"></div>
+    </div>
+  </header>
+
+  <main>
+    <section id="admin" class="page active">
+      <h1>Admin Dashboard</h1>
+      <p id="admin-gate-status" class="admin-gate-status" aria-live="polite">Checking admin session...</p>
+
+      <div id="admin-controls" class="admin-controls" hidden>
+        <div class="admin-toolbar">
+          <div class="admin-tabs" role="tablist" aria-label="Admin Sections">
+            <button type="button" id="admin-tab-users" class="auth-switch-button admin-tab active">Users</button>
+            <button type="button" id="admin-tab-requests" class="auth-switch-button admin-tab">Requests</button>
+            <button type="button" id="admin-tab-projects" class="auth-switch-button admin-tab">Projects</button>
+          </div>
+        </div>
+
+        <div id="admin-overview" class="admin-overview" aria-live="polite"></div>
+
+        <div class="admin-grid">
+          <div class="admin-panel admin-panel-users" data-admin-panel="users">
+            <h3>Users</h3>
+            <div id="admin-users" class="admin-list" aria-live="polite"></div>
+          </div>
+
+          <div class="admin-panel admin-panel-requests" data-admin-panel="requests" hidden>
+            <h3>Access Requests</h3>
+            <div id="admin-access-requests" class="admin-list" aria-live="polite"></div>
+          </div>
+
+          <div class="admin-panel admin-panel-projects" data-admin-panel="projects" hidden>
+            <h3>Project Management</h3>
+            <div id="admin-projects" class="admin-list" aria-live="polite"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation">
+    <ul>
+      <li><a href="/admin/" aria-current="page">Dashboard</a></li>
+      <li><a href="/">Public Site</a></li>
+      <li class="nav-auth-group">
+        <a href="#login" data-auth-link="1" data-modal="login">Login</a>
+        <button id="settings-toggle-mobile" class="theme-toggle settings-toggle" type="button" data-modal="settings"
+          aria-label="Open account settings" hidden>
+          <span id="settings-icon-mobile" aria-hidden="true">⚙</span>
+        </button>
+        <button id="theme-toggle-mobile" class="theme-toggle" aria-label="Toggle Theme">
+          <span id="theme-icon-mobile">🌙</span>
+        </button>
+      </li>
+    </ul>
+  </nav>
+
+  <footer>
+    <div class="footer-copy">COPYRIGHT © 2025 Ioannis Orkos</div>
+  </footer>
+
+  <div id="login-modal" class="modal-overlay" data-modal-id="login" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
+      <button type="button" class="modal-close" data-modal-close aria-label="Close login form">×</button>
+      <h2 id="login-modal-title">Admin Login</h2>
+      <div class="auth-switch" role="tablist" aria-label="Authentication mode">
+        <button type="button" class="auth-switch-button active" id="show-login"
+          aria-controls="login-form">Login</button>
+        <button type="button" class="auth-switch-button" id="show-signup" aria-controls="signup-form">Sign
+          Up</button>
+      </div>
+
+      <div class="auth-social">
+        <button type="button" class="auth-google-button" id="auth-google-button">
+          Continue with Google
+        </button>
+        <p class="auth-divider" aria-hidden="true"><span>or use email</span></p>
+      </div>
+
+      <form id="login-form" class="modal-form">
+        <label for="login-email">Email</label>
+        <input id="login-email" name="email" type="email" required />
+
+        <label for="login-password">Password</label>
+        <input id="login-password" name="password" type="password" required minlength="6" />
+
+        <button type="submit" class="modal-submit">Sign In</button>
+      </form>
+      <form id="signup-form" class="modal-form" hidden>
+        <label for="signup-fullname">Full Name</label>
+        <input id="signup-fullname" name="fullName" type="text" />
+
+        <label for="signup-email">Email</label>
+        <input id="signup-email" name="email" type="email" required />
+
+        <label for="signup-password">Password</label>
+        <input id="signup-password" name="password" type="password" required minlength="6" />
+
+        <button type="submit" class="modal-submit">Create Account</button>
+      </form>
+      <p id="login-status" class="modal-status" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <div id="settings-modal" class="modal-overlay" data-modal-id="settings" hidden>
+    <div class="modal-card settings-modal-card" role="dialog" aria-modal="true"
+      aria-labelledby="settings-modal-title">
+      <button type="button" class="modal-close" data-modal-close aria-label="Close account settings">×</button>
+      <div class="settings-shell">
+        <header class="settings-hero">
+          <div class="settings-hero-copy">
+            <p class="settings-eyebrow">Account</p>
+            <h2 id="settings-modal-title">Settings</h2>
+            <p class="settings-intro">Manage your profile, password, and account details from one place.</p>
+          </div>
+          <div class="settings-hero-meta">
+            <div class="settings-hero-chip">
+              <span>Role</span>
+              <strong id="settings-role">-</strong>
+            </div>
+            <div class="settings-hero-chip">
+              <span>Status</span>
+              <strong id="settings-status">-</strong>
+            </div>
+          </div>
+        </header>
+
+        <div class="settings-grid">
+          <div class="settings-primary">
+            <section class="settings-section">
+              <div class="settings-section-head">
+                <div>
+                  <p class="settings-section-kicker">Profile</p>
+                  <h3>Public account name</h3>
+                </div>
+                <p>Update the name shown across your account.</p>
+              </div>
+              <form id="settings-profile-form" class="modal-form settings-form">
+                <label for="settings-fullname">Username</label>
+                <input id="settings-fullname" name="fullName" type="text" required maxlength="120" />
+                <button type="submit" class="modal-submit">Save Profile</button>
+              </form>
+              <p id="settings-profile-status" class="modal-status" aria-live="polite"></p>
+            </section>
+
+            <section class="settings-section">
+              <div class="settings-section-head">
+                <div>
+                  <p class="settings-section-kicker">Security</p>
+                  <h3>Password</h3>
+                </div>
+                <p>Keep your account secure with a strong password.</p>
+              </div>
+              <form id="settings-password-form" class="modal-form settings-form">
+                <div id="settings-current-password-group">
+                  <label for="settings-current-password">Current Password</label>
+                  <input id="settings-current-password" name="currentPassword" type="password"
+                    autocomplete="current-password" />
+                </div>
+                <label for="settings-new-password">New Password</label>
+                <input id="settings-new-password" name="newPassword" type="password" required minlength="8"
+                  autocomplete="new-password" />
+                <button type="submit" class="modal-submit" id="settings-password-submit">Update Password</button>
+              </form>
+              <p id="settings-password-status" class="modal-status" aria-live="polite"></p>
+            </section>
+          </div>
+
+          <aside class="settings-section settings-summary-section">
+            <div class="settings-section-head">
+              <div>
+                <p class="settings-section-kicker">Overview</p>
+                <h3>Account details</h3>
+              </div>
+              <p>Current login and identity information.</p>
+            </div>
+            <div class="settings-summary-list">
+              <div class="settings-summary-row">
+                <span>Email</span>
+                <strong id="settings-email">-</strong>
+              </div>
+              <div class="settings-summary-row">
+                <span>Login</span>
+                <strong id="settings-auth-method">-</strong>
+              </div>
+              <div class="settings-summary-row">
+                <span>Role</span>
+                <strong class="settings-summary-pill" data-settings-role-copy="1">-</strong>
+              </div>
+              <div class="settings-summary-row">
+                <span>Status</span>
+                <strong class="settings-summary-pill" data-settings-status-copy="1">-</strong>
+              </div>
+            </div>
+            <div class="settings-note">
+              <p>Use logout when you are finished, especially on a shared device.</p>
+            </div>
+            <button type="button" class="auth-switch-button settings-logout-button" id="settings-logout">Logout</button>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="admin-user-projects-modal" class="modal-overlay" data-modal-id="admin-user-projects" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="admin-user-projects-title">
+      <button type="button" class="modal-close" data-modal-close aria-label="Close user projects">×</button>
+      <h2 id="admin-user-projects-title">User Projects</h2>
+      <div id="admin-user-projects-body" class="admin-user-projects-body"></div>
+      <p id="admin-user-projects-status" class="modal-status" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <div id="admin-project-editor-modal" class="modal-overlay" data-modal-id="admin-project-editor" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="admin-project-editor-title">
+      <button type="button" class="modal-close" data-modal-close aria-label="Close project editor">×</button>
+      <h2 id="admin-project-editor-title">Edit Project</h2>
+      <form id="admin-project-editor-form" class="modal-form admin-project-editor-form">
+        <div class="admin-project-editor-grid">
+          <div class="admin-project-editor-field">
+            <label for="admin-project-slug">Slug</label>
+            <input id="admin-project-slug" name="slug" type="text" required />
+          </div>
+          <div class="admin-project-editor-field">
+            <label for="admin-project-title">Title</label>
+            <input id="admin-project-title" name="title" type="text" required />
+          </div>
+          <div class="admin-project-editor-field">
+            <label for="admin-project-image">Image</label>
+            <input id="admin-project-image" name="imagePath" type="text" placeholder="folder/asset/preview.webp" />
+          </div>
+          <div class="admin-project-editor-field">
+            <label for="admin-project-delivery">Delivery</label>
+            <select id="admin-project-delivery" name="deliveryType">
+              <option value="content">content</option>
+              <option value="link">link</option>
+            </select>
+          </div>
+          <div class="admin-project-editor-field">
+            <label for="admin-project-locked">Locked</label>
+            <select id="admin-project-locked" name="locked">
+              <option value="false">open</option>
+              <option value="true">locked</option>
+            </select>
+          </div>
+          <div class="admin-project-editor-field admin-project-editor-field-full">
+            <label for="admin-project-description">Description</label>
+            <textarea id="admin-project-description" name="description" rows="3"></textarea>
+          </div>
+          <div class="admin-project-editor-field admin-project-editor-field-full">
+            <label for="admin-project-categories">Categories (comma separated)</label>
+            <input id="admin-project-categories" name="categoriesText" type="text"
+              placeholder="Aviation, Workflow, Frontend" />
+          </div>
+          <div class="admin-project-editor-field admin-project-editor-field-full">
+            <label for="admin-project-external-url">External URL</label>
+            <input id="admin-project-external-url" name="externalUrl" type="url" placeholder="https://..." />
+          </div>
+          <div class="admin-project-editor-field admin-project-editor-field-full">
+            <label for="admin-project-content">Content</label>
+            <textarea id="admin-project-content" name="htmlContent" rows="10"
+              placeholder="Project HTML content..."></textarea>
+          </div>
+        </div>
+        <button type="submit" class="modal-submit">Save Project</button>
+      </form>
+      <p id="admin-project-editor-status" class="modal-status" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <div id="admin-request-review-modal" class="modal-overlay" data-modal-id="admin-request-review" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="admin-request-review-title">
+      <button type="button" class="modal-close" data-modal-close aria-label="Close review modal">×</button>
+      <h2 id="admin-request-review-title">Reject Request</h2>
+      <form id="admin-request-review-form" class="modal-form">
+        <label for="admin-request-review-note">Message to user</label>
+        <textarea id="admin-request-review-note" name="note" rows="5"
+          placeholder="Explain why access is rejected..." required></textarea>
+        <button type="submit" class="modal-submit">Send Rejection</button>
+      </form>
+      <p id="admin-request-review-status" class="modal-status" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <script type="module" src="../js/admin/main.js"></script>
 </body>
+
 </html>

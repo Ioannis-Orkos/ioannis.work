@@ -19,7 +19,6 @@ export const PAGE_PATHS = Object.freeze({
   about: "/about",
   project: "/project",
   blog: "/blog",
-  admin: "/admin",
 });
 
 export const BLOG_BASE_PATH = "/blogs/";

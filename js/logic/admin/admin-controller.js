@@ -28,14 +28,13 @@ import {
 } from "./admin-model.js";
 import { createAdminState } from "./admin-state.js";
 
-export function initAdminController({ navigationController } = {}) {
+export function initAdminController({ onUnauthorized } = {}) {
   const adminUi = createAdminUi();
   if (!adminUi.isReady) {
     return;
   }
 
   const state = createAdminState();
-  const isAdminPageActive = () => navigationController?.getActivePageId?.() === "admin";
   const findUser = (userId) => state.users.find((user) => Number(user.id) === Number(userId)) || null;
 
   const renderUsersView = () => {
@@ -136,7 +135,7 @@ export function initAdminController({ navigationController } = {}) {
       return;
     }
 
-    if (!force && state.hasLoaded && isAdminPageActive()) {
+    if (!force && state.hasLoaded) {
       return;
     }
 
@@ -148,11 +147,9 @@ export function initAdminController({ navigationController } = {}) {
 
     if (!authState.ok) {
       state.hasLoaded = false;
-      if (isAdminPageActive()) {
-        navigationController.navigateTo("home", { push: false });
-        history.replaceState({ type: "page", targetId: "home" }, "", "/");
-      }
+      adminUi.setGateStatus(authState.reason || "Admin access required.");
       state.isLoading = false;
+      onUnauthorized?.(authState);
       return;
     }
 
@@ -314,34 +311,9 @@ export function initAdminController({ navigationController } = {}) {
 
   window.addEventListener(APP_EVENT_NAMES.authChanged, () => {
     state.hasLoaded = false;
-    if (isAdminPageActive()) {
-      loadAdminData({ force: true });
-    } else {
-      adminUi.setControlsVisibility(false);
-      adminUi.setGateStatus("Login as admin to manage access requests.");
-    }
+    loadAdminData();
   });
 
-  document.addEventListener("click", (event) => {
-    const target = event.target.closest("a[data-target='admin']");
-    if (!target) {
-      return;
-    }
-
-    setTimeout(() => {
-      loadAdminData();
-    }, 0);
-  });
-
-  const syncAdminRouteState = () => {
-    if (isAdminPageActive()) {
-      loadAdminData();
-    }
-  };
-
-  window.addEventListener("popstate", syncAdminRouteState);
-  window.addEventListener("hashchange", syncAdminRouteState);
-
-  syncAdminRouteState();
   setActiveTab("users");
+  loadAdminData();
 }

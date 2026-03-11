@@ -20,7 +20,7 @@ function formatStatusDate(value) {
   return date.toLocaleString();
 }
 
-export function initAuthController() {
+export function initAuthController({ onAdminSession } = {}) {
   const ui = createAuthUi({
     getCurrentUser: getSessionUser,
   });
@@ -28,6 +28,16 @@ export function initAuthController() {
   if (!ui.isReady) {
     return;
   }
+
+  const handleAdminSession = (user, source) => {
+    const isAdmin = String(user?.role || "").toLowerCase() === "admin";
+    if (!isAdmin || typeof onAdminSession !== "function") {
+      return false;
+    }
+
+    onAdminSession(user, { source });
+    return true;
+  };
 
   const performLogout = async () => {
     const user = await logoutSession();
@@ -53,6 +63,7 @@ export function initAuthController() {
     const user = await fetchCurrentSession();
     ui.syncUiForUser(user);
     emitSessionChanged(user);
+    handleAdminSession(user, "bootstrap");
   };
 
   ui.bindHandlers({
@@ -99,6 +110,12 @@ export function initAuthController() {
 
       ui.syncUiForUser(result.user);
       emitSessionChanged(result.user);
+
+      if (handleAdminSession(result.user, "login")) {
+        ui.setStatus("Redirecting to admin...");
+        return;
+      }
+
       ui.setStatus("Logged in successfully.");
       ui.resetAuthForms();
       emitAppEvent(APP_EVENT_NAMES.closeModal);

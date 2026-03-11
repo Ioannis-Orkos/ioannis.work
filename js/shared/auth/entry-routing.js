@@ -1,5 +1,6 @@
 export const PUBLIC_ENTRY_PATH = "/";
 export const ADMIN_ENTRY_PATH = "/admin/";
+export const ADMIN_REDIRECT_INTENT_KEY = "admin-entry-intent";
 
 function normalizePathname(pathname) {
   const normalizedPathname = String(pathname || "/").replace(/\/+$/, "");
@@ -9,6 +10,41 @@ function normalizePathname(pathname) {
 function navigateToEntry(path, { replace = true } = {}) {
   const method = replace ? "replace" : "assign";
   window.location[method](path);
+}
+
+function readSessionStorage(key) {
+  try {
+    return window.sessionStorage.getItem(key) || "";
+  } catch {
+    return "";
+  }
+}
+
+function removeSessionStorage(key) {
+  try {
+    window.sessionStorage.removeItem(key);
+  } catch {
+    // Ignore storage failures in static entry routing helpers.
+  }
+}
+
+export function markAdminRedirectIntent(reason = "auth") {
+  try {
+    window.sessionStorage.setItem(ADMIN_REDIRECT_INTENT_KEY, String(reason || "auth"));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function consumeAdminRedirectIntent() {
+  const value = readSessionStorage(ADMIN_REDIRECT_INTENT_KEY);
+  if (!value) {
+    return "";
+  }
+
+  removeSessionStorage(ADMIN_REDIRECT_INTENT_KEY);
+  return value;
 }
 
 export function isPublicEntryPath(pathname = window.location.pathname) {

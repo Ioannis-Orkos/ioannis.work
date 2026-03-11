@@ -6,6 +6,9 @@
   <title>Redirecting to Home</title>
   <meta http-equiv="refresh" content="0; url=/" />
   <script>
+    try {
+      window.sessionStorage.setItem('admin-entry-intent', 'oauth-success');
+    } catch {}
     window.location.replace('/');
   </script>
 </head>

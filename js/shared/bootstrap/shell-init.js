@@ -1,9 +1,9 @@
 import { getShellDomRefs, hasShellDom } from "../dom/shell-dom.js";
-import { initThemeUi } from "../../ui/shell/theme-ui.js";
-import { createMobileNavUi } from "../../ui/shell/mobile-nav-ui.js";
-import { createNavigationUi } from "../../ui/shell/navigation-ui.js";
-import { initHeaderScrollUi } from "../../ui/shell/header-scroll-ui.js";
-import { createModalRouterUi } from "../../ui/shell/modal-router-ui.js";
+import { initThemeUi } from "../shell/theme-ui.js";
+import { createMobileNavUi } from "../shell/mobile-nav-ui.js";
+import { createNavigationUi } from "../shell/navigation-ui.js";
+import { initHeaderScrollUi } from "../shell/header-scroll-ui.js";
+import { createModalRouterUi } from "../shell/modal-router-ui.js";
 
 function createStaticNavigationController(activePageId) {
   let currentPageId = String(activePageId || "page");
@@ -26,7 +26,6 @@ function createStaticNavigationController(activePageId) {
     },
   };
 }
-
 function createFallbackMobileNavController() {
   return {
     close() {},

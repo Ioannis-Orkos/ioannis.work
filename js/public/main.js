@@ -3,10 +3,10 @@ import {
   consumeAdminRedirectIntent,
   redirectToAdminEntry,
 } from "../shared/auth/entry-routing.js";
-import { initBlogController } from "../logic/blog/blog-controller.js";
-import { initContactController } from "../logic/contact/contact-controller.js";
-import { initProjectsController } from "../logic/projects/projects-controller.js";
-import { initAuthController } from "../logic/auth/auth-controller.js";
+import { initBlogController } from "./blog/blog-controller.js";
+import { initContactController } from "./contact/contact-controller.js";
+import { initProjectsController } from "./projects/projects-controller.js";
+import { initAuthController } from "../shared/auth/auth-controller.js";
 
 const shell = initShell({
   enableNavigation: true,

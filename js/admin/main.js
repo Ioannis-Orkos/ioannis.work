@@ -1,8 +1,8 @@
 import { initShell } from "../shared/bootstrap/shell-init.js";
 import { redirectToPublicEntry } from "../shared/auth/entry-routing.js";
-import { fetchCurrentSession } from "../logic/auth/auth-service.js";
-import { initAuthController } from "../logic/auth/auth-controller.js";
-import { initAdminController } from "../logic/admin/admin-controller.js";
+import { fetchCurrentSession } from "../shared/auth/auth-service.js";
+import { initAuthController } from "../shared/auth/auth-controller.js";
+import { initAdminController } from "./controller/admin-controller.js";
 
 async function bootstrapAdminEntry() {
   const user = await fetchCurrentSession({ clearOnFailure: false });

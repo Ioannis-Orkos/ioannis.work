@@ -1,4 +1,4 @@
-import { BLOG_BASE_PATH } from "../../shared/config.js";
+import { BLOG_BASE_PATH, LOCAL_EMBED_FILE_NAME } from "../../shared/config.js";
 import { filterCatalogItems } from "../../shared/catalog.js";
 import { getFolderFromLocation } from "../../shared/location.js";
 import { fetchEmbeddedHtml, loadBlogCatalog } from "../../shared/api/content-api.js";
@@ -23,8 +23,10 @@ function normalizeBlog(blog, index) {
 function buildBlogUrl(blog) {
   const rawUrl = String(blog?.url || "").trim();
   if (/^https?:\/\//i.test(rawUrl) || rawUrl.startsWith("/")) return rawUrl;
-  if (rawUrl) return `${BLOG_BASE_PATH}${rawUrl.replace(/^\/+/, "")}`;
-  return `${BLOG_BASE_PATH}${blog.folder}/index.html`;
+  if (rawUrl) {
+    return `${BLOG_BASE_PATH}${rawUrl.replace(/^\/+/, "").replace(/\/index\.html$/i, `/${LOCAL_EMBED_FILE_NAME}`)}`;
+  }
+  return `${BLOG_BASE_PATH}${blog.folder}/${LOCAL_EMBED_FILE_NAME}`;
 }
 
 function sectionIdForBlog(blog) {
@@ -89,7 +91,7 @@ export async function initBlogController({ navigationController } = {}) {
     const fallbackBlog = {
       folder: normalizedFolder,
       title: `Blog ${normalizedFolder}`,
-      url: `${normalizedFolder}/index.html`,
+      url: `${normalizedFolder}/${LOCAL_EMBED_FILE_NAME}`,
     };
 
     await openBlog(knownBlog || fallbackBlog, { push });

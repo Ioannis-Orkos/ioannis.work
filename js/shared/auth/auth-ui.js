@@ -1,3 +1,11 @@
+import {
+  applyThemeColorPreference,
+  applyThemePreference,
+  getActiveTheme,
+  getActiveThemeColor,
+  THEME_CHANGED_EVENT_NAME,
+} from "../shell/theme-ui.js";
+
 function getAdminNavLinks() {
   return [
     ...document.querySelectorAll("[data-admin-entry-link]"),
@@ -66,12 +74,12 @@ function getRefs() {
     settingsProfileStatus: document.getElementById("settings-profile-status"),
     settingsPasswordStatus: document.getElementById("settings-password-status"),
     settingsEmail: document.getElementById("settings-email"),
-    settingsRole: document.getElementById("settings-role"),
-    settingsStatus: document.getElementById("settings-status"),
     settingsRoleCopies: [...document.querySelectorAll("[data-settings-role-copy='1']")],
     settingsStatusCopies: [...document.querySelectorAll("[data-settings-status-copy='1']")],
     settingsAuthMethod: document.getElementById("settings-auth-method"),
     settingsLogoutBtn: document.getElementById("settings-logout"),
+    settingsThemeButtons: [...document.querySelectorAll("[data-settings-theme]")],
+    settingsThemeColorButtons: [...document.querySelectorAll("[data-settings-theme-color]")],
     loginOverlay: document.getElementById("login-modal"),
     settingsOverlay: document.getElementById("settings-modal"),
   };
@@ -92,8 +100,6 @@ function getRefs() {
       refs.settingsProfileStatus &&
       refs.settingsPasswordStatus &&
       refs.settingsEmail &&
-      refs.settingsRole &&
-      refs.settingsStatus &&
       refs.settingsAuthMethod &&
       refs.settingsLogoutBtn &&
       refs.loginOverlay &&
@@ -132,14 +138,30 @@ export function createAuthUi({ getCurrentUser }) {
     if (type === "password") refs.settingsPasswordStatus.textContent = message || "";
   };
 
+  const syncThemeControls = () => {
+    const activeTheme = getActiveTheme();
+    const activeThemeColor = getActiveThemeColor();
+
+    refs.settingsThemeButtons.forEach((button) => {
+      const isActive = button.dataset.settingsTheme === activeTheme;
+      button.classList.toggle("active", isActive);
+      button.setAttribute("aria-pressed", isActive ? "true" : "false");
+    });
+
+    refs.settingsThemeColorButtons.forEach((button) => {
+      const isActive = button.dataset.settingsThemeColor === activeThemeColor;
+      button.classList.toggle("active", isActive);
+      button.setAttribute("aria-pressed", isActive ? "true" : "false");
+    });
+
+  };
+
   const syncSettingsModal = (user) => {
     const safeUser = user || {};
     const hasPassword = Boolean(safeUser.hasPassword);
 
     refs.settingsFullNameInput.value = String(safeUser.fullName || "");
     refs.settingsEmail.textContent = String(safeUser.email || "-");
-    refs.settingsRole.textContent = String(safeUser.role || "-");
-    refs.settingsStatus.textContent = String(safeUser.status || "-");
 
     refs.settingsRoleCopies.forEach((el) => {
       el.textContent = String(safeUser.role || "-");
@@ -166,6 +188,7 @@ export function createAuthUi({ getCurrentUser }) {
     setAdminNavVisibility(isAdmin);
     setSettingsVisibility(isLoggedIn);
     syncSettingsModal(authenticatedUser);
+    syncThemeControls();
     return authenticatedUser;
   };
 
@@ -181,6 +204,7 @@ export function createAuthUi({ getCurrentUser }) {
     setSettingsStatus("profile", "");
     setSettingsStatus("password", "");
     syncSettingsModal(getCurrentUser());
+    syncThemeControls();
   };
 
   const bindHandlers = ({
@@ -236,6 +260,22 @@ export function createAuthUi({ getCurrentUser }) {
       onLogout?.();
     });
 
+    refs.settingsThemeButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const nextTheme = button.dataset.settingsTheme;
+        applyThemePreference(nextTheme);
+        syncThemeControls();
+      });
+    });
+
+    refs.settingsThemeColorButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const nextThemeColor = button.dataset.settingsThemeColor;
+        applyThemeColorPreference(nextThemeColor);
+        syncThemeControls();
+      });
+    });
+
     document.addEventListener("click", (event) => {
       const authLink = event.target.closest("[data-auth-link]");
       if (authLink && authLink.dataset.authAction === "logout") {
@@ -274,6 +314,10 @@ export function createAuthUi({ getCurrentUser }) {
       if (modalHash !== "settings") {
         onSettingsModalExit?.();
       }
+    });
+
+    window.addEventListener(THEME_CHANGED_EVENT_NAME, () => {
+      syncThemeControls();
     });
   };
 

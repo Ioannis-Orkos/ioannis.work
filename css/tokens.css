@@ -1,11 +1,3 @@
-/* Theme switcher:
-   Enable exactly one theme import below.
-   Active: tokens.copper.css
-*/
-/* @import url("./tokens.copper.css"); */
-/* @import url("./tokens.red.css"); */
-@import url("./tokens.forest.css");
-
 :root {
     color-scheme: light;
 

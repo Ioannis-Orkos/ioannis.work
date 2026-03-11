@@ -40,6 +40,7 @@
   <title>Ioannis Orkos | Web Development & Aviation</title>
 
   <link rel="stylesheet" href="css/reset.css" />
+  <link id="theme-palette-stylesheet" rel="stylesheet" href="/css/tokens.forest.css" />
   <link rel="stylesheet" href="css/public/index.css" />
 
   <script type="application/ld+json">
@@ -251,8 +252,10 @@
   <!-- UI: Contact modal -->
   <div id="contact-modal" class="modal-overlay" data-modal-id="contact" hidden>
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="contact-modal-title">
-      <button type="button" class="modal-close" data-modal-close aria-label="Close contact form">×</button>
-      <h2 id="contact-modal-title">Contact Me</h2>
+      <div class="contact-modal-head">
+        <h2 id="contact-modal-title">Contact Me</h2>
+        <button type="button" class="modal-close" data-modal-close aria-label="Close contact form">×</button>
+      </div>
       <form id="contact-form" class="modal-form">
         <label for="contact-name">Name</label>
         <input id="contact-name" name="name" type="text" required />
@@ -324,35 +327,20 @@
   <!-- UI: Settings modal -->
   <div id="settings-modal" class="modal-overlay" data-modal-id="settings" hidden>
     <div class="modal-card settings-modal-card" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
-      <button type="button" class="modal-close" data-modal-close aria-label="Close account settings">×</button>
       <div class="settings-shell">
-        <header class="settings-hero">
-          <div class="settings-hero-copy">
-            <p class="settings-eyebrow">Account</p>
-            <h2 id="settings-modal-title">Settings</h2>
-            <p class="settings-intro">Manage your profile, password, and account details from one place.</p>
-          </div>
-          <div class="settings-hero-meta">
-            <div class="settings-hero-chip">
-              <span>Role</span>
-              <strong id="settings-role">-</strong>
-            </div>
-            <div class="settings-hero-chip">
-              <span>Status</span>
-              <strong id="settings-status">-</strong>
-            </div>
-          </div>
-        </header>
+        <div class="settings-topbar">
+          <h2 id="settings-modal-title">Settings</h2>
+          <button type="button" class="modal-close" data-modal-close aria-label="Close account settings">×</button>
+        </div>
 
         <div class="settings-grid">
           <div class="settings-primary">
-            <section class="settings-section">
+            <section class="settings-section settings-profile-section">
               <div class="settings-section-head">
                 <div>
                   <p class="settings-section-kicker">Profile</p>
                   <h3>Public account name</h3>
                 </div>
-                <p>Update the name shown across your account.</p>
               </div>
               <form id="settings-profile-form" class="modal-form settings-form">
                 <label for="settings-fullname">Username</label>
@@ -362,13 +350,12 @@
               <p id="settings-profile-status" class="modal-status" aria-live="polite"></p>
             </section>
 
-            <section class="settings-section">
+            <section class="settings-section settings-security-section">
               <div class="settings-section-head">
                 <div>
                   <p class="settings-section-kicker">Security</p>
                   <h3>Password</h3>
                 </div>
-                <p>Keep your account secure with a strong password.</p>
               </div>
               <form id="settings-password-form" class="modal-form settings-form">
                 <div id="settings-current-password-group">
@@ -383,37 +370,59 @@
             </section>
           </div>
 
-          <aside class="settings-section settings-summary-section">
-            <div class="settings-section-head">
-              <div>
-                <p class="settings-section-kicker">Overview</p>
-                <h3>Account details</h3>
+          <div class="settings-secondary">
+            <section class="settings-section settings-appearance-section">
+              <div class="settings-section-head">
+                <div>
+                  <p class="settings-section-kicker">Appearance</p>
+                  <h3>Theme</h3>
+                </div>
               </div>
-              <p>Current login and identity information.</p>
-            </div>
-            <div class="settings-summary-list">
-              <div class="settings-summary-row">
-                <span>Email</span>
-                <strong id="settings-email">-</strong>
+              <div class="settings-theme-group">
+                <span class="settings-theme-label">Mode</span>
+                <div class="settings-theme-options" role="group" aria-label="Theme mode">
+                  <button type="button" class="settings-theme-option auth-switch-button" data-settings-theme="light" aria-pressed="false">Light</button>
+                  <button type="button" class="settings-theme-option auth-switch-button" data-settings-theme="dark" aria-pressed="false">Dark</button>
+                </div>
               </div>
-              <div class="settings-summary-row">
-                <span>Login</span>
-                <strong id="settings-auth-method">-</strong>
+              <div class="settings-theme-group">
+                <span class="settings-theme-label">Color</span>
+                <div class="settings-color-options" role="group" aria-label="Theme color">
+                  <button type="button" class="settings-color-option auth-switch-button" data-settings-theme-color="forest" aria-pressed="false"><span class="settings-color-dot settings-color-dot-forest" aria-hidden="true"></span>Forest</button>
+                  <button type="button" class="settings-color-option auth-switch-button" data-settings-theme-color="copper" aria-pressed="false"><span class="settings-color-dot settings-color-dot-copper" aria-hidden="true"></span>Copper</button>
+                  <button type="button" class="settings-color-option auth-switch-button" data-settings-theme-color="red" aria-pressed="false"><span class="settings-color-dot settings-color-dot-red" aria-hidden="true"></span>Red</button>
+                </div>
               </div>
-              <div class="settings-summary-row">
-                <span>Role</span>
-                <strong class="settings-summary-pill" data-settings-role-copy="1">-</strong>
+            </section>
+
+            <section class="settings-section settings-summary-section">
+              <div class="settings-section-head">
+                <div>
+                  <p class="settings-section-kicker">Overview</p>
+                  <h3>Account details</h3>
+                </div>
               </div>
-              <div class="settings-summary-row">
-                <span>Status</span>
-                <strong class="settings-summary-pill" data-settings-status-copy="1">-</strong>
+              <div class="settings-summary-list">
+                <div class="settings-summary-row">
+                  <span>Email</span>
+                  <strong id="settings-email">-</strong>
+                </div>
+                <div class="settings-summary-row">
+                  <span>Login</span>
+                  <strong id="settings-auth-method">-</strong>
+                </div>
+                <div class="settings-summary-row">
+                  <span>Role</span>
+                  <strong class="settings-summary-pill" data-settings-role-copy="1">-</strong>
+                </div>
+                <div class="settings-summary-row">
+                  <span>Status</span>
+                  <strong class="settings-summary-pill" data-settings-status-copy="1">-</strong>
+                </div>
               </div>
-            </div>
-            <div class="settings-note">
-              <p>Use logout when you are finished, especially on a shared device.</p>
-            </div>
-            <button type="button" class="auth-switch-button settings-logout-button" id="settings-logout">Logout</button>
-          </aside>
+              <button type="button" class="auth-switch-button settings-logout-button" id="settings-logout">Logout</button>
+            </section>
+          </div>
         </div>
       </div>
     </div>

@@ -1,4 +1,7 @@
 export const THEME_STORAGE_KEY = "site-theme";
+export const THEME_COLOR_STORAGE_KEY = "site-theme-color";
+export const DEFAULT_THEME_COLOR = "forest";
+export const THEME_COLOR_OPTIONS = Object.freeze(["forest", "copper", "red"]);
 export const DESKTOP_MEDIA_QUERY = "(min-width: 769px)";
 export const HEADER_SCROLL_DELTA = 8;
 export const MODAL_ROUTE_IDS = [
@@ -23,6 +26,7 @@ export const PAGE_PATHS = Object.freeze({
 
 export const BLOG_BASE_PATH = "/blogs/";
 export const PROJECT_BASE_PATH = "/projects/";
+export const LOCAL_EMBED_FILE_NAME = "embed.html";
 
 export const STATIC_DATA_URLS = Object.freeze({
   blogs: `${BLOG_BASE_PATH}blog-data.json`,

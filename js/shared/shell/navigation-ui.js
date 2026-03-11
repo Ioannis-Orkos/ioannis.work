@@ -222,12 +222,19 @@ export function createNavigationUi({ pages, navLinks, pageMap, mobileNavControll
   const initialPathTarget = getTargetFromPathname();
   const resolvedInitial = resolveRouteState({ hash: initialHash, pathTarget: initialPathTarget });
   const startPage = resolvedInitial.pageId || getDefaultPageId();
+  const normalizedInitialPathname = normalizePathname();
+  const normalizedInitialRoute = `${normalizedInitialPathname}${initialHash ? `#${initialHash}` : ""}`;
 
   setActivePage(startPage);
 
   if (!initialPathTarget && !initialHash) {
     history.replaceState({ type: "page", targetId: startPage }, "", buildPathForTarget(startPage));
-  } else if (!initialPathTarget && resolvedInitial.historyTargetId && !isModalHash(initialHash)) {
+  } else if (
+    resolvedInitial.historyTargetId &&
+    resolvedInitial.historyPath &&
+    !isModalHash(initialHash) &&
+    normalizedInitialRoute !== resolvedInitial.historyPath
+  ) {
     history.replaceState(
       { type: "page", targetId: resolvedInitial.historyTargetId },
       "",

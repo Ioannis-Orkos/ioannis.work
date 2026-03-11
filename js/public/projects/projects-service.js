@@ -5,7 +5,8 @@ import { ensureAuthorizedSession } from "../../shared/auth/auth-service.js";
 import { isAdminUser } from "../../shared/auth/session-state.js";
 import { createProjectsCatalog } from "./projects-catalog.js";
 import {
-  buildProjectUrl,
+  buildProjectContentUrl,
+  buildProjectPublicPath,
   canAccessProject,
   createFallbackProject,
   createProjectFromServer,
@@ -31,7 +32,9 @@ function resolveLockedDeliveryType(project, serverProject) {
 }
 
 function resolveProjectRedirectTarget(project, serverProject) {
-  return String(project?.serverEndpoint || serverProject?.externalUrl || buildProjectUrl(project)).trim();
+  return String(
+    project?.serverEndpoint || serverProject?.externalUrl || buildProjectPublicPath(project)
+  ).trim();
 }
 
 export function createProjectsService({
@@ -77,9 +80,11 @@ export function createProjectsService({
     window.location.hash = sectionId;
   };
 
-  const openLoginWithMessage = (message) => {
+  const openLoginWithMessage = (message, { openModal = true } = {}) => {
     setProjectStatus(message || "Login required for this project.");
-    emitAppEvent(APP_EVENT_NAMES.openModal, { modalId: "login" });
+    if (openModal) {
+      emitAppEvent(APP_EVENT_NAMES.openModal, { modalId: "login" });
+    }
   };
 
   const openRequestAccessModal = (project, serverProject, requestStatus = "not_requested") => {
@@ -180,7 +185,7 @@ export function createProjectsService({
     }
   };
 
-  const openProject = async (project, { push = true } = {}) => {
+  const openProject = async (project, { push = true, promptLogin = true } = {}) => {
     if (!project?.folder) {
       return;
     }
@@ -193,7 +198,9 @@ export function createProjectsService({
     if (project.locked) {
       const hasSession = await ensureAuthorizedSession();
       if (!hasSession) {
-        openLoginWithMessage("This project is locked. Please login and request access.");
+        openLoginWithMessage("This project is locked. Please login and request access.", {
+          openModal: promptLogin,
+        });
         return;
       }
 
@@ -252,14 +259,17 @@ export function createProjectsService({
       folder: project.folder,
     });
 
-    await embeddedDetailUi.renderUrlIntoSection(section, buildProjectUrl(project));
+    await embeddedDetailUi.renderUrlIntoSection(section, buildProjectContentUrl(project));
     navigateToProjectSection(sectionId, project, {
       push,
       preserveSharedUrl: Boolean(serverProject),
     });
   };
 
-  const openProjectByFolder = async (folder, { push = false, allowFallback = true } = {}) => {
+  const openProjectByFolder = async (
+    folder,
+    { push = false, allowFallback = true, promptLogin = true } = {}
+  ) => {
     const normalizedFolder = String(folder || "").trim();
     if (!normalizedFolder) {
       return;
@@ -267,7 +277,7 @@ export function createProjectsService({
 
     const knownProject = state.projects.find((item) => item.folder === normalizedFolder);
     if (knownProject) {
-      await openProject(knownProject, { push });
+      await openProject(knownProject, { push, promptLogin });
       return;
     }
 
@@ -276,14 +286,16 @@ export function createProjectsService({
 
     const mergedServerProject = state.projects.find((item) => getProjectSlug(item) === normalizedFolder);
     if (mergedServerProject) {
-      await openProject(mergedServerProject, { push });
+      await openProject(mergedServerProject, { push, promptLogin });
       return;
     }
 
     if (!allowFallback) {
       const hasSession = await ensureAuthorizedSession();
       if (!hasSession) {
-        openLoginWithMessage("This project requires login and access approval.");
+        openLoginWithMessage("This project requires login and access approval.", {
+          openModal: promptLogin,
+        });
       } else {
         setProjectStatus("Project unavailable.");
       }
@@ -293,7 +305,7 @@ export function createProjectsService({
     await openProject(createFallbackProject(normalizedFolder), { push });
   };
 
-  const openSharedProjectBySlug = async (slug, { push = false } = {}) => {
+  const openSharedProjectBySlug = async (slug, { push = false, promptLogin = true } = {}) => {
     const normalizedSlug = String(slug || "").trim();
     if (!normalizedSlug) {
       return;
@@ -301,7 +313,9 @@ export function createProjectsService({
 
     const hasSession = await ensureAuthorizedSession();
     if (!hasSession) {
-      openLoginWithMessage("This shared project requires login.");
+      openLoginWithMessage("This shared project requires login.", {
+        openModal: promptLogin,
+      });
       return;
     }
 
@@ -336,7 +350,7 @@ export function createProjectsService({
   const handleLocation = async () => {
     const sharedSlug = getSharedProjectFromLocation();
     if (sharedSlug) {
-      await openSharedProjectBySlug(sharedSlug, { push: false });
+      await openSharedProjectBySlug(sharedSlug, { push: false, promptLogin: false });
       return;
     }
 
@@ -348,6 +362,7 @@ export function createProjectsService({
     await openProjectByFolder(folderFromLocation, {
       push: false,
       allowFallback: false,
+      promptLogin: false,
     });
   };
 

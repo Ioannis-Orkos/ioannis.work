@@ -37,13 +37,18 @@
     position: absolute;
     top: 1rem;
     right: 1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: 3rem;
     height: 3rem;
+    padding: 0;
     border: 0;
     border-radius: 50%;
     background: var(--color-modal-close-bg);
     color: inherit;
     font-size: 2.2rem;
+    font-weight: 800;
     line-height: 1;
     cursor: pointer;
 }

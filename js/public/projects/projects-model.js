@@ -1,4 +1,4 @@
-import { PROJECT_BASE_PATH } from "../../shared/config.js";
+import { LOCAL_EMBED_FILE_NAME, PROJECT_BASE_PATH } from "../../shared/config.js";
 import { filterCatalogItems } from "../../shared/catalog.js";
 import { normalizeStringArray } from "../../shared/normalize.js";
 
@@ -76,14 +76,20 @@ function normalizeExternalCandidate(value) {
   return "";
 }
 
-export function buildProjectUrl(project) {
+function normalizeLocalContentPath(value) {
+  const candidate = String(value || "").trim().replace(/^\/+/, "");
+  if (!candidate) return "";
+  return candidate.replace(/\/index\.html$/i, `/${LOCAL_EMBED_FILE_NAME}`);
+}
+
+export function buildProjectContentUrl(project) {
   const rawUrl = String(project?.url || "").trim();
   const rawEndpoint = String(project?.serverEndpoint || "").trim();
 
   const normalizedUrl = normalizeExternalCandidate(rawUrl);
   if (normalizedUrl) return normalizedUrl;
 
-  if (rawUrl) return `${PROJECT_BASE_PATH}${rawUrl.replace(/^\/+/, "")}`;
+  if (rawUrl) return `${PROJECT_BASE_PATH}${normalizeLocalContentPath(rawUrl)}`;
 
   const normalizedEndpoint = normalizeExternalCandidate(rawEndpoint);
   if (normalizedEndpoint) return normalizedEndpoint;
@@ -96,14 +102,19 @@ export function buildProjectUrl(project) {
     }
   }
 
-  return `${PROJECT_BASE_PATH}${project.folder}/index.html`;
+  return `${PROJECT_BASE_PATH}${project.folder}/${LOCAL_EMBED_FILE_NAME}`;
+}
+
+export function buildProjectPublicPath(project) {
+  const folder = String(project?.folder || "").trim();
+  return folder ? `${PROJECT_BASE_PATH}${folder}/` : "/project";
 }
 
 export function createFallbackProject(folder) {
   return {
     folder,
     title: `Project ${folder}`,
-    url: `${folder}/index.html`,
+    url: `${folder}/${LOCAL_EMBED_FILE_NAME}`,
     locked: false,
     serverProjectSlug: folder,
     lockedDelivery: "content",
@@ -186,14 +197,14 @@ export function mergeProjectCatalog({ baseProjects, serverProjectsBySlug, isAuth
         date: serverDate,
         description: String(row?.description || ""),
         image: serverImagePath,
-        locked: Boolean(row?.locked),
-        serverProjectSlug: normalizedSlug,
-        lockedDelivery: serverDeliveryType,
-        serverEndpoint: serverExternalUrl,
-        url: serverExternalUrl || `${normalizedSlug}/index.html`,
-        categories: serverCategories.length ? serverCategories : ["Server"],
-      },
-      baseProjects.length + addedCount
+      locked: Boolean(row?.locked),
+      serverProjectSlug: normalizedSlug,
+      lockedDelivery: serverDeliveryType,
+      serverEndpoint: serverExternalUrl,
+      url: serverExternalUrl || `${normalizedSlug}/${LOCAL_EMBED_FILE_NAME}`,
+      categories: serverCategories.length ? serverCategories : ["Server"],
+    },
+    baseProjects.length + addedCount
     );
 
     projects.push(generated);

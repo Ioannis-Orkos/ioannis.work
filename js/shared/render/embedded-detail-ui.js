@@ -1,5 +1,13 @@
 import { escapeHtmlAttribute } from "../html.js";
 
+function getCurrentThemeColor() {
+  try {
+    return String(document.documentElement?.getAttribute("data-theme-color") || "forest").toLowerCase();
+  } catch {
+    return "forest";
+  }
+}
+
 function isCrossOriginUrl(value) {
   try {
     const target = new URL(String(value || ""), window.location.href);
@@ -27,11 +35,19 @@ function buildSharedStylesheetLinks() {
     '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />',
     '<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Sora:wght@600;700&display=swap" rel="stylesheet" />',
   ];
-  const sharedStylesheets = ["/css/reset.css", "/css/public/index.css"];
+  const sharedStylesheets = [
+    `/css/tokens.${escapeHtmlAttribute(getCurrentThemeColor())}.css`,
+    "/css/reset.css",
+    "/css/public/index.css",
+  ];
 
   return [
     ...sharedHeadLinks,
-    ...sharedStylesheets.map((href) => `<link rel="stylesheet" href="${escapeHtmlAttribute(href)}" />`),
+    ...sharedStylesheets.map((href, index) =>
+      index === 0
+        ? `<link id="theme-palette-stylesheet" rel="stylesheet" href="${escapeHtmlAttribute(href)}" />`
+        : `<link rel="stylesheet" href="${escapeHtmlAttribute(href)}" />`
+    ),
   ].join("\n");
 }
 
@@ -56,8 +72,15 @@ function buildFrameSrcDoc({ frameId, html, sourceUrl, messageType }) {
   let heightScheduled = false;
   const syncTheme = () => {
     try {
-      const parentTheme = parent?.document?.documentElement?.getAttribute("data-theme") || "light";
+      const parentRoot = parent?.document?.documentElement;
+      const parentTheme = parentRoot?.getAttribute("data-theme") || "light";
+      const parentThemeColor = parentRoot?.getAttribute("data-theme-color") || "forest";
       document.documentElement.setAttribute("data-theme", parentTheme);
+      document.documentElement.setAttribute("data-theme-color", parentThemeColor);
+      const paletteLink = document.getElementById("theme-palette-stylesheet");
+      if (paletteLink) {
+        paletteLink.setAttribute("href", "/css/tokens." + parentThemeColor + ".css");
+      }
     } catch {}
   };
   const sendHeight = () => {
@@ -83,7 +106,7 @@ function buildFrameSrcDoc({ frameId, html, sourceUrl, messageType }) {
         scheduleHeight();
       }).observe(parentRoot, {
         attributes: true,
-        attributeFilter: ["data-theme"],
+        attributeFilter: ["data-theme", "data-theme-color"],
       });
     }
   } catch {}

@@ -27,7 +27,7 @@ export function createRequestAccessModalUi() {
     setStatus("");
   };
 
-  const open = ({ project, requestStatus, canSubmit, requestNote = "", reviewNote = "" }) => {
+  const renderState = ({ project, requestStatus, canSubmit, requestNote = "", reviewNote = "" }) => {
     reset();
 
     const isPending = requestStatus === "pending";
@@ -52,6 +52,10 @@ export function createRequestAccessModalUi() {
 
     confirmBtn.disabled = !canSubmit || isPending;
     confirmBtn.textContent = isPending ? "Waiting Approval" : "Send Request";
+  };
+
+  const open = (payload) => {
+    renderState(payload);
 
     emitAppEvent(APP_EVENT_NAMES.openModal, { modalId: "request-access" });
   };
@@ -70,6 +74,7 @@ export function createRequestAccessModalUi() {
       return String(noteEl.value || "").trim();
     },
     open,
+    syncState: renderState,
     reset,
     setSubmitting,
   };

@@ -1,5 +1,5 @@
 import { fetchEmbeddedHtml } from "../../api/content-api.js";
-import { APP_EVENT_NAMES, emitAppEvent } from "../../shared/events.js";
+import { APP_EVENT_NAMES } from "../../shared/events.js";
 import { createProjectsUi } from "../../ui/projects/projects-ui.js";
 import { createRequestAccessModalUi } from "../../ui/projects/request-access-ui.js";
 import { createEmbeddedDetailUi } from "../../ui/shared/embedded-detail-ui.js";
@@ -104,10 +104,7 @@ export async function initProjectsController({ navigationController } = {}) {
       const submitted = await service.submitPendingAccessRequest();
       requestAccessModalUi.setSubmitting(false);
       if (!submitted) return;
-
-      emitAppEvent(APP_EVENT_NAMES.closeModal);
-      service.clearPendingAccessRequest();
-      requestAccessModalUi.reset();
+      console.log("[Project] Request access UI updated without leaving the page.");
     });
   }
 

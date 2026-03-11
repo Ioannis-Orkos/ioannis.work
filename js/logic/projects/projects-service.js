@@ -100,6 +100,41 @@ export function createProjectsService({
     });
   };
 
+  const syncPendingRequestState = (project, serverProject, requestNote) => {
+    const slug = getProjectSlug(project);
+    if (!slug) {
+      return null;
+    }
+
+    const existingServerProject = serverProject || catalog.getServerProject(project) || {};
+    const nextServerProject = {
+      ...existingServerProject,
+      slug,
+      title: String(existingServerProject.title || project?.title || slug),
+      description: String(existingServerProject.description || project?.description || ""),
+      locked: true,
+      deliveryType: String(
+        existingServerProject.deliveryType || resolveLockedDeliveryType(project, serverProject)
+      ).toLowerCase(),
+      canAccess: false,
+      requestStatus: "pending",
+      accessRequestNote: requestNote,
+      accessReviewNote: "",
+    };
+
+    state.serverProjectsBySlug = new Map(state.serverProjectsBySlug);
+    state.serverProjectsBySlug.set(slug, nextServerProject);
+
+    state.requestNotesBySlug = new Map(state.requestNotesBySlug);
+    state.requestNotesBySlug.set(slug, requestNote);
+
+    state.reviewNotesBySlug = new Map(state.reviewNotesBySlug);
+    state.reviewNotesBySlug.delete(slug);
+
+    state.pendingRequestServerProject = nextServerProject;
+    return nextServerProject;
+  };
+
   const loadServerLockedContent = async (project, serverProject, { push = true } = {}) => {
     try {
       if (resolveLockedDeliveryType(project, serverProject) === "link") {
@@ -363,14 +398,20 @@ export function createProjectsService({
 
       const slug = getProjectSlug(project);
       const savedNote = String(result.data?.request?.note || note).trim();
-      if (slug && savedNote) {
-        state.requestNotesBySlug.set(slug, savedNote);
-      }
+      const nextServerProject = syncPendingRequestState(project, serverProject, savedNote || note);
+
+      console.log(`[Project] Access request submitted for ${slug || project?.folder || "project"}.`);
 
       setProjectStatus("Access request sent. Waiting for admin approval.");
+      requestAccessModalUi.syncState({
+        project,
+        requestStatus: "pending",
+        canSubmit: false,
+        requestNote: savedNote || note,
+        reviewNote: "",
+      });
       requestAccessModalUi.setStatus("Access request sent.");
-
-      await catalog.loadServerProjects();
+      state.pendingRequestServerProject = nextServerProject;
       rerenderCatalog();
       return true;
     } catch {
@@ -378,11 +419,6 @@ export function createProjectsService({
       requestAccessModalUi.setStatus("Failed to submit access request.");
       return false;
     }
-  };
-
-  const clearPendingAccessRequest = () => {
-    state.pendingRequestProject = null;
-    state.pendingRequestServerProject = null;
   };
 
   const initialize = async () => {
@@ -394,7 +430,6 @@ export function createProjectsService({
   };
 
   return {
-    clearPendingAccessRequest,
     handleLocation,
     initialize,
     openProject,

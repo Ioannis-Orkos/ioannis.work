@@ -9,6 +9,19 @@ function includesQuery(parts, query) {
 const USER_ROLE_FILTERS = new Set(["all", "admin", "user"]);
 const ADMIN_TABS = new Set(["users", "requests", "projects"]);
 
+export function buildAdminOverview(users, requests) {
+  const safeUsers = Array.isArray(users) ? users : [];
+  const safeRequests = Array.isArray(requests) ? requests : [];
+
+  return {
+    usersTotal: safeUsers.length,
+    pendingUsers: safeUsers.filter((user) => user.status === "pending").length,
+    pendingRequests: safeRequests.filter((request) => request.status === "pending").length,
+    approvedRequests: safeRequests.filter((request) => request.status === "approved").length,
+    rejectedRequests: safeRequests.filter((request) => request.status === "rejected").length,
+  };
+}
+
 export function normalizeAdminTabId(tabId) {
   const normalizedTabId = String(tabId || "").trim().toLowerCase();
   return ADMIN_TABS.has(normalizedTabId) ? normalizedTabId : "users";

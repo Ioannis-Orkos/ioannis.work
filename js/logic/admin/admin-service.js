@@ -11,6 +11,22 @@ function buildFallbackOverview(users, requests) {
   };
 }
 
+function normalizeListPayload(result, key, fallbackMessage) {
+  if (!result?.ok) {
+    return {
+      ok: false,
+      error: result?.error || fallbackMessage,
+      [key]: [],
+    };
+  }
+
+  return {
+    ok: true,
+    error: "",
+    [key]: Array.isArray(result.data?.[key]) ? result.data[key] : [],
+  };
+}
+
 export async function ensureAdminAccess() {
   const user = await fetchCurrentSession({ clearOnFailure: false });
   if (!user?.id) {
@@ -59,6 +75,18 @@ export async function fetchAdminDashboardData() {
     requests,
     projects,
   };
+}
+
+export async function fetchAdminUsersData() {
+  return normalizeListPayload(await adminApi.getUsers(), "users", "Unable to load users.");
+}
+
+export async function fetchAdminRequestsData() {
+  return normalizeListPayload(await adminApi.getAccessRequests(), "requests", "Unable to load access requests.");
+}
+
+export async function fetchAdminProjectsData() {
+  return normalizeListPayload(await adminApi.getProjects(), "projects", "Unable to load projects.");
 }
 
 export async function saveAdminProject(projectId, payload) {

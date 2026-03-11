@@ -12,12 +12,16 @@ import {
   deleteAdminUser,
   ensureAdminAccess,
   fetchAdminDashboardData,
+  fetchAdminProjectsData,
+  fetchAdminRequestsData,
+  fetchAdminUsersData,
   rejectAccessRequest,
   saveAdminProject,
   updateAdminUserProjectAccess,
   updateAdminUserRole,
 } from "./admin-service.js";
 import {
+  buildAdminOverview,
   createEmptyAdminProject,
   findAdminRequest,
   getVisibleAdminRequests,
@@ -36,6 +40,36 @@ export function initAdminController({ onUnauthorized } = {}) {
 
   const state = createAdminState();
   const findUser = (userId) => state.users.find((user) => Number(user.id) === Number(userId)) || null;
+  const setOverview = (overview = null) => {
+    state.overview = overview || buildAdminOverview(state.users, state.requests);
+    adminUi.renderOverview(state.overview);
+  };
+
+  const rerenderOpenUserProjectsModal = () => {
+    if (!userProjectsModalUi?.isOpen?.()) {
+      return;
+    }
+
+    const editingUserId = Number(userProjectsModalUi.getEditingUserId());
+    if (!Number.isFinite(editingUserId)) {
+      return;
+    }
+
+    const user = findUser(editingUserId);
+    if (!user) {
+      userProjectsModalUi.setStatus("User no longer exists.");
+      return;
+    }
+
+    userProjectsModalUi.render(
+      renderUserProjectsContent({
+        user,
+        projects: state.projects,
+        getRequestRecord: (requestUserId, projectId) =>
+          findAdminRequest(state.requests, requestUserId, projectId),
+      })
+    );
+  };
 
   const renderUsersView = () => {
     adminUi.renderUsers({
@@ -68,23 +102,59 @@ export function initAdminController({ onUnauthorized } = {}) {
     adminUi.renderProjects(state.projects);
   };
 
+  const refreshUsersPanel = async () => {
+    console.log("[Admin] Refreshing users panel.");
+    const result = await fetchAdminUsersData();
+    if (!result.ok) {
+      throw new Error(result.error || "Unable to refresh users.");
+    }
+
+    state.users = result.users;
+    renderUsersView();
+    setOverview();
+    rerenderOpenUserProjectsModal();
+  };
+
+  const refreshRequestsPanel = async () => {
+    console.log("[Admin] Refreshing requests panel.");
+    const result = await fetchAdminRequestsData();
+    if (!result.ok) {
+      throw new Error(result.error || "Unable to refresh access requests.");
+    }
+
+    state.requests = result.requests;
+    renderRequestsView();
+    setOverview();
+    rerenderOpenUserProjectsModal();
+  };
+
+  const refreshProjectsPanel = async () => {
+    console.log("[Admin] Refreshing projects panel.");
+    const result = await fetchAdminProjectsData();
+    if (!result.ok) {
+      throw new Error(result.error || "Unable to refresh projects.");
+    }
+
+    state.projects = result.projects;
+    renderProjectsView();
+    rerenderOpenUserProjectsModal();
+  };
+
   const setActiveTab = (tabId) => {
     state.activeTab = normalizeAdminTabId(tabId);
     adminUi.setActiveTab(state.activeTab);
   };
 
-  const refreshAdminData = async () => {
-    state.hasLoaded = false;
-    await loadAdminData({ force: true });
-  };
-
-  const runAction = async (task, { activeTab, errorMessage, successMessage } = {}) => {
+  const runAction = async (task, { activeTab, errorMessage, successMessage, refresh } = {}) => {
     try {
       await task();
       if (activeTab) {
         state.activeTab = activeTab;
       }
-      await refreshAdminData();
+      if (typeof refresh === "function") {
+        await refresh();
+      }
+      setActiveTab(state.activeTab);
       if (successMessage) {
         adminUi.setGateStatus(typeof successMessage === "function" ? successMessage() : successMessage);
       }
@@ -102,7 +172,8 @@ export function initAdminController({ onUnauthorized } = {}) {
 
       await saveAdminProject(mode === "create" ? null : projectId, payload);
       state.activeTab = "projects";
-      await refreshAdminData();
+      await refreshProjectsPanel();
+      setActiveTab(state.activeTab);
     },
   });
   const requestReviewModalUi = createRequestReviewModalUi({
@@ -114,7 +185,8 @@ export function initAdminController({ onUnauthorized } = {}) {
       await rejectAccessRequest(requestId, note);
       state.requestFilter = "all";
       state.activeTab = "requests";
-      await refreshAdminData();
+      await refreshRequestsPanel();
+      setActiveTab(state.activeTab);
     },
   });
 
@@ -162,11 +234,12 @@ export function initAdminController({ onUnauthorized } = {}) {
         return;
       }
 
+      state.overview = result.overview;
       state.users = result.users;
       state.requests = result.requests;
       state.projects = result.projects;
 
-      adminUi.renderOverview(result.overview);
+      setOverview(state.overview);
       renderUsersView();
       renderRequestsView();
       renderProjectsView();
@@ -200,6 +273,7 @@ export function initAdminController({ onUnauthorized } = {}) {
         await runAction(() => approveAccessRequest(requestId), {
           activeTab: "requests",
           errorMessage: "Failed to update request.",
+          refresh: refreshRequestsPanel,
         });
       } finally {
         button.disabled = false;
@@ -229,6 +303,7 @@ export function initAdminController({ onUnauthorized } = {}) {
       await runAction(() => updateAdminUserRole(userId, nextRole), {
         activeTab: "users",
         errorMessage: "Failed to update user role.",
+        refresh: refreshUsersPanel,
       });
     },
     async onUserApprove({ userId, button }) {
@@ -243,6 +318,7 @@ export function initAdminController({ onUnauthorized } = {}) {
         await runAction(() => approveAdminUser(userId), {
           activeTab: "users",
           errorMessage: "Failed to approve user.",
+          refresh: refreshUsersPanel,
           successMessage: user.emailVerified
             ? "User approved."
             : "User approved. Email verification is still required before login.",
@@ -255,6 +331,10 @@ export function initAdminController({ onUnauthorized } = {}) {
       await runAction(() => deleteAdminUser(userId), {
         activeTab: "users",
         errorMessage: "Failed to delete user.",
+        refresh: async () => {
+          await refreshUsersPanel();
+          await refreshRequestsPanel();
+        },
       });
     },
     onProjectCreate() {
@@ -271,6 +351,10 @@ export function initAdminController({ onUnauthorized } = {}) {
       await runAction(() => deleteAdminProject(projectId), {
         activeTab: "projects",
         errorMessage: "Failed to delete project.",
+        refresh: async () => {
+          await refreshProjectsPanel();
+          await refreshRequestsPanel();
+        },
       });
     },
   });
@@ -285,19 +369,8 @@ export function initAdminController({ onUnauthorized } = {}) {
       userProjectsModalUi.setStatus("", { loading: true });
       await updateAdminUserProjectAccess(userId, projectId, action);
       state.activeTab = "users";
-      await refreshAdminData();
-
-      const user = findUser(userId);
-      if (user) {
-        userProjectsModalUi.render(
-          renderUserProjectsContent({
-            user,
-            projects: state.projects,
-            getRequestRecord: (requestUserId, nextProjectId) =>
-              findAdminRequest(state.requests, requestUserId, nextProjectId),
-          })
-        );
-      }
+      await refreshRequestsPanel();
+      setActiveTab(state.activeTab);
 
       userProjectsModalUi.setStatus(
         action === "assign" ? "Project added to user." : "Project removed from user."

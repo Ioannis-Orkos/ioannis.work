@@ -1,6 +1,7 @@
 export function createAdminState() {
   return {
     isLoading: false,
+    overview: null,
     users: [],
     requests: [],
     projects: [],

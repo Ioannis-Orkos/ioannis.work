@@ -1,10 +1,10 @@
 import { fetchEmbeddedHtml } from "../../api/content-api.js";
 import { APP_EVENT_NAMES, emitAppEvent } from "../../shared/events.js";
-import { createProjectsUi, getFilteredProjects } from "../../ui/projects/projects-ui.js";
+import { createProjectsUi } from "../../ui/projects/projects-ui.js";
 import { createRequestAccessModalUi } from "../../ui/projects/request-access-ui.js";
 import { createEmbeddedDetailUi } from "../../ui/shared/embedded-detail-ui.js";
 import { isAdminUser, isAuthorizedUser } from "../auth/session-state.js";
-import { buildProjectImageUrl, resolveProjectAccessLabel } from "./projects-model.js";
+import { buildProjectImageUrl, filterProjects, resolveProjectAccessLabel } from "./projects-model.js";
 import { createProjectsService } from "./projects-service.js";
 import { createProjectsState } from "./projects-state.js";
 
@@ -31,7 +31,7 @@ export async function initProjectsController({ navigationController } = {}) {
   });
 
   const renderProjects = () => {
-    const filteredProjects = getFilteredProjects({
+    const filteredProjects = filterProjects({
       projects: state.projects,
       query: projectsUi.getSearchQuery(),
       selectedCategories: state.selectedCategories,

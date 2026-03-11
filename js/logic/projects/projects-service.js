@@ -1,9 +1,9 @@
-import { loadProjectCatalog } from "../../api/content-api.js";
 import { projectsApi } from "../../api/projects-api.js";
 import { APP_EVENT_NAMES, emitAppEvent } from "../../shared/events.js";
 import { getFolderFromLocation } from "../../shared/location.js";
-import { isAdminUser, isAuthorizedUser } from "../auth/session-state.js";
 import { ensureAuthorizedSession } from "../auth/auth-service.js";
+import { isAdminUser } from "../auth/session-state.js";
+import { createProjectsCatalog } from "./projects-catalog.js";
 import {
   buildProjectUrl,
   canAccessProject,
@@ -11,8 +11,6 @@ import {
   createProjectFromServer,
   getProjectSlug,
   getServerProjectStatus,
-  mergeProjectCatalog,
-  normalizeProject,
   sectionIdForProject,
 } from "./projects-model.js";
 
@@ -24,6 +22,18 @@ function redirectToTarget(url) {
   }
 }
 
+function resolveLockedDeliveryType(project, serverProject) {
+  if (serverProject?.deliveryType === "link") {
+    return "link";
+  }
+
+  return String(project?.lockedDelivery || "").trim().toLowerCase() === "link" ? "link" : "content";
+}
+
+function resolveProjectRedirectTarget(project, serverProject) {
+  return String(project?.serverEndpoint || serverProject?.externalUrl || buildProjectUrl(project)).trim();
+}
+
 export function createProjectsService({
   state,
   navigationController,
@@ -32,6 +42,8 @@ export function createProjectsService({
   setProjectStatus,
   renderCatalog,
 }) {
+  const catalog = createProjectsCatalog(state);
+
   const getSharedProjectFromLocation = () =>
     getFolderFromLocation({
       hashPrefix: "s-",
@@ -44,70 +56,25 @@ export function createProjectsService({
       hashPrefix: "project-",
     });
 
-  const refreshProjectCatalog = () => {
-    state.projects = mergeProjectCatalog({
-      baseProjects: state.baseProjects,
-      serverProjectsBySlug: state.serverProjectsBySlug,
-      isAuthorized: isAuthorizedUser(),
-    });
-  };
-
   const rerenderCatalog = () => {
-    refreshProjectCatalog();
+    catalog.refresh();
     renderCatalog();
   };
 
-  const loadServerProjects = async () => {
-    state.requestNotesBySlug = new Map();
-    state.reviewNotesBySlug = new Map();
+  const navigateToProjectSection = (sectionId, project, { push = true, preserveSharedUrl = false } = {}) => {
+    if (navigationController?.navigateTo) {
+      navigationController.navigateTo(sectionId, { push });
 
-    if (!isAuthorizedUser()) {
-      const hasSession = await ensureAuthorizedSession();
-      if (!hasSession) {
-        state.serverProjectsBySlug = new Map();
-        return;
+      if (preserveSharedUrl) {
+        const sharedSlug = getProjectSlug(project);
+        if (sharedSlug) {
+          history.replaceState({ type: "page", targetId: sectionId }, "", `/#s-${sharedSlug}`);
+        }
       }
-    }
-
-    if (!isAuthorizedUser()) {
-      state.serverProjectsBySlug = new Map();
       return;
     }
 
-    try {
-      const result = await projectsApi.list();
-      if (!result.ok) {
-        if (result.status === 401) {
-          state.serverProjectsBySlug = new Map();
-          return;
-        }
-
-        throw new Error(result.error || `Failed to fetch project access list: ${result.status}`);
-      }
-
-      const rows = Array.isArray(result.data?.projects) ? result.data.projects : [];
-      rows.forEach((row) => {
-        const slug = String(row?.slug || "").trim();
-        const requestNote = String(row?.accessRequestNote || "").trim();
-        const reviewNote = String(row?.accessReviewNote || "").trim();
-
-        if (slug && requestNote) {
-          state.requestNotesBySlug.set(slug, requestNote);
-        }
-        if (slug && reviewNote) {
-          state.reviewNotesBySlug.set(slug, reviewNote);
-        }
-      });
-
-      state.serverProjectsBySlug = new Map(
-        rows
-          .map((row) => [String(row?.slug || "").trim(), row])
-          .filter(([slug]) => Boolean(slug))
-      );
-    } catch (error) {
-      console.error("[Project] Failed to load server project access list:", error);
-      state.serverProjectsBySlug = new Map();
-    }
+    window.location.hash = sectionId;
   };
 
   const openLoginWithMessage = (message) => {
@@ -116,7 +83,9 @@ export function createProjectsService({
   };
 
   const openRequestAccessModal = (project, serverProject, requestStatus = "not_requested") => {
-    if (!requestAccessModalUi) return;
+    if (!requestAccessModalUi) {
+      return;
+    }
 
     state.pendingRequestProject = project;
     state.pendingRequestServerProject = serverProject;
@@ -133,24 +102,19 @@ export function createProjectsService({
 
   const loadServerLockedContent = async (project, serverProject, { push = true } = {}) => {
     try {
-      const serverDeliveryType = String(serverProject?.deliveryType || "").trim().toLowerCase();
-      const projectDeliveryType = String(project?.lockedDelivery || "").trim().toLowerCase();
-      const effectiveDeliveryType =
-        serverDeliveryType === "link" || serverDeliveryType === "content"
-          ? serverDeliveryType
-          : projectDeliveryType === "link" || projectDeliveryType === "sso"
-            ? "link"
-            : "content";
-
-      if (effectiveDeliveryType === "link") {
-        const redirectBase =
-          project?.serverEndpoint || serverProject?.externalUrl || serverProject?.external_url;
-        if (!redirectBase) {
+      if (resolveLockedDeliveryType(project, serverProject) === "link") {
+        const redirectTarget = resolveProjectRedirectTarget(project, serverProject);
+        if (!redirectTarget) {
           setProjectStatus("No redirect URL configured for this locked project.");
           return;
         }
 
-        redirectToTarget(redirectBase);
+        redirectToTarget(redirectTarget);
+        return;
+      }
+
+      if (!Number.isFinite(serverProject?.id)) {
+        setProjectStatus("Project reference missing.");
         return;
       }
 
@@ -172,32 +136,24 @@ export function createProjectsService({
         projectsApi.endpoints.content(serverProject.id)
       );
 
-      if (navigationController?.navigateTo) {
-        navigationController.navigateTo(sectionId, { push });
-        const sharedSlug = getProjectSlug(project);
-        if (sharedSlug) {
-          history.replaceState({ type: "page", targetId: sectionId }, "", `/#s-${sharedSlug}`);
-        }
-      }
+      navigateToProjectSection(sectionId, project, {
+        push,
+        preserveSharedUrl: true,
+      });
     } catch {
       setProjectStatus("Failed to load locked project content.");
     }
   };
 
   const openProject = async (project, { push = true } = {}) => {
-    if (!project || !project.folder) return;
+    if (!project?.folder) {
+      return;
+    }
 
     setProjectStatus("");
 
-    const serverProject = state.serverProjectsBySlug.get(getProjectSlug(project));
-    const serverDeliveryType = String(serverProject?.deliveryType || "").trim().toLowerCase();
-    const projectDeliveryType = String(project?.lockedDelivery || "").trim().toLowerCase();
-    const redirectTarget = String(
-      project?.serverEndpoint ||
-        serverProject?.externalUrl ||
-        serverProject?.external_url ||
-        buildProjectUrl(project)
-    ).trim();
+    const serverProject = catalog.getServerProject(project);
+    const redirectTarget = resolveProjectRedirectTarget(project, serverProject);
 
     if (project.locked) {
       const hasSession = await ensureAuthorizedSession();
@@ -207,13 +163,26 @@ export function createProjectsService({
       }
 
       if (!serverProject) {
-        await loadServerProjects();
-        refreshProjectCatalog();
-        openRequestAccessModal(
-          project,
-          state.serverProjectsBySlug.get(getProjectSlug(project)) || null,
-          "not_requested"
-        );
+        await catalog.loadServerProjects();
+        catalog.refresh();
+        const refreshedServerProject = catalog.getServerProject(project);
+        if (!refreshedServerProject) {
+          openRequestAccessModal(project, null, "not_requested");
+          return;
+        }
+
+        if (
+          canAccessProject({
+            project,
+            serverProject: refreshedServerProject,
+            isAdmin: isAdminUser(),
+          })
+        ) {
+          await loadServerLockedContent(project, refreshedServerProject, { push });
+          return;
+        }
+
+        openRequestAccessModal(project, refreshedServerProject, getServerProjectStatus(refreshedServerProject));
         return;
       }
 
@@ -232,16 +201,12 @@ export function createProjectsService({
       return;
     }
 
-    if ((serverDeliveryType === "link" || projectDeliveryType === "link") && redirectTarget) {
+    if ((serverProject?.deliveryType === "link" || project.lockedDelivery === "link") && redirectTarget) {
       redirectToTarget(redirectTarget);
       return;
     }
 
-    if (
-      serverProject &&
-      String(serverProject?.deliveryType || "").trim().toLowerCase() === "content" &&
-      String(project?.id || "").startsWith("server-")
-    ) {
+    if (serverProject && serverProject.deliveryType === "content" && String(project.id || "").startsWith("server-")) {
       await loadServerLockedContent(project, serverProject, { push });
       return;
     }
@@ -253,23 +218,17 @@ export function createProjectsService({
     });
 
     await embeddedDetailUi.renderUrlIntoSection(section, buildProjectUrl(project));
-
-    if (navigationController?.navigateTo) {
-      navigationController.navigateTo(sectionId, { push });
-      if (serverProject) {
-        const sharedSlug = getProjectSlug(project);
-        if (sharedSlug) {
-          history.replaceState({ type: "page", targetId: sectionId }, "", `/#s-${sharedSlug}`);
-        }
-      }
-    } else {
-      window.location.hash = sectionId;
-    }
+    navigateToProjectSection(sectionId, project, {
+      push,
+      preserveSharedUrl: Boolean(serverProject),
+    });
   };
 
   const openProjectByFolder = async (folder, { push = false, allowFallback = true } = {}) => {
     const normalizedFolder = String(folder || "").trim();
-    if (!normalizedFolder) return;
+    if (!normalizedFolder) {
+      return;
+    }
 
     const knownProject = state.projects.find((item) => item.folder === normalizedFolder);
     if (knownProject) {
@@ -277,9 +236,8 @@ export function createProjectsService({
       return;
     }
 
-    await ensureAuthorizedSession();
-    await loadServerProjects();
-    refreshProjectCatalog();
+    await catalog.loadServerProjects();
+    catalog.refresh();
 
     const mergedServerProject = state.projects.find((item) => getProjectSlug(item) === normalizedFolder);
     if (mergedServerProject) {
@@ -288,7 +246,8 @@ export function createProjectsService({
     }
 
     if (!allowFallback) {
-      if (!isAuthorizedUser()) {
+      const hasSession = await ensureAuthorizedSession();
+      if (!hasSession) {
         openLoginWithMessage("This project requires login and access approval.");
       } else {
         setProjectStatus("Project unavailable.");
@@ -301,7 +260,9 @@ export function createProjectsService({
 
   const openSharedProjectBySlug = async (slug, { push = false } = {}) => {
     const normalizedSlug = String(slug || "").trim();
-    if (!normalizedSlug) return;
+    if (!normalizedSlug) {
+      return;
+    }
 
     const hasSession = await ensureAuthorizedSession();
     if (!hasSession) {
@@ -309,10 +270,10 @@ export function createProjectsService({
       return;
     }
 
-    await loadServerProjects();
-    refreshProjectCatalog();
+    await catalog.loadServerProjects();
+    catalog.refresh();
 
-    const serverProject = state.serverProjectsBySlug.get(normalizedSlug);
+    const serverProject = catalog.getServerProjectBySlug(normalizedSlug);
     if (!serverProject) {
       setProjectStatus("Shared project is unavailable.");
       return;
@@ -345,13 +306,18 @@ export function createProjectsService({
     }
 
     const folderFromLocation = getProjectFolderFromLocation();
-    if (!folderFromLocation) return;
-    await openProjectByFolder(folderFromLocation, { push: false, allowFallback: false });
+    if (!folderFromLocation) {
+      return;
+    }
+
+    await openProjectByFolder(folderFromLocation, {
+      push: false,
+      allowFallback: false,
+    });
   };
 
   const refreshAuthSensitiveState = async () => {
-    await ensureAuthorizedSession();
-    await loadServerProjects();
+    await catalog.loadServerProjects();
     rerenderCatalog();
     await handleLocation();
   };
@@ -404,7 +370,7 @@ export function createProjectsService({
       setProjectStatus("Access request sent. Waiting for admin approval.");
       requestAccessModalUi.setStatus("Access request sent.");
 
-      await loadServerProjects();
+      await catalog.loadServerProjects();
       rerenderCatalog();
       return true;
     } catch {
@@ -420,17 +386,9 @@ export function createProjectsService({
   };
 
   const initialize = async () => {
-    const data = await loadProjectCatalog();
-    const source = Array.isArray(data) ? data : data?.projects;
-    state.baseProjects = Array.isArray(source)
-      ? source
-          .map((project, index) => normalizeProject(project, index))
-          .filter((project) => project.folder)
-      : [];
-
+    await catalog.loadBaseProjects();
     rerenderCatalog();
-    await ensureAuthorizedSession();
-    await loadServerProjects();
+    await catalog.loadServerProjects();
     rerenderCatalog();
     await handleLocation();
   };

@@ -1,15 +1,4 @@
-import { collectCategoryCounts, filterCatalogItems } from "../../shared/catalog.js";
-
-export function getFilteredProjects({ projects, query, selectedCategories }) {
-  return filterCatalogItems({
-    items: projects,
-    query,
-    selectedCategories,
-    getCategories: (project) => project.categories,
-    getSearchText: (project) =>
-      [project.title, project.description, project.date, ...project.categories].join(" "),
-  });
-}
+import { collectCategoryCounts } from "../../shared/catalog.js";
 
 function createProjectCard({ project, accessLabel, onOpen, getImageUrl }) {
   const item = document.createElement("article");

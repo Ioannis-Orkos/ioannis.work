@@ -1,21 +1,27 @@
 import { PROJECT_BASE_PATH } from "../../shared/config.js";
+import { filterCatalogItems } from "../../shared/catalog.js";
+import { normalizeStringArray } from "../../shared/normalize.js";
+
+function normalizeDeliveryType(value) {
+  return String(value || "content").trim().toLowerCase() === "link" ? "link" : "content";
+}
 
 export function normalizeProject(project, index) {
+  const folder = String(project?.folder || "").trim();
+
   return {
     id: String(project?.id || `project-${index + 1}`),
-    folder: String(project?.folder || "").trim(),
-    title: String(project?.title || `Project ${index + 1}`),
-    date: String(project?.date || ""),
-    description: String(project?.description || ""),
-    image: String(project?.image || ""),
-    url: String(project?.url || ""),
+    folder,
+    title: String(project?.title || `Project ${index + 1}`).trim(),
+    date: String(project?.date || "").trim(),
+    description: String(project?.description || "").trim(),
+    image: String(project?.image || "").trim(),
+    url: String(project?.url || "").trim(),
     locked: Boolean(project?.locked),
     serverEndpoint: String(project?.serverEndpoint || "").trim(),
-    serverProjectSlug: String(project?.serverProjectSlug || project?.folder || "").trim(),
-    lockedDelivery: String(project?.lockedDelivery || "content").trim(),
-    categories: Array.isArray(project?.categories)
-      ? project.categories.map((category) => String(category).trim()).filter(Boolean)
-      : [],
+    serverProjectSlug: String(project?.serverProjectSlug || folder).trim(),
+    lockedDelivery: normalizeDeliveryType(project?.lockedDelivery),
+    categories: normalizeStringArray(project?.categories),
   };
 }
 
@@ -23,20 +29,23 @@ export function getProjectSlug(project) {
   return String(project?.serverProjectSlug || project?.folder || "").trim();
 }
 
+export function filterProjects({ projects, query, selectedCategories }) {
+  return filterCatalogItems({
+    items: projects,
+    query,
+    selectedCategories,
+    getCategories: (project) => project.categories,
+    getSearchText: (project) =>
+      [project.title, project.description, project.date, ...project.categories].join(" "),
+  });
+}
+
 export function sectionIdForProject(project) {
   return `project-${project.folder}`;
 }
 
 export function getServerProjectStatus(serverProject) {
-  if (!serverProject) return "not_requested";
-
-  const requestStatus = String(serverProject.requestStatus || "").toLowerCase();
-  if (requestStatus) return requestStatus;
-
-  const accessStatus = String(serverProject.access_status || "").toLowerCase();
-  if (!accessStatus) return "not_requested";
-  if (accessStatus === "approved") return "approved";
-  return accessStatus;
+  return String(serverProject?.requestStatus || "not_requested").toLowerCase();
 }
 
 export function canAccessProject({ project, serverProject, isAdmin = false }) {
@@ -107,13 +116,14 @@ export function createProjectFromServer(serverProject, slug) {
       id: `server-${slug}`,
       folder: slug,
       title: String(serverProject?.title || slug),
-      date: String(serverProject?.date || serverProject?.updatedAt || serverProject?.updated_at || "").trim(),
+      date: String(serverProject?.date || "").trim(),
       description: String(serverProject?.description || ""),
-      image: String(serverProject?.imagePath || serverProject?.image_path || ""),
+      image: String(serverProject?.imagePath || ""),
       locked: Boolean(serverProject?.locked),
       serverProjectSlug: slug,
-      lockedDelivery: String(serverProject?.deliveryType || "content"),
-      serverEndpoint: String(serverProject?.externalUrl || serverProject?.external_url || ""),
+      lockedDelivery: normalizeDeliveryType(serverProject?.deliveryType),
+      serverEndpoint: String(serverProject?.externalUrl || ""),
+      categories: serverProject?.categories,
     },
     0
   );
@@ -137,19 +147,15 @@ export function mergeProjectCatalog({ baseProjects, serverProjectsBySlug, isAuth
     if (!normalizedSlug) return;
 
     const existing = bySlug.get(normalizedSlug);
-    const serverDeliveryType = String(row?.deliveryType || "").trim().toLowerCase();
-    const serverExternalUrl = String(row?.externalUrl || row?.external_url || "").trim();
-    const serverImagePath = String(row?.imagePath || row?.image_path || "").trim();
-    const serverDate = String(row?.date || row?.updatedAt || row?.updated_at || "").trim();
-    const serverCategories = Array.isArray(row?.categories)
-      ? row.categories.map((item) => String(item).trim()).filter(Boolean)
-      : [];
+    const serverDeliveryType = normalizeDeliveryType(row?.deliveryType);
+    const serverExternalUrl = String(row?.externalUrl || "").trim();
+    const serverImagePath = String(row?.imagePath || "").trim();
+    const serverDate = String(row?.date || "").trim();
+    const serverCategories = normalizeStringArray(row?.categories);
 
     if (existing) {
       existing.locked = Boolean(row?.locked ?? existing.locked);
-      if (serverDeliveryType === "link" || serverDeliveryType === "content") {
-        existing.lockedDelivery = serverDeliveryType;
-      }
+      existing.lockedDelivery = serverDeliveryType;
       if (serverExternalUrl) {
         existing.serverEndpoint = serverExternalUrl;
       }
@@ -182,7 +188,7 @@ export function mergeProjectCatalog({ baseProjects, serverProjectsBySlug, isAuth
         image: serverImagePath,
         locked: Boolean(row?.locked),
         serverProjectSlug: normalizedSlug,
-        lockedDelivery: serverDeliveryType === "link" ? "link" : "content",
+        lockedDelivery: serverDeliveryType,
         serverEndpoint: serverExternalUrl,
         url: serverExternalUrl || `${normalizedSlug}/index.html`,
         categories: serverCategories.length ? serverCategories : ["Server"],

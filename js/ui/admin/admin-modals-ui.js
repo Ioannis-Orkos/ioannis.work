@@ -1,5 +1,6 @@
 import { APP_EVENT_NAMES, emitAppEvent } from "../../shared/events.js";
 import { toSlug } from "../../shared/html.js";
+import { normalizeStringArray } from "../../shared/normalize.js";
 import { loadingMarkup } from "./admin-ui.js";
 
 function bindModalReset(modalId, onReset) {
@@ -80,10 +81,7 @@ export function createProjectEditorModalUi({ onSubmit }) {
       slug: String(fields.slug.value || "").trim().toLowerCase(),
       title: String(fields.title.value || "").trim(),
       description: String(fields.description.value || "").trim(),
-      categories: String(fields.categoriesText.value || "")
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean),
+      categories: normalizeStringArray(String(fields.categoriesText.value || "")),
       imagePath: String(fields.imagePath.value || "").trim(),
       deliveryType: String(fields.deliveryType.value || "content").trim().toLowerCase(),
       locked: String(fields.locked.value || "false").toLowerCase() === "true",
@@ -117,18 +115,12 @@ export function createProjectEditorModalUi({ onSubmit }) {
       fields.slug.dataset.manual = state.mode === "create" && fields.slug.value.trim() ? "1" : "0";
       fields.title.value = String(project?.title || "");
       fields.description.value = String(project?.description || "");
-      fields.imagePath.value = String(project?.image_path || "");
-      fields.deliveryType.value =
-        String(project?.delivery_type || "content").toLowerCase() === "link" ? "link" : "content";
+      fields.imagePath.value = String(project?.imagePath || "");
+      fields.deliveryType.value = String(project?.deliveryType || "content").toLowerCase() === "link" ? "link" : "content";
       fields.locked.value = Boolean(project?.locked) ? "true" : "false";
-      fields.externalUrl.value = String(project?.external_url || "");
-      fields.htmlContent.value = String(project?.html_content || "");
-      const categoriesValue = Array.isArray(project?.categories)
-        ? project.categories
-        : String(project?.categories_json || "");
-      fields.categoriesText.value = Array.isArray(categoriesValue)
-        ? categoriesValue.join(", ")
-        : String(categoriesValue);
+      fields.externalUrl.value = String(project?.externalUrl || "");
+      fields.htmlContent.value = String(project?.htmlContent || "");
+      fields.categoriesText.value = Array.isArray(project?.categories) ? project.categories.join(", ") : "";
 
       statusEl.textContent = "";
       emitAppEvent(APP_EVENT_NAMES.openModal, { modalId: "admin-project-editor" });

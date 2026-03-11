@@ -17,6 +17,15 @@ import {
   updateAdminUserProjectAccess,
   updateAdminUserRole,
 } from "./admin-service.js";
+import {
+  createEmptyAdminProject,
+  findAdminRequest,
+  getVisibleAdminRequests,
+  getVisibleAdminUsers,
+  normalizeAdminRoleFilter,
+  normalizeAdminTabId,
+  toggleAdminRequestFilter,
+} from "./admin-model.js";
 import { createAdminState } from "./admin-state.js";
 
 export function initAdminController({ navigationController } = {}) {
@@ -26,15 +35,17 @@ export function initAdminController({ navigationController } = {}) {
   }
 
   const state = createAdminState();
-
-  const getRequestRecord = (userId, projectId) =>
-    state.requests.find(
-      (request) => Number(request.user_id) === Number(userId) && Number(request.project_id) === Number(projectId)
-    ) || null;
+  const isAdminPageActive = () => navigationController?.getActivePageId?.() === "admin";
+  const findUser = (userId) => state.users.find((user) => Number(user.id) === Number(userId)) || null;
 
   const renderUsersView = () => {
     adminUi.renderUsers({
-      users: state.users,
+      users: getVisibleAdminUsers({
+        users: state.users,
+        query: state.userSearchQuery,
+        roleFilter: state.userRoleFilter,
+      }),
+      hasUsers: state.users.length > 0,
       userSearchQuery: state.userSearchQuery,
       userRoleFilter: state.userRoleFilter,
       currentUserId: Number(window.__AUTH_USER?.id || 0),
@@ -43,7 +54,12 @@ export function initAdminController({ navigationController } = {}) {
 
   const renderRequestsView = () => {
     adminUi.renderRequests({
-      requests: state.requests,
+      requests: getVisibleAdminRequests({
+        requests: state.requests,
+        filter: state.requestFilter,
+        query: state.requestSearchQuery,
+      }),
+      hasRequests: state.requests.length > 0,
       requestFilter: state.requestFilter,
       requestSearchQuery: state.requestSearchQuery,
     });
@@ -54,8 +70,28 @@ export function initAdminController({ navigationController } = {}) {
   };
 
   const setActiveTab = (tabId) => {
-    state.activeTab = String(tabId || "users");
+    state.activeTab = normalizeAdminTabId(tabId);
     adminUi.setActiveTab(state.activeTab);
+  };
+
+  const refreshAdminData = async () => {
+    state.hasLoaded = false;
+    await loadAdminData({ force: true });
+  };
+
+  const runAction = async (task, { activeTab, errorMessage, successMessage } = {}) => {
+    try {
+      await task();
+      if (activeTab) {
+        state.activeTab = activeTab;
+      }
+      await refreshAdminData();
+      if (successMessage) {
+        adminUi.setGateStatus(typeof successMessage === "function" ? successMessage() : successMessage);
+      }
+    } catch (error) {
+      adminUi.setGateStatus(error.message || errorMessage || "Action failed.");
+    }
   };
 
   const userProjectsModalUi = createUserProjectsModalUi();
@@ -88,15 +124,19 @@ export function initAdminController({ navigationController } = {}) {
       renderUserProjectsContent({
         user,
         projects: state.projects,
-        getRequestRecord,
+        getRequestRecord: (requestUserId, projectId) =>
+          findAdminRequest(state.requests, requestUserId, projectId),
       }),
       Number(user.id)
     );
   };
 
   const loadAdminData = async ({ force = false } = {}) => {
-    if (state.isLoading) return;
-    if (!force && state.hasLoaded && navigationController?.getActivePageId?.() === "admin") {
+    if (state.isLoading) {
+      return;
+    }
+
+    if (!force && state.hasLoaded && isAdminPageActive()) {
       return;
     }
 
@@ -108,7 +148,7 @@ export function initAdminController({ navigationController } = {}) {
 
     if (!authState.ok) {
       state.hasLoaded = false;
-      if (navigationController?.getActivePageId?.() === "admin") {
+      if (isAdminPageActive()) {
         navigationController.navigateTo("home", { push: false });
         history.replaceState({ type: "page", targetId: "home" }, "", "/");
       }
@@ -144,17 +184,12 @@ export function initAdminController({ navigationController } = {}) {
     }
   };
 
-  const refreshAdminData = async () => {
-    state.hasLoaded = false;
-    await loadAdminData({ force: true });
-  };
-
   adminUi.bindHandlers({
     onTabChange(tabId) {
       setActiveTab(tabId);
     },
     onRequestFilterToggle() {
-      state.requestFilter = state.requestFilter === "all" ? "pending" : "all";
+      state.requestFilter = toggleAdminRequestFilter(state.requestFilter);
       renderRequestsView();
     },
     onRequestSearch(query) {
@@ -164,12 +199,11 @@ export function initAdminController({ navigationController } = {}) {
     async onRequestApprove({ requestId, button }) {
       try {
         button.disabled = true;
-        await approveAccessRequest(requestId);
         state.requestFilter = "all";
-        state.activeTab = "requests";
-        await refreshAdminData();
-      } catch (error) {
-        adminUi.setGateStatus(error.message || "Failed to update request.");
+        await runAction(() => approveAccessRequest(requestId), {
+          activeTab: "requests",
+          errorMessage: "Failed to update request.",
+        });
       } finally {
         button.disabled = false;
       }
@@ -182,11 +216,11 @@ export function initAdminController({ navigationController } = {}) {
       renderUsersView();
     },
     onUserRoleFilterChange(nextFilter) {
-      state.userRoleFilter = ["all", "admin", "user"].includes(nextFilter) ? nextFilter : "all";
+      state.userRoleFilter = normalizeAdminRoleFilter(nextFilter);
       renderUsersView();
     },
     onUserManageProjects({ userId }) {
-      const user = state.users.find((item) => Number(item.id) === userId);
+      const user = findUser(userId);
       if (!user) {
         adminUi.setGateStatus("User not found.");
         return;
@@ -195,16 +229,13 @@ export function initAdminController({ navigationController } = {}) {
       renderUserProjectsModal(user);
     },
     async onUserToggleRole({ userId, nextRole }) {
-      try {
-        await updateAdminUserRole(userId, nextRole);
-        state.activeTab = "users";
-        await refreshAdminData();
-      } catch (error) {
-        adminUi.setGateStatus(error.message || "Failed to update user role.");
-      }
+      await runAction(() => updateAdminUserRole(userId, nextRole), {
+        activeTab: "users",
+        errorMessage: "Failed to update user role.",
+      });
     },
     async onUserApprove({ userId, button }) {
-      const user = state.users.find((item) => Number(item.id) === userId);
+      const user = findUser(userId);
       if (!user) {
         adminUi.setGateStatus("User not found.");
         return;
@@ -212,65 +243,45 @@ export function initAdminController({ navigationController } = {}) {
 
       try {
         button.disabled = true;
-        await approveAdminUser(userId);
-        state.activeTab = "users";
-        await refreshAdminData();
-        adminUi.setGateStatus(
-          user.email_verified
+        await runAction(() => approveAdminUser(userId), {
+          activeTab: "users",
+          errorMessage: "Failed to approve user.",
+          successMessage: user.emailVerified
             ? "User approved."
-            : "User approved. Email verification is still required before login."
-        );
-      } catch (error) {
-        adminUi.setGateStatus(error.message || "Failed to approve user.");
+            : "User approved. Email verification is still required before login.",
+        });
       } finally {
         button.disabled = false;
       }
     },
     async onUserDelete({ userId }) {
-      try {
-        await deleteAdminUser(userId);
-        state.activeTab = "users";
-        await refreshAdminData();
-      } catch (error) {
-        adminUi.setGateStatus(error.message || "Failed to delete user.");
-      }
+      await runAction(() => deleteAdminUser(userId), {
+        activeTab: "users",
+        errorMessage: "Failed to delete user.",
+      });
     },
     onProjectCreate() {
-      projectEditorModalUi?.open(
-        {
-          slug: "",
-          title: "",
-          description: "",
-          image_path: "",
-          delivery_type: "content",
-          locked: false,
-          external_url: "",
-          html_content: "",
-        },
-        { mode: "create" }
-      );
+      projectEditorModalUi?.open(createEmptyAdminProject(), { mode: "create" });
     },
     onProjectEdit({ rawProject }) {
       try {
-        const parsed = JSON.parse(rawProject || "{}");
-        projectEditorModalUi?.open(parsed, { mode: "edit" });
+        projectEditorModalUi?.open(JSON.parse(rawProject || "{}"), { mode: "edit" });
       } catch {
         adminUi.setGateStatus("Failed to open project editor.");
       }
     },
     async onProjectDelete({ projectId }) {
-      try {
-        await deleteAdminProject(projectId);
-        state.activeTab = "projects";
-        await refreshAdminData();
-      } catch (error) {
-        adminUi.setGateStatus(error.message || "Failed to delete project.");
-      }
+      await runAction(() => deleteAdminProject(projectId), {
+        activeTab: "projects",
+        errorMessage: "Failed to delete project.",
+      });
     },
   });
 
   userProjectsModalUi?.bindToggle(async ({ userId, projectId, action, button }) => {
-    if (!Number.isFinite(userId)) return;
+    if (!Number.isFinite(userId)) {
+      return;
+    }
 
     try {
       button.disabled = true;
@@ -278,16 +289,19 @@ export function initAdminController({ navigationController } = {}) {
       await updateAdminUserProjectAccess(userId, projectId, action);
       state.activeTab = "users";
       await refreshAdminData();
-      const user = state.users.find((item) => Number(item.id) === userId);
+
+      const user = findUser(userId);
       if (user) {
         userProjectsModalUi.render(
           renderUserProjectsContent({
             user,
             projects: state.projects,
-            getRequestRecord,
+            getRequestRecord: (requestUserId, nextProjectId) =>
+              findAdminRequest(state.requests, requestUserId, nextProjectId),
           })
         );
       }
+
       userProjectsModalUi.setStatus(
         action === "assign" ? "Project added to user." : "Project removed from user."
       );
@@ -300,7 +314,7 @@ export function initAdminController({ navigationController } = {}) {
 
   window.addEventListener(APP_EVENT_NAMES.authChanged, () => {
     state.hasLoaded = false;
-    if (navigationController?.getActivePageId?.() === "admin") {
+    if (isAdminPageActive()) {
       loadAdminData({ force: true });
     } else {
       adminUi.setControlsVisibility(false);
@@ -310,14 +324,17 @@ export function initAdminController({ navigationController } = {}) {
 
   document.addEventListener("click", (event) => {
     const target = event.target.closest("a[data-target='admin']");
-    if (!target) return;
+    if (!target) {
+      return;
+    }
+
     setTimeout(() => {
       loadAdminData();
     }, 0);
   });
 
   const syncAdminRouteState = () => {
-    if (navigationController?.getActivePageId?.() === "admin") {
+    if (isAdminPageActive()) {
       loadAdminData();
     }
   };

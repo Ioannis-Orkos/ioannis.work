@@ -61,8 +61,11 @@ function getRefs() {
   const refs = {
     loginForm: document.getElementById("login-form"),
     signupForm: document.getElementById("signup-form"),
+    forgotPasswordForm: document.getElementById("forgot-password-form"),
     showLoginBtn: document.getElementById("show-login"),
     showSignupBtn: document.getElementById("show-signup"),
+    showForgotPasswordBtn: document.getElementById("show-forgot-password"),
+    showLoginFromForgotBtn: document.getElementById("show-login-from-forgot"),
     googleAuthBtn: document.getElementById("auth-google-button"),
     statusEl: document.getElementById("login-status"),
     settingsProfileForm: document.getElementById("settings-profile-form"),
@@ -84,13 +87,17 @@ function getRefs() {
     settingsOverlay: document.getElementById("settings-modal"),
     loginSubmitBtn: document.querySelector("#login-form .modal-submit"),
     signupSubmitBtn: document.querySelector("#signup-form .modal-submit"),
+    forgotPasswordSubmitBtn: document.querySelector("#forgot-password-form .modal-submit"),
   };
 
   const isReady = Boolean(
-    refs.loginForm &&
+      refs.loginForm &&
       refs.signupForm &&
+      refs.forgotPasswordForm &&
       refs.showLoginBtn &&
       refs.showSignupBtn &&
+      refs.showForgotPasswordBtn &&
+      refs.showLoginFromForgotBtn &&
       refs.googleAuthBtn &&
       refs.statusEl &&
       refs.settingsProfileForm &&
@@ -124,12 +131,15 @@ export function createAuthUi({ getCurrentUser }) {
 
   const setMode = (mode) => {
     const isLogin = mode === "login";
+    const isForgotPassword = mode === "forgot-password";
     refs.loginForm.hidden = !isLogin;
-    refs.signupForm.hidden = isLogin;
+    refs.signupForm.hidden = mode !== "signup";
+    refs.forgotPasswordForm.hidden = !isForgotPassword;
     refs.showLoginBtn.classList.toggle("active", isLogin);
-    refs.showSignupBtn.classList.toggle("active", !isLogin);
+    refs.showSignupBtn.classList.toggle("active", mode === "signup");
     refs.statusEl.textContent = "";
     refs.statusEl.dataset.tone = "";
+    refs.googleAuthBtn.hidden = isForgotPassword;
   };
 
   const setStatus = (message, tone = "") => {
@@ -140,6 +150,7 @@ export function createAuthUi({ getCurrentUser }) {
   const setAuthPending = (isPending, scope = "all") => {
     const shouldDisableLogin = scope === "all" || scope === "login";
     const shouldDisableSignup = scope === "all" || scope === "signup";
+    const shouldDisableForgotPassword = scope === "all" || scope === "forgot-password";
 
     if (shouldDisableLogin) {
       refs.loginForm.querySelectorAll("input, button").forEach((element) => {
@@ -149,6 +160,12 @@ export function createAuthUi({ getCurrentUser }) {
 
     if (shouldDisableSignup) {
       refs.signupForm.querySelectorAll("input, button").forEach((element) => {
+        element.disabled = Boolean(isPending);
+      });
+    }
+
+    if (shouldDisableForgotPassword) {
+      refs.forgotPasswordForm.querySelectorAll("input, button").forEach((element) => {
         element.disabled = Boolean(isPending);
       });
     }
@@ -163,6 +180,10 @@ export function createAuthUi({ getCurrentUser }) {
 
     if (refs.signupSubmitBtn && shouldDisableSignup) {
       refs.signupSubmitBtn.textContent = isPending ? "Creating Account..." : "Create Account";
+    }
+
+    if (refs.forgotPasswordSubmitBtn && shouldDisableForgotPassword) {
+      refs.forgotPasswordSubmitBtn.textContent = isPending ? "Sending Reset Link..." : "Send Reset Link";
     }
   };
 
@@ -244,6 +265,7 @@ export function createAuthUi({ getCurrentUser }) {
     onGoogleLogin,
     onLoginSubmit,
     onSignupSubmit,
+    onForgotPasswordSubmit,
     onLogout,
     onProfileSubmit,
     onPasswordSubmit,
@@ -252,6 +274,8 @@ export function createAuthUi({ getCurrentUser }) {
   }) => {
     refs.showLoginBtn.addEventListener("click", () => setMode("login"));
     refs.showSignupBtn.addEventListener("click", () => setMode("signup"));
+    refs.showForgotPasswordBtn.addEventListener("click", () => setMode("forgot-password"));
+    refs.showLoginFromForgotBtn.addEventListener("click", () => setMode("login"));
 
     refs.googleAuthBtn.addEventListener("click", () => {
       onGoogleLogin?.();
@@ -263,6 +287,13 @@ export function createAuthUi({ getCurrentUser }) {
         fullName: String(new FormData(refs.signupForm).get("fullName") || "").trim(),
         email: String(new FormData(refs.signupForm).get("email") || "").trim(),
         password: String(new FormData(refs.signupForm).get("password") || "").trim(),
+      });
+    });
+
+    refs.forgotPasswordForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      onForgotPasswordSubmit?.({
+        email: String(new FormData(refs.forgotPasswordForm).get("email") || "").trim(),
       });
     });
 

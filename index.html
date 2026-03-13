@@ -327,6 +327,14 @@
         <input id="login-password" name="password" type="password" required minlength="6" />
 
         <button type="submit" class="modal-submit">Sign In</button>
+        <button type="button" class="auth-inline-action" id="show-forgot-password">Forgot password?</button>
+      </form>
+      <form id="forgot-password-form" class="modal-form" hidden>
+        <label for="forgot-password-email">Email</label>
+        <input id="forgot-password-email" name="email" type="email" required />
+        <p class="auth-helper-copy">We will email you a password reset link if the account is eligible.</p>
+        <button type="submit" class="modal-submit">Send Reset Link</button>
+        <button type="button" class="auth-inline-action" id="show-login-from-forgot">Back to login</button>
       </form>
       <form id="signup-form" class="modal-form" hidden>
         <label for="signup-fullname">Full Name</label>

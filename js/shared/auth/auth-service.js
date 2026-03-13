@@ -112,6 +112,40 @@ export async function loginWithEmail(payload) {
   }
 }
 
+export async function requestPasswordReset(email) {
+  try {
+    const result = await authApi.forgotPassword({ email });
+    return {
+      ok: result.ok,
+      body: result.data,
+      error: result.ok ? "" : result.error || "Unable to send password reset email.",
+    };
+  } catch {
+    return {
+      ok: false,
+      body: {},
+      error: "Unable to send password reset email.",
+    };
+  }
+}
+
+export async function resetPasswordWithToken(payload) {
+  try {
+    const result = await authApi.resetPassword(payload);
+    return {
+      ok: result.ok,
+      body: result.data,
+      error: result.ok ? "" : result.error || "Unable to reset password.",
+    };
+  } catch {
+    return {
+      ok: false,
+      body: {},
+      error: "Unable to reset password.",
+    };
+  }
+}
+
 export async function logoutSession() {
   try {
     await authApi.logout();

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reset Password</title>
+  <link rel="stylesheet" href="/css/reset.css" />
+  <link id="theme-palette-stylesheet" rel="stylesheet" href="/css/tokens.forest.css" />
+  <link rel="stylesheet" href="/css/public/index.css" />
+  <style>
+    .reset-shell {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 2rem;
+    }
+
+    .reset-card {
+      width: min(100%, 48rem);
+      background: var(--color-header);
+      color: var(--color-header-text);
+      border-radius: var(--radius);
+      box-shadow: var(--box-shadow);
+      padding: 2.2rem;
+    }
+
+    .reset-card h1 {
+      margin-bottom: 1rem;
+    }
+
+    .reset-card p {
+      max-width: none;
+      margin: 0 0 1rem;
+    }
+  </style>
+</head>
+<body>
+  <main class="reset-shell">
+    <section class="reset-card">
+      <h1>Reset Password</h1>
+      <p>Choose a new password for your account.</p>
+      <form id="reset-password-form" class="modal-form">
+        <label for="reset-password-token">Reset Token</label>
+        <input id="reset-password-token" name="token" type="text" required />
+
+        <label for="reset-password-new">New Password</label>
+        <input id="reset-password-new" name="newPassword" type="password" required minlength="8" />
+
+        <button type="submit" class="modal-submit" id="reset-password-submit">Update Password</button>
+      </form>
+      <p id="reset-password-status" class="modal-status" aria-live="polite"></p>
+    </section>
+  </main>
+  <script type="module">
+    import { authApi } from "/js/shared/api/auth-api.js";
+
+    const formEl = document.getElementById("reset-password-form");
+    const tokenEl = document.getElementById("reset-password-token");
+    const statusEl = document.getElementById("reset-password-status");
+    const submitBtn = document.getElementById("reset-password-submit");
+
+    const tokenFromUrl = new URLSearchParams(window.location.search).get("token") || "";
+    tokenEl.value = tokenFromUrl;
+
+    function setStatus(message, tone = "") {
+      statusEl.textContent = message || "";
+      statusEl.dataset.tone = message ? tone : "";
+    }
+
+    formEl.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const token = String(new FormData(formEl).get("token") || "").trim();
+      const newPassword = String(new FormData(formEl).get("newPassword") || "").trim();
+
+      if (!token || !newPassword) {
+        setStatus("Token and new password are required.", "error");
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Updating Password...";
+      setStatus("Updating your password...", "info");
+
+      try {
+        const result = await authApi.resetPassword({ token, newPassword });
+        if (!result.ok) {
+          setStatus(result.error || "Unable to reset password.", "error");
+          return;
+        }
+
+        formEl.reset();
+        tokenEl.value = "";
+        setStatus(result.data?.message || "Password reset successfully. You can now return and log in.", "success");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Update Password";
+      }
+    });
+  </script>
+</body>
+</html>

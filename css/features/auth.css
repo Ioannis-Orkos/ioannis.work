@@ -47,3 +47,24 @@
     height: 1px;
     background: var(--color-border);
 }
+
+.auth-inline-action {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--color-nav-active-hover);
+    font: inherit;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+
+.auth-inline-action:hover {
+    text-decoration: underline;
+}
+
+.auth-helper-copy {
+    margin: 0;
+    opacity: 0.78;
+    font-size: 1.4rem;
+}

@@ -22,6 +22,12 @@ export const authApi = Object.freeze({
   login(payload) {
     return requestJson(API_ENDPOINTS.auth.login, withJsonBody("POST", payload));
   },
+  forgotPassword(payload) {
+    return requestJson(API_ENDPOINTS.auth.forgotPassword, withJsonBody("POST", payload));
+  },
+  resetPassword(payload) {
+    return requestJson(API_ENDPOINTS.auth.resetPassword, withJsonBody("POST", payload));
+  },
   logout() {
     return requestJson(API_ENDPOINTS.auth.logout, { method: "POST" });
   },

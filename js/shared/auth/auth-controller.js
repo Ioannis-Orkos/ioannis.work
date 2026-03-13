@@ -7,6 +7,7 @@ import {
   fetchCurrentSession,
   loginWithEmail,
   logoutSession,
+  requestPasswordReset,
   signupWithEmail,
   updatePassword,
   updateProfile,
@@ -136,6 +137,30 @@ export function initAuthController({ onAdminSession } = {}) {
         emitAppEvent(APP_EVENT_NAMES.closeModal);
       } finally {
         ui.setAuthPending(false, "login");
+      }
+    },
+    async onForgotPasswordSubmit({ email }) {
+      if (!email) {
+        ui.setStatus("Email is required.", "error");
+        return;
+      }
+
+      ui.setAuthPending(true, "forgot-password");
+      ui.setStatus("Sending password reset email...", "info");
+
+      try {
+        const result = await requestPasswordReset(email);
+        if (!result.ok) {
+          ui.setStatus(result.error || "Unable to send password reset email.", "error");
+          return;
+        }
+
+        ui.setStatus(
+          result.body?.message || "If the account is eligible, a password reset email has been sent.",
+          "success"
+        );
+      } finally {
+        ui.setAuthPending(false, "forgot-password");
       }
     },
     async onLogout() {

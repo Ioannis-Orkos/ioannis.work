@@ -5,6 +5,8 @@ export const API_ENDPOINTS = Object.freeze({
     signup: `${AUTH_API_BASE_URL}/api/auth/signup`,
     login: `${AUTH_API_BASE_URL}/api/auth/login`,
     logout: `${AUTH_API_BASE_URL}/api/auth/logout`,
+    forgotPassword: `${AUTH_API_BASE_URL}/api/auth/forgot-password`,
+    resetPassword: `${AUTH_API_BASE_URL}/api/auth/reset-password`,
     me: `${AUTH_API_BASE_URL}/api/auth/me`,
     profile: `${AUTH_API_BASE_URL}/api/auth/profile`,
     password: `${AUTH_API_BASE_URL}/api/auth/password`,

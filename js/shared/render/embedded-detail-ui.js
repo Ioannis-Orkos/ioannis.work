@@ -45,8 +45,8 @@ function buildSharedStylesheetLinks() {
     ...sharedHeadLinks,
     ...sharedStylesheets.map((href, index) =>
       index === 0
-        ? `<link id="theme-palette-stylesheet" rel="stylesheet" href="${escapeHtmlAttribute(href)}" />`
-        : `<link rel="stylesheet" href="${escapeHtmlAttribute(href)}" />`
+        ? `<link id="theme-palette-stylesheet" rel="stylesheet" href="${window.location.origin}${escapeHtmlAttribute(href)}" />`
+        : `<link rel="stylesheet" href="${window.location.origin}${escapeHtmlAttribute(href)}" />`
     ),
   ].join("\n");
 }

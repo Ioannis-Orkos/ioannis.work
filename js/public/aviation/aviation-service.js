@@ -3,6 +3,7 @@ import { APP_EVENT_NAMES, emitAppEvent } from "../../shared/events.js";
 import { getFolderFromLocation } from "../../shared/location.js";
 import { ensureAuthorizedSession } from "../../shared/auth/auth-service.js";
 import { isAdminUser } from "../../shared/auth/session-state.js";
+import { PAGE_PATHS } from "../../shared/config.js";
 import { createAviationCatalog } from "./aviation-catalog.js";
 import {
   buildAviationContentUrl,
@@ -76,16 +77,39 @@ export function createAviationService({
     window.location.hash = sectionId;
   };
 
-  const openLoginWithMessage = (message, { openModal = true } = {}) => {
+  const normalizeToCatalogRoute = () => {
+    if (navigationController?.navigateTo) {
+      navigationController.navigateTo("aviation", { push: false });
+      history.replaceState({ type: "page", targetId: "aviation" }, "", PAGE_PATHS.aviation || "/aviation");
+      return;
+    }
+
+    window.location.hash = "aviation";
+  };
+
+  const openLoginWithMessage = (message, { openModal = true, normalizeRoute = false } = {}) => {
+    if (normalizeRoute) {
+      normalizeToCatalogRoute();
+    }
+
     setStatus(message || "Login required for this aviation content.");
     if (openModal) {
       emitAppEvent(APP_EVENT_NAMES.openModal, { modalId: "login" });
     }
   };
 
-  const openRequestAccessModal = (item, contentItem, requestStatus = "not_requested") => {
+  const openRequestAccessModal = (
+    item,
+    contentItem,
+    requestStatus = "not_requested",
+    { normalizeRoute = false } = {}
+  ) => {
     if (!requestAccessModalUi) {
       return;
+    }
+
+    if (normalizeRoute) {
+      normalizeToCatalogRoute();
     }
 
     state.pendingAccessItem = item;
@@ -180,7 +204,7 @@ export function createAviationService({
     }
   };
 
-  const openItem = async (item, { push = true, promptLogin = true } = {}) => {
+  const openItem = async (item, { push = true, promptLogin = true, normalizeRouteOnBlock = false } = {}) => {
     if (!item?.folder) {
       return;
     }
@@ -195,6 +219,7 @@ export function createAviationService({
       if (!hasSession) {
         openLoginWithMessage("This aviation content is locked. Please login and request access.", {
           openModal: promptLogin,
+          normalizeRoute: normalizeRouteOnBlock,
         });
         return;
       }
@@ -204,7 +229,9 @@ export function createAviationService({
         catalog.refresh();
         const refreshedContent = catalog.getProtectedContentForItem(item);
         if (!refreshedContent) {
-          openRequestAccessModal(item, null, "not_requested");
+          openRequestAccessModal(item, null, "not_requested", {
+            normalizeRoute: normalizeRouteOnBlock,
+          });
           return;
         }
 
@@ -219,7 +246,9 @@ export function createAviationService({
           return;
         }
 
-        openRequestAccessModal(item, refreshedContent, getContentAccessStatus(refreshedContent));
+        openRequestAccessModal(item, refreshedContent, getContentAccessStatus(refreshedContent), {
+          normalizeRoute: normalizeRouteOnBlock,
+        });
         return;
       }
 
@@ -230,7 +259,9 @@ export function createAviationService({
           isAdmin: isAdminUser(),
         })
       ) {
-        openRequestAccessModal(item, contentItem, getContentAccessStatus(contentItem));
+        openRequestAccessModal(item, contentItem, getContentAccessStatus(contentItem), {
+          normalizeRoute: normalizeRouteOnBlock,
+        });
         return;
       }
 
@@ -261,7 +292,10 @@ export function createAviationService({
     });
   };
 
-  const openItemByFolder = async (folder, { push = false, allowFallback = true, promptLogin = true } = {}) => {
+  const openItemByFolder = async (
+    folder,
+    { push = false, allowFallback = true, promptLogin = true, normalizeRouteOnBlock = false } = {}
+  ) => {
     const normalizedFolder = String(folder || "").trim();
     if (!normalizedFolder) {
       return;
@@ -269,7 +303,7 @@ export function createAviationService({
 
     const knownItem = state.items.find((entry) => entry.folder === normalizedFolder);
     if (knownItem) {
-      await openItem(knownItem, { push, promptLogin });
+      await openItem(knownItem, { push, promptLogin, normalizeRouteOnBlock });
       return;
     }
 
@@ -278,7 +312,7 @@ export function createAviationService({
 
     const mergedItem = state.items.find((entry) => getAviationSlug(entry) === normalizedFolder);
     if (mergedItem) {
-      await openItem(mergedItem, { push, promptLogin });
+      await openItem(mergedItem, { push, promptLogin, normalizeRouteOnBlock });
       return;
     }
 
@@ -287,8 +321,12 @@ export function createAviationService({
       if (!hasSession) {
         openLoginWithMessage("This aviation content requires login and access approval.", {
           openModal: promptLogin,
+          normalizeRoute: normalizeRouteOnBlock,
         });
       } else {
+        if (normalizeRouteOnBlock) {
+          normalizeToCatalogRoute();
+        }
         setStatus("Aviation content unavailable.");
       }
       return;
@@ -303,7 +341,8 @@ export function createAviationService({
       await openItemByFolder(sharedSlug, {
         push: false,
         allowFallback: false,
-        promptLogin: false,
+        promptLogin: true,
+        normalizeRouteOnBlock: true,
       });
       return;
     }
@@ -316,7 +355,8 @@ export function createAviationService({
     await openItemByFolder(folderFromLocation, {
       push: false,
       allowFallback: false,
-      promptLogin: false,
+      promptLogin: true,
+      normalizeRouteOnBlock: true,
     });
   };
 

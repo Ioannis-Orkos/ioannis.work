@@ -3,6 +3,7 @@ import { APP_EVENT_NAMES, emitAppEvent } from "../../shared/events.js";
 import { getFolderFromLocation } from "../../shared/location.js";
 import { ensureAuthorizedSession } from "../../shared/auth/auth-service.js";
 import { isAdminUser } from "../../shared/auth/session-state.js";
+import { PAGE_PATHS } from "../../shared/config.js";
 import { createProjectsCatalog } from "./projects-catalog.js";
 import {
   buildProjectContentUrl,
@@ -84,16 +85,39 @@ export function createProjectsService({
     window.location.hash = sectionId;
   };
 
-  const openLoginWithMessage = (message, { openModal = true } = {}) => {
+  const normalizeToCatalogRoute = () => {
+    if (navigationController?.navigateTo) {
+      navigationController.navigateTo("project", { push: false });
+      history.replaceState({ type: "page", targetId: "project" }, "", PAGE_PATHS.project || "/project");
+      return;
+    }
+
+    window.location.hash = "project";
+  };
+
+  const openLoginWithMessage = (message, { openModal = true, normalizeRoute = false } = {}) => {
+    if (normalizeRoute) {
+      normalizeToCatalogRoute();
+    }
+
     setProjectStatus(message || "Login required for this project.");
     if (openModal) {
       emitAppEvent(APP_EVENT_NAMES.openModal, { modalId: "login" });
     }
   };
 
-  const openRequestAccessModal = (project, contentItem, requestStatus = "not_requested") => {
+  const openRequestAccessModal = (
+    project,
+    contentItem,
+    requestStatus = "not_requested",
+    { normalizeRoute = false } = {}
+  ) => {
     if (!requestAccessModalUi) {
       return;
+    }
+
+    if (normalizeRoute) {
+      normalizeToCatalogRoute();
     }
 
     state.pendingAccessProject = project;
@@ -187,7 +211,10 @@ export function createProjectsService({
     }
   };
 
-  const openProject = async (project, { push = true, promptLogin = true } = {}) => {
+  const openProject = async (
+    project,
+    { push = true, promptLogin = true, normalizeRouteOnBlock = false } = {}
+  ) => {
     if (!project?.folder) {
       return;
     }
@@ -202,6 +229,7 @@ export function createProjectsService({
       if (!hasSession) {
         openLoginWithMessage("This project is locked. Please login and request access.", {
           openModal: promptLogin,
+          normalizeRoute: normalizeRouteOnBlock,
         });
         return;
       }
@@ -211,7 +239,9 @@ export function createProjectsService({
         catalog.refresh();
         const refreshedContent = catalog.getProtectedContentForProject(project);
         if (!refreshedContent) {
-          openRequestAccessModal(project, null, "not_requested");
+          openRequestAccessModal(project, null, "not_requested", {
+            normalizeRoute: normalizeRouteOnBlock,
+          });
           return;
         }
 
@@ -226,7 +256,9 @@ export function createProjectsService({
           return;
         }
 
-        openRequestAccessModal(project, refreshedContent, getContentAccessStatus(refreshedContent));
+        openRequestAccessModal(project, refreshedContent, getContentAccessStatus(refreshedContent), {
+          normalizeRoute: normalizeRouteOnBlock,
+        });
         return;
       }
 
@@ -237,7 +269,9 @@ export function createProjectsService({
           isAdmin: isAdminUser(),
         })
       ) {
-        openRequestAccessModal(project, contentItem, getContentAccessStatus(contentItem));
+        openRequestAccessModal(project, contentItem, getContentAccessStatus(contentItem), {
+          normalizeRoute: normalizeRouteOnBlock,
+        });
         return;
       }
 
@@ -270,7 +304,7 @@ export function createProjectsService({
 
   const openProjectByFolder = async (
     folder,
-    { push = false, allowFallback = true, promptLogin = true } = {}
+    { push = false, allowFallback = true, promptLogin = true, normalizeRouteOnBlock = false } = {}
   ) => {
     const normalizedFolder = String(folder || "").trim();
     if (!normalizedFolder) {
@@ -279,7 +313,7 @@ export function createProjectsService({
 
     const knownProject = state.projects.find((item) => item.folder === normalizedFolder);
     if (knownProject) {
-      await openProject(knownProject, { push, promptLogin });
+      await openProject(knownProject, { push, promptLogin, normalizeRouteOnBlock });
       return;
     }
 
@@ -288,7 +322,7 @@ export function createProjectsService({
 
     const projectFromProtectedContent = state.projects.find((item) => getProjectSlug(item) === normalizedFolder);
     if (projectFromProtectedContent) {
-      await openProject(projectFromProtectedContent, { push, promptLogin });
+      await openProject(projectFromProtectedContent, { push, promptLogin, normalizeRouteOnBlock });
       return;
     }
 
@@ -297,8 +331,12 @@ export function createProjectsService({
       if (!hasSession) {
         openLoginWithMessage("This project requires login and access approval.", {
           openModal: promptLogin,
+          normalizeRoute: normalizeRouteOnBlock,
         });
       } else {
+        if (normalizeRouteOnBlock) {
+          normalizeToCatalogRoute();
+        }
         setProjectStatus("Project unavailable.");
       }
       return;
@@ -317,6 +355,7 @@ export function createProjectsService({
     if (!hasSession) {
       openLoginWithMessage("This shared project requires login.", {
         openModal: promptLogin,
+        normalizeRoute: true,
       });
       return;
     }
@@ -326,6 +365,7 @@ export function createProjectsService({
 
     const contentItem = catalog.getProtectedContentBySlug(normalizedSlug);
     if (!contentItem) {
+      normalizeToCatalogRoute();
       setProjectStatus("Shared project is unavailable.");
       return;
     }
@@ -342,7 +382,9 @@ export function createProjectsService({
         isAdmin: isAdminUser(),
       })
     ) {
-      openRequestAccessModal(targetProject, contentItem, getContentAccessStatus(contentItem));
+      openRequestAccessModal(targetProject, contentItem, getContentAccessStatus(contentItem), {
+        normalizeRoute: true,
+      });
       return;
     }
 
@@ -364,7 +406,8 @@ export function createProjectsService({
     await openProjectByFolder(folderFromLocation, {
       push: false,
       allowFallback: false,
-      promptLogin: false,
+      promptLogin: true,
+      normalizeRouteOnBlock: true,
     });
   };
 

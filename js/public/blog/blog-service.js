@@ -3,6 +3,7 @@ import { APP_EVENT_NAMES, emitAppEvent } from "../../shared/events.js";
 import { getFolderFromLocation } from "../../shared/location.js";
 import { ensureAuthorizedSession } from "../../shared/auth/auth-service.js";
 import { isAdminUser } from "../../shared/auth/session-state.js";
+import { PAGE_PATHS } from "../../shared/config.js";
 import { createBlogCatalog } from "./blog-catalog.js";
 import {
   buildBlogContentUrl,
@@ -80,16 +81,39 @@ export function createBlogService({
     window.location.hash = sectionId;
   };
 
-  const openLoginWithMessage = (message, { openModal = true } = {}) => {
+  const normalizeToCatalogRoute = () => {
+    if (navigationController?.navigateTo) {
+      navigationController.navigateTo("blog", { push: false });
+      history.replaceState({ type: "page", targetId: "blog" }, "", PAGE_PATHS.blog || "/blog");
+      return;
+    }
+
+    window.location.hash = "blog";
+  };
+
+  const openLoginWithMessage = (message, { openModal = true, normalizeRoute = false } = {}) => {
+    if (normalizeRoute) {
+      normalizeToCatalogRoute();
+    }
+
     setBlogStatus(message || "Login required for this blog.");
     if (openModal) {
       emitAppEvent(APP_EVENT_NAMES.openModal, { modalId: "login" });
     }
   };
 
-  const openRequestAccessModal = (blog, contentItem, requestStatus = "not_requested") => {
+  const openRequestAccessModal = (
+    blog,
+    contentItem,
+    requestStatus = "not_requested",
+    { normalizeRoute = false } = {}
+  ) => {
     if (!requestAccessModalUi) {
       return;
+    }
+
+    if (normalizeRoute) {
+      normalizeToCatalogRoute();
     }
 
     state.pendingAccessBlog = blog;
@@ -184,7 +208,7 @@ export function createBlogService({
     }
   };
 
-  const openBlog = async (blog, { push = true, promptLogin = true } = {}) => {
+  const openBlog = async (blog, { push = true, promptLogin = true, normalizeRouteOnBlock = false } = {}) => {
     if (!blog?.folder) {
       return;
     }
@@ -199,6 +223,7 @@ export function createBlogService({
       if (!hasSession) {
         openLoginWithMessage("This blog is locked. Please login and request access.", {
           openModal: promptLogin,
+          normalizeRoute: normalizeRouteOnBlock,
         });
         return;
       }
@@ -208,7 +233,9 @@ export function createBlogService({
         catalog.refresh();
         const refreshedContent = catalog.getProtectedContentForBlog(blog);
         if (!refreshedContent) {
-          openRequestAccessModal(blog, null, "not_requested");
+          openRequestAccessModal(blog, null, "not_requested", {
+            normalizeRoute: normalizeRouteOnBlock,
+          });
           return;
         }
 
@@ -223,7 +250,9 @@ export function createBlogService({
           return;
         }
 
-        openRequestAccessModal(blog, refreshedContent, getContentAccessStatus(refreshedContent));
+        openRequestAccessModal(blog, refreshedContent, getContentAccessStatus(refreshedContent), {
+          normalizeRoute: normalizeRouteOnBlock,
+        });
         return;
       }
 
@@ -234,7 +263,9 @@ export function createBlogService({
           isAdmin: isAdminUser(),
         })
       ) {
-        openRequestAccessModal(blog, contentItem, getContentAccessStatus(contentItem));
+        openRequestAccessModal(blog, contentItem, getContentAccessStatus(contentItem), {
+          normalizeRoute: normalizeRouteOnBlock,
+        });
         return;
       }
 
@@ -265,7 +296,10 @@ export function createBlogService({
     });
   };
 
-  const openBlogByFolder = async (folder, { push = false, allowFallback = true, promptLogin = true } = {}) => {
+  const openBlogByFolder = async (
+    folder,
+    { push = false, allowFallback = true, promptLogin = true, normalizeRouteOnBlock = false } = {}
+  ) => {
     const normalizedFolder = String(folder || "").trim();
     if (!normalizedFolder) {
       return;
@@ -273,7 +307,7 @@ export function createBlogService({
 
     const knownBlog = state.blogs.find((item) => item.folder === normalizedFolder);
     if (knownBlog) {
-      await openBlog(knownBlog, { push, promptLogin });
+      await openBlog(knownBlog, { push, promptLogin, normalizeRouteOnBlock });
       return;
     }
 
@@ -282,7 +316,7 @@ export function createBlogService({
 
     const mergedBlog = state.blogs.find((item) => getBlogSlug(item) === normalizedFolder);
     if (mergedBlog) {
-      await openBlog(mergedBlog, { push, promptLogin });
+      await openBlog(mergedBlog, { push, promptLogin, normalizeRouteOnBlock });
       return;
     }
 
@@ -291,8 +325,12 @@ export function createBlogService({
       if (!hasSession) {
         openLoginWithMessage("This blog requires login and access approval.", {
           openModal: promptLogin,
+          normalizeRoute: normalizeRouteOnBlock,
         });
       } else {
+        if (normalizeRouteOnBlock) {
+          normalizeToCatalogRoute();
+        }
         setBlogStatus("Blog unavailable.");
       }
       return;
@@ -307,7 +345,8 @@ export function createBlogService({
       await openBlogByFolder(serverSlug, {
         push: false,
         allowFallback: false,
-        promptLogin: false,
+        promptLogin: true,
+        normalizeRouteOnBlock: true,
       });
       return;
     }
@@ -320,7 +359,8 @@ export function createBlogService({
     await openBlogByFolder(folderFromLocation, {
       push: false,
       allowFallback: false,
-      promptLogin: false,
+      promptLogin: true,
+      normalizeRouteOnBlock: true,
     });
   };
 

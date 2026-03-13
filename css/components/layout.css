@@ -11,6 +11,7 @@ body {
     flex-direction: column;
     min-height: 100vh;
     transition: background-color var(--transition), color var(--transition);
+    margin-top: var(--header-height);
 }
 
 main {
@@ -22,7 +23,6 @@ main {
 
 section {
     padding: 3.2rem 0;
-    margin-top: var(--header-height);
     /* margin-top: calc(var(--header-height) - 1.8rem); */
 }
 

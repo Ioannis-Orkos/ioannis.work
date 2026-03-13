@@ -321,7 +321,7 @@ export function initAdminController({ onUnauthorized } = {}) {
           refresh: refreshUsersPanel,
           successMessage: user.emailVerified
             ? "User approved."
-            : "User approved. Email verification is still required before login.",
+            : "User and Email verification approved.",
         });
       } finally {
         button.disabled = false;

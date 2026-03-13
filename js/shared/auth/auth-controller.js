@@ -51,6 +51,7 @@ export function initAuthController({ onAdminSession } = {}) {
     const pathname = String(window.location.pathname || "/");
     const isSharedOrProjectDetail =
       hash.startsWith("s-") ||
+      pathname.startsWith("/project/") ||
       pathname.startsWith("/projects/") ||
       pathname.startsWith("/project/s/");
 

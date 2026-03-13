@@ -3,61 +3,65 @@ import { APP_EVENT_NAMES } from "../../shared/events.js";
 import { createRequestAccessModalUi } from "../projects/render/request-access-ui.js";
 import { createEmbeddedDetailUi } from "../../shared/render/embedded-detail-ui.js";
 import { isAdminUser, isAuthorizedUser } from "../../shared/auth/session-state.js";
-import { createBlogUi } from "./render/blog-ui.js";
-import { createBlogService } from "./blog-service.js";
-import { createBlogState } from "./blog-state.js";
-import { buildBlogImageUrl, filterBlogs, resolveBlogAccessLabel } from "./blog-model.js";
+import { createAviationUi } from "./render/aviation-ui.js";
+import { createAviationService } from "./aviation-service.js";
+import { createAviationState } from "./aviation-state.js";
+import {
+  buildAviationImageUrl,
+  filterAviationItems,
+  resolveAviationAccessLabel,
+} from "./aviation-model.js";
 
-export async function initBlogController({ navigationController } = {}) {
-  const blogPage = document.getElementById("blog");
+export async function initAviationController({ navigationController } = {}) {
+  const aviationPage = document.getElementById("aviation");
   const mainEl = document.querySelector("main");
-  const blogUi = createBlogUi();
+  const aviationUi = createAviationUi();
 
-  if (!blogPage || !mainEl || !blogUi.isReady) {
+  if (!aviationPage || !mainEl || !aviationUi.isReady) {
     return;
   }
 
-  const state = createBlogState();
+  const state = createAviationState();
   const requestAccessModalUi = createRequestAccessModalUi();
   const embeddedDetailUi = createEmbeddedDetailUi({
     mainEl,
-    sectionDataAttribute: "data-blog-folder",
-    sectionDatasetKey: "blogFolder",
-    frameIdPrefix: "blog-frame",
-    messageType: "blog-frame-height",
-    failureMessage: "Failed to load blog content.",
-    failureLogLabel: "[Blog] Failed to load blog page:",
+    sectionDataAttribute: "data-aviation-folder",
+    sectionDatasetKey: "aviationFolder",
+    frameIdPrefix: "aviation-frame",
+    messageType: "aviation-frame-height",
+    failureMessage: "Failed to load aviation content.",
+    failureLogLabel: "[Aviation] Failed to load aviation page:",
     loadHtml: fetchEmbeddedHtml,
     sectionClassName: "page blog-embedded-page",
     frameClassName: "blog-embedded-frame",
   });
 
-  const renderBlogs = () => {
-    const filteredBlogs = filterBlogs({
-      blogs: state.blogs,
-      query: blogUi.getSearchQuery(),
+  const renderItems = () => {
+    const filteredItems = filterAviationItems({
+      items: state.items,
+      query: aviationUi.getSearchQuery(),
       selectedCategories: state.selectedCategories,
     });
 
-    blogUi.renderBlogList({
-      blogs: filteredBlogs,
-      onOpen: (blog) => service.openBlog(blog, { push: true }),
-      getImageUrl: buildBlogImageUrl,
-      resolveAccessLabel: (blog) =>
-        resolveBlogAccessLabel({
-          blog,
+    aviationUi.renderList({
+      items: filteredItems,
+      onOpen: (item) => service.openItem(item, { push: true }),
+      getImageUrl: buildAviationImageUrl,
+      resolveAccessLabel: (item) =>
+        resolveAviationAccessLabel({
+          item,
           protectedContentBySlug: state.protectedContentBySlug,
           isAuthorized: isAuthorizedUser(),
           isAdmin: isAdminUser(),
         }),
     });
 
-    return filteredBlogs;
+    return filteredItems;
   };
 
   const renderCategories = () => {
-    blogUi.renderCategories({
-      blogs: state.blogs,
+    aviationUi.renderCategories({
+      items: state.items,
       selectedCategories: state.selectedCategories,
       onToggle: (category) => {
         if (state.selectedCategories.has(category)) {
@@ -66,7 +70,7 @@ export async function initBlogController({ navigationController } = {}) {
           state.selectedCategories.add(category);
         }
 
-        renderBlogs();
+        renderItems();
         renderCategories();
       },
     });
@@ -74,26 +78,26 @@ export async function initBlogController({ navigationController } = {}) {
 
   const renderCatalog = () => {
     renderCategories();
-    renderBlogs();
+    renderItems();
   };
 
-  const service = createBlogService({
+  const service = createAviationService({
     state,
     navigationController,
     embeddedDetailUi,
     requestAccessModalUi,
-    setBlogStatus: (message) => blogUi.setStatus(message),
+    setStatus: (message) => aviationUi.setStatus(message),
     renderCatalog,
   });
 
-  blogUi.bindSearchInput(() => {
-    renderBlogs();
+  aviationUi.bindSearchInput(() => {
+    renderItems();
   });
 
-  blogUi.bindSearchSubmit(() => {
-    const filteredBlogs = renderBlogs();
-    if (filteredBlogs.length) {
-      service.openBlog(filteredBlogs[0], { push: true });
+  aviationUi.bindSearchSubmit(() => {
+    const filteredItems = renderItems();
+    if (filteredItems.length) {
+      service.openItem(filteredItems[0], { push: true });
     }
   });
 
@@ -106,7 +110,7 @@ export async function initBlogController({ navigationController } = {}) {
       const submitted = await service.submitPendingAccessRequest();
       requestAccessModalUi.setSubmitting(false);
       if (!submitted) return;
-      console.log("[Blog] Request access UI updated without leaving the page.");
+      console.log("[Aviation] Request access UI updated without leaving the page.");
     });
   }
 
@@ -115,7 +119,7 @@ export async function initBlogController({ navigationController } = {}) {
     window.addEventListener("popstate", service.handleLocation);
     window.addEventListener("hashchange", service.handleLocation);
   } catch (error) {
-    console.error("[Blog] Failed to initialize blog module:", error);
-    blogUi.showLoadError();
+    console.error("[Aviation] Failed to initialize aviation module:", error);
+    aviationUi.showLoadError();
   }
 }

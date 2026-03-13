@@ -3,12 +3,13 @@ import { APP_EVENT_NAMES, emitAppEvent } from "../../../shared/events.js";
 export function createRequestAccessModalUi() {
   const formEl = document.getElementById("request-access-form");
   const noteEl = document.getElementById("request-access-note");
+  const titleEl = document.getElementById("request-access-title");
   const messageEl = document.getElementById("request-access-message");
   const statusEl = document.getElementById("request-access-status");
   const confirmBtn = document.getElementById("request-access-confirm");
   const modalCardEl = document.querySelector("#request-access-modal .modal-card");
 
-  if (!formEl || !noteEl || !messageEl || !statusEl || !confirmBtn || !modalCardEl) {
+  if (!formEl || !noteEl || !titleEl || !messageEl || !statusEl || !confirmBtn || !modalCardEl) {
     return null;
   }
 
@@ -27,8 +28,16 @@ export function createRequestAccessModalUi() {
     setStatus("");
   };
 
-  const renderState = ({ project, requestStatus, canSubmit, requestNote = "", reviewNote = "" }) => {
+  const renderState = ({
+    project,
+    entityLabel = "Project",
+    requestStatus,
+    canSubmit,
+    requestNote = "",
+    reviewNote = "",
+  }) => {
     reset();
+    titleEl.textContent = `Request ${String(entityLabel || "Content").trim()} Access`;
 
     const isPending = requestStatus === "pending";
     confirmBtn.dataset.pending = isPending ? "1" : "";

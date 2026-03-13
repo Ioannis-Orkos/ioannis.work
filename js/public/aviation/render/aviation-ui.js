@@ -1,38 +1,38 @@
 import { collectCategoryCounts } from "../../../shared/catalog.js";
 
-function createBlogCard({ blog, accessLabel, onOpen, getImageUrl }) {
-  const item = document.createElement("article");
-  item.className = "blog-item project-item";
-  if (blog.locked) item.classList.add("project-item-locked");
-  if (accessLabel === "approved") item.classList.add("project-item-approved");
-  if (accessLabel === "pending") item.classList.add("project-item-pending");
-  item.tabIndex = 0;
-  item.setAttribute("role", "button");
-  item.setAttribute("aria-label", `Open blog ${blog.title}`);
+function createAviationCard({ item, accessLabel, onOpen, getImageUrl }) {
+  const card = document.createElement("article");
+  card.className = "blog-item project-item";
+  if (item.locked) card.classList.add("project-item-locked");
+  if (accessLabel === "approved") card.classList.add("project-item-approved");
+  if (accessLabel === "pending") card.classList.add("project-item-pending");
+  card.tabIndex = 0;
+  card.setAttribute("role", "button");
+  card.setAttribute("aria-label", `Open aviation content ${item.title}`);
 
   const media = document.createElement("div");
   media.className = "blog-item-media";
-  const imageUrl = getImageUrl(blog);
+  const imageUrl = getImageUrl(item);
   if (imageUrl) {
     const image = document.createElement("img");
     image.className = "blog-item-image";
     image.src = imageUrl;
-    image.alt = blog.title;
+    image.alt = item.title;
     image.loading = "lazy";
     media.appendChild(image);
   } else {
     media.classList.add("blog-item-media-empty");
   }
-  item.appendChild(media);
+  card.appendChild(media);
 
   const details = document.createElement("div");
   details.className = "blog-item-details";
 
   const title = document.createElement("h3");
-  title.textContent = blog.title;
+  title.textContent = item.title;
   details.appendChild(title);
 
-  if (blog.locked && accessLabel !== "approved") {
+  if (item.locked && accessLabel !== "approved") {
     const lockIcon = document.createElement("span");
     lockIcon.className = "project-lock-icon";
 
@@ -42,48 +42,48 @@ function createBlogCard({ blog, accessLabel, onOpen, getImageUrl }) {
       lockIcon.setAttribute("title", "Awaiting access");
       lockIcon.textContent = "⏳";
     } else {
-      lockIcon.setAttribute("aria-label", "Locked blog");
-      lockIcon.setAttribute("title", "Locked blog");
+      lockIcon.setAttribute("aria-label", "Locked aviation content");
+      lockIcon.setAttribute("title", "Locked aviation content");
       lockIcon.textContent = "🔒";
     }
 
-    item.appendChild(lockIcon);
+    card.appendChild(lockIcon);
   }
 
-  if (blog.date) {
+  if (item.date) {
     const date = document.createElement("p");
     date.className = "blog-item-date";
-    date.textContent = blog.date;
+    date.textContent = item.date;
     details.appendChild(date);
   }
 
-  if (blog.description) {
+  if (item.description) {
     const description = document.createElement("p");
     description.className = "blog-item-description";
-    description.textContent = blog.description;
+    description.textContent = item.description;
     details.appendChild(description);
   }
 
-  item.appendChild(details);
+  card.appendChild(details);
 
-  const openHandler = () => onOpen(blog);
-  item.addEventListener("click", openHandler);
-  item.addEventListener("keydown", (event) => {
+  const openHandler = () => onOpen(item);
+  card.addEventListener("click", openHandler);
+  card.addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       openHandler();
     }
   });
 
-  return item;
+  return card;
 }
 
-export function createBlogUi() {
-  const sectionEl = document.getElementById("blog");
-  const listEl = document.getElementById("blogs");
-  const searchEl = document.getElementById("blog-search");
-  const categoriesEl = document.getElementById("blog-categories");
-  const statusEl = document.getElementById("blog-status");
+export function createAviationUi() {
+  const sectionEl = document.getElementById("aviation");
+  const listEl = document.getElementById("aviation-items");
+  const searchEl = document.getElementById("aviation-search");
+  const categoriesEl = document.getElementById("aviation-categories");
+  const statusEl = document.getElementById("aviation-status");
 
   return {
     isReady: Boolean(sectionEl && listEl && searchEl && categoriesEl && statusEl),
@@ -93,9 +93,9 @@ export function createBlogUi() {
     setStatus(message) {
       statusEl.textContent = message || "";
     },
-    renderCategories({ blogs, selectedCategories, onToggle }) {
+    renderCategories({ items, selectedCategories, onToggle }) {
       categoriesEl.innerHTML = "";
-      const counts = collectCategoryCounts(blogs, (blog) => blog.categories);
+      const counts = collectCategoryCounts(items, (item) => item.categories);
 
       counts.forEach((count, category) => {
         const button = document.createElement("button");
@@ -116,19 +116,19 @@ export function createBlogUi() {
         categoriesEl.appendChild(button);
       });
     },
-    renderBlogList({ blogs, onOpen, resolveAccessLabel, getImageUrl }) {
+    renderList({ items, onOpen, resolveAccessLabel, getImageUrl }) {
       listEl.innerHTML = "";
 
-      if (!blogs.length) {
-        listEl.innerHTML = "<p>No blogs found.</p>";
+      if (!items.length) {
+        listEl.innerHTML = "<p>No aviation content found.</p>";
         return;
       }
 
-      blogs.forEach((blog) => {
+      items.forEach((item) => {
         listEl.appendChild(
-          createBlogCard({
-            blog,
-            accessLabel: resolveAccessLabel(blog),
+          createAviationCard({
+            item,
+            accessLabel: resolveAccessLabel(item),
             onOpen,
             getImageUrl,
           })
@@ -147,7 +147,7 @@ export function createBlogUi() {
       });
     },
     showLoadError() {
-      listEl.innerHTML = "<p>Failed to load blogs.</p>";
+      listEl.innerHTML = "<p>Failed to load aviation content.</p>";
     },
   };
 }

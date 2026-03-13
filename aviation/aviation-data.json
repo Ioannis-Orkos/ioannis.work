@@ -1,0 +1,11 @@
+[
+  {
+    "id": "aviation-001",
+    "folder": "boeing-777x",
+    "title": "Boeing 777X Overview",
+    "date": "2026-03-13",
+    "description": "A local aviation article covering the 777X program, folding wingtips, GE9X engines, and certification progress.",
+    "categories": ["Aircraft", "Boeing", "Widebody"],
+    "url": "boeing-777x/embed.html"
+  }
+]

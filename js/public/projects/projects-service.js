@@ -47,13 +47,19 @@ export function createProjectsService({
 
   const getSharedProjectFromLocation = () =>
     getFolderFromLocation({
+      hashPrefix: "project-",
+    }) ||
+    getFolderFromLocation({
+      hashPrefix: "p-",
+    }) ||
+    getFolderFromLocation({
       hashPrefix: "s-",
     });
 
   const getProjectFolderFromLocation = () =>
     getFolderFromLocation({
-      primaryPathPrefix: "/projects/",
-      legacyPathPrefix: "/project/",
+      primaryPathPrefix: "/project/",
+      legacyPathPrefix: "/projects/",
       hashPrefix: "project-",
     });
 
@@ -69,7 +75,7 @@ export function createProjectsService({
       if (preserveSharedUrl) {
         const sharedSlug = getProjectSlug(project);
         if (sharedSlug) {
-          history.replaceState({ type: "page", targetId: sectionId }, "", `/#s-${sharedSlug}`);
+          history.replaceState({ type: "page", targetId: sectionId }, "", `/#project-${sharedSlug}`);
         }
       }
       return;
@@ -244,7 +250,7 @@ export function createProjectsService({
       return;
     }
 
-    if (contentItem && contentItem.deliveryType === "content" && String(project.id || "").startsWith("content-")) {
+    if (contentItem && contentItem.deliveryType === "content") {
       await loadApprovedContent(project, contentItem, { push });
       return;
     }

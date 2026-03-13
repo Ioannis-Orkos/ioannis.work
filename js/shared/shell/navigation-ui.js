@@ -4,7 +4,10 @@ export function createNavigationUi({ pages, navLinks, pageMap, mobileNavControll
   const isModalHash = (hash) => MODAL_ROUTE_IDS.includes(hash);
   const isBlogDetailHash = (hash) => hash.startsWith("blog-") && hash.length > 5;
   const isProjectDetailHash = (hash) => hash.startsWith("project-") && hash.length > 8;
-  const isSharedProjectHash = (hash) => hash.startsWith("s-") && hash.length > 2;
+  const isAviationDetailHash = (hash) => hash.startsWith("aviation-") && hash.length > 9;
+  const isLegacyBlogContentHash = (hash) => hash.startsWith("b-") && hash.length > 2;
+  const isLegacyProjectContentHash = (hash) => hash.startsWith("p-") && hash.length > 2;
+  const isLegacySharedProjectHash = (hash) => hash.startsWith("s-") && hash.length > 2;
 
   let livePages = [...pages];
   let livePageMap = new Map(pageMap);
@@ -39,19 +42,14 @@ export function createNavigationUi({ pages, navLinks, pageMap, mobileNavControll
       }
     }
 
-    if (pathname.startsWith("/blogs/")) {
-      const folder = pathname.slice("/blogs/".length).split("/")[0];
-      return folder ? `blog-${folder}` : "blog";
-    }
-
     if (pathname.startsWith("/blog/")) {
       const folder = pathname.slice("/blog/".length).split("/")[0];
       return folder ? `blog-${folder}` : "blog";
     }
 
-    if (pathname.startsWith("/projects/")) {
-      const folder = pathname.slice("/projects/".length).split("/")[0];
-      return folder ? `project-${folder}` : "project";
+    if (pathname.startsWith("/blogs/")) {
+      const folder = pathname.slice("/blogs/".length).split("/")[0];
+      return folder ? `blog-${folder}` : "blog";
     }
 
     if (pathname.startsWith("/project/")) {
@@ -59,16 +57,30 @@ export function createNavigationUi({ pages, navLinks, pageMap, mobileNavControll
       return folder ? `project-${folder}` : "project";
     }
 
+    if (pathname.startsWith("/projects/")) {
+      const folder = pathname.slice("/projects/".length).split("/")[0];
+      return folder ? `project-${folder}` : "project";
+    }
+
+    if (pathname.startsWith("/aviation/")) {
+      const folder = pathname.slice("/aviation/".length).split("/")[0];
+      return folder ? `aviation-${folder}` : "aviation";
+    }
+
     return null;
   };
 
   const buildPathForTarget = (targetId) => {
     if (targetId.startsWith("blog-") && targetId.length > 5) {
-      return `/blogs/${targetId.replace("blog-", "")}`;
+      return `/blog/${targetId.replace("blog-", "")}`;
     }
 
     if (targetId.startsWith("project-") && targetId.length > 8) {
-      return `/projects/${targetId.replace("project-", "")}`;
+      return `/project/${targetId.replace("project-", "")}`;
+    }
+
+    if (targetId.startsWith("aviation-") && targetId.length > 9) {
+      return `/aviation/${targetId.replace("aviation-", "")}`;
     }
 
     return PAGE_PATHS[targetId] || "/";
@@ -76,8 +88,9 @@ export function createNavigationUi({ pages, navLinks, pageMap, mobileNavControll
 
   const setActiveLink = (targetId) => {
     let navTarget = targetId;
-    if (targetId.startsWith("blog-")) navTarget = "blog";
-    if (targetId.startsWith("project-")) navTarget = "project";
+    if (targetId.startsWith("blog-") || targetId.startsWith("b-")) navTarget = "blog";
+    if (targetId.startsWith("project-") || targetId.startsWith("p-") || targetId.startsWith("s-")) navTarget = "project";
+    if (targetId.startsWith("aviation-")) navTarget = "aviation";
 
     navLinks.forEach((link) => {
       const isActive = link.dataset.target === navTarget;
@@ -155,7 +168,31 @@ export function createNavigationUi({ pages, navLinks, pageMap, mobileNavControll
       };
     }
 
-    if (isSharedProjectHash(hash) && livePageMap.has("project")) {
+    if (isAviationDetailHash(hash) && livePageMap.has("aviation")) {
+      return {
+        pageId: "aviation",
+        historyTargetId: hash,
+        historyPath: buildPathForTarget(hash),
+      };
+    }
+
+    if (isLegacySharedProjectHash(hash) && livePageMap.has("project")) {
+      return {
+        pageId: "project",
+        historyTargetId: hash,
+        historyPath: `/#${hash}`,
+      };
+    }
+
+    if (isLegacyBlogContentHash(hash) && livePageMap.has("blog")) {
+      return {
+        pageId: "blog",
+        historyTargetId: hash,
+        historyPath: `/#${hash}`,
+      };
+    }
+
+    if (isLegacyProjectContentHash(hash) && livePageMap.has("project")) {
       return {
         pageId: "project",
         historyTargetId: hash,
@@ -182,6 +219,10 @@ export function createNavigationUi({ pages, navLinks, pageMap, mobileNavControll
 
     if (pathTarget && pathTarget.startsWith("project-") && livePageMap.has("project")) {
       return { pageId: "project" };
+    }
+
+    if (pathTarget && pathTarget.startsWith("aviation-") && livePageMap.has("aviation")) {
+      return { pageId: "aviation" };
     }
 
     return { pageId: getDefaultPageId() };

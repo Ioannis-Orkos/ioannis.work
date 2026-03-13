@@ -5,12 +5,14 @@
 }
 
 #blog h2,
-#project h2 {
+#project h2,
+#aviation h2 {
     text-align: center;
 }
 
 #blog-search,
-#project-search {
+#project-search,
+#aviation-search {
     width: 100%;
     border: 1px solid var(--color-border);
     border-radius: 0.8rem;
@@ -22,7 +24,8 @@
 }
 
 #blog-search:focus-visible,
-#project-search:focus-visible {
+#project-search:focus-visible,
+#aviation-search:focus-visible {
     outline: 2px solid var(--color-nav-active-hover);
     outline-offset: 2px;
     box-shadow: var(--color-input-focus-shadow);

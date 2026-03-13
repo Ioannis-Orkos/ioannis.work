@@ -17,6 +17,10 @@ export function loadProjectCatalog() {
   return loadStaticJson(STATIC_DATA_URLS.projects, "projects");
 }
 
+export function loadAviationCatalog() {
+  return loadStaticJson(STATIC_DATA_URLS.aviation, "aviation content");
+}
+
 export async function fetchEmbeddedHtml(sourceUrl) {
   const response = await fetch(sourceUrl, { credentials: "include" });
   if (!response.ok) {

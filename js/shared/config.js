@@ -22,15 +22,18 @@ export const PAGE_PATHS = Object.freeze({
   about: "/about",
   project: "/project",
   blog: "/blog",
+  aviation: "/aviation",
 });
 
-export const BLOG_BASE_PATH = "/blogs/";
-export const PROJECT_BASE_PATH = "/projects/";
+export const BLOG_BASE_PATH = "/blog/";
+export const PROJECT_BASE_PATH = "/project/";
+export const AVIATION_BASE_PATH = "/aviation/";
 export const LOCAL_EMBED_FILE_NAME = "embed.html";
 
 export const STATIC_DATA_URLS = Object.freeze({
   blogs: `${BLOG_BASE_PATH}blog-data.json`,
-  projects: `${PROJECT_BASE_PATH}projects-data.json`,
+  projects: `${PROJECT_BASE_PATH}project-data.json`,
+  aviation: `${AVIATION_BASE_PATH}aviation-data.json`,
 });
 
 const LOCAL_FRONTEND_HOSTS = new Set(["localhost", "127.0.0.1"]);

@@ -2,8 +2,8 @@ import { escapeHtml } from "../../shared/html.js";
 
 const CONTENT_IMAGE_DIRECTORIES = Object.freeze({
   aviation: "/aviation/",
-  blog: "/blogs/",
-  project: "/projects/",
+  blog: "/blog/",
+  project: "/project/",
 });
 
 export const loadingMarkup =

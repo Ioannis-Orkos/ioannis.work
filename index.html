@@ -69,6 +69,7 @@
         <li><a href="/about" data-target="about">About</a></li>
         <li><a href="/project" data-target="project">Project</a></li>
         <li><a href="/blog" data-target="blog">Blog</a></li>
+        <li><a href="/aviation" data-target="aviation">Aviation</a></li>
         <li hidden><a href="/admin/" data-admin-entry-link="1">Admin</a></li>
         <li><a href="#contact" data-modal="contact">Contact</a></li>
         <li class="nav-auth-group">
@@ -192,18 +193,36 @@
       <h2>Blogs</h2>
 
       <!-- Blog Search -->
-      <div class="blog-search">
-          <input type="text" id="blog-search" placeholder="Search blogs..." aria-label="Search Blogs">
-      </div>
+        <div class="blog-search">
+            <input type="text" id="blog-search" placeholder="Search blogs..." aria-label="Search Blogs">
+        </div>
 
-      <!-- Blog Categories -->
-      <div id="blog-categories" class="blog-categories" aria-label="Blog Categories">
+        <p id="blog-status" class="project-status" aria-live="polite"></p>
+
+        <!-- Blog Categories -->
+        <div id="blog-categories" class="blog-categories" aria-label="Blog Categories">
           <!-- Categories will be dynamically inserted here -->
       </div>
 
       <!-- Blog List -->
       <div id="blogs" class="blog-list" aria-live="polite">
           <!-- Blog items will be dynamically inserted here -->
+      </div>
+    </section>
+
+    <section id="aviation" class="page">
+      <h2>Aviation</h2>
+
+      <div class="blog-search">
+        <input type="text" id="aviation-search" placeholder="Search aviation content..." aria-label="Search Aviation Content">
+      </div>
+
+      <p id="aviation-status" class="project-status" aria-live="polite"></p>
+
+      <div id="aviation-categories" class="blog-categories" aria-label="Aviation Categories">
+      </div>
+
+      <div id="aviation-items" class="blog-list" aria-live="polite">
       </div>
     </section>
 
@@ -215,6 +234,7 @@
       <li><a href="/about" data-target="about">About</a></li>
       <li><a href="/project" data-target="project">Project</a></li>
       <li><a href="/blog" data-target="blog">Blog</a></li>
+      <li><a href="/aviation" data-target="aviation">Aviation</a></li>
       <li hidden><a href="/admin/" data-admin-entry-link="1">Admin</a></li>
       <li><a href="#contact" data-modal="contact">Contact</a></li>
       <li class="nav-auth-group">
@@ -432,8 +452,8 @@
   <div id="request-access-modal" class="modal-overlay" data-modal-id="request-access" hidden>
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="request-access-title">
       <button type="button" class="modal-close" data-modal-close aria-label="Close request access dialog">×</button>
-      <h2 id="request-access-title">Request Project Access</h2>
-      <p id="request-access-message" class="modal-status">You need access approval before opening this locked project.</p>
+      <h2 id="request-access-title">Request Content Access</h2>
+      <p id="request-access-message" class="modal-status">You need access approval before opening this locked content.</p>
       <form id="request-access-form" class="modal-form">
         <label for="request-access-note">Message</label>
         <textarea id="request-access-note" name="note" rows="4" placeholder="Write why you need access..." required></textarea>

@@ -81,6 +81,8 @@ function getRefs() {
     settingsStatusCopies: [...document.querySelectorAll("[data-settings-status-copy='1']")],
     settingsAuthMethod: document.getElementById("settings-auth-method"),
     settingsLogoutBtn: document.getElementById("settings-logout"),
+    settingsTabButtons: [...document.querySelectorAll("[data-settings-tab]")],
+    settingsPanels: [...document.querySelectorAll("[data-settings-panel]")],
     settingsThemeButtons: [...document.querySelectorAll("[data-settings-theme]")],
     settingsThemeColorButtons: [...document.querySelectorAll("[data-settings-theme-color]")],
     loginOverlay: document.getElementById("login-modal"),
@@ -192,6 +194,21 @@ export function createAuthUi({ getCurrentUser }) {
     if (type === "password") refs.settingsPasswordStatus.textContent = message || "";
   };
 
+  const setSettingsTab = (tabId = "overview") => {
+    const nextTabId = String(tabId || "overview").trim().toLowerCase() || "overview";
+
+    refs.settingsTabButtons.forEach((button) => {
+      const isActive = button.dataset.settingsTab === nextTabId;
+      button.classList.toggle("active", isActive);
+      button.setAttribute("aria-selected", isActive ? "true" : "false");
+      button.setAttribute("tabindex", isActive ? "0" : "-1");
+    });
+
+    refs.settingsPanels.forEach((panel) => {
+      panel.hidden = panel.dataset.settingsPanel !== nextTabId;
+    });
+  };
+
   const syncThemeControls = () => {
     const activeTheme = getActiveTheme();
     const activeThemeColor = getActiveThemeColor();
@@ -259,6 +276,7 @@ export function createAuthUi({ getCurrentUser }) {
     setSettingsStatus("password", "");
     syncSettingsModal(getCurrentUser());
     syncThemeControls();
+    setSettingsTab("overview");
   };
 
   const bindHandlers = ({
@@ -322,6 +340,12 @@ export function createAuthUi({ getCurrentUser }) {
 
     refs.settingsLogoutBtn.addEventListener("click", () => {
       onLogout?.();
+    });
+
+    refs.settingsTabButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        setSettingsTab(button.dataset.settingsTab);
+      });
     });
 
     refs.settingsThemeButtons.forEach((button) => {
@@ -391,6 +415,7 @@ export function createAuthUi({ getCurrentUser }) {
     setStatus,
     setAuthPending,
     setSettingsStatus,
+    setSettingsTab,
     syncUiForUser,
     resetAuthForms,
     resetSettingsForms,

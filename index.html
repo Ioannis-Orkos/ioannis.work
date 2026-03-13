@@ -361,9 +361,62 @@
           <button type="button" class="modal-close" data-modal-close aria-label="Close account settings">×</button>
         </div>
 
+        <div class="settings-tabs" role="tablist" aria-label="Settings sections">
+          <button
+            type="button"
+            class="settings-tab-button auth-switch-button"
+            data-settings-tab="overview"
+            role="tab"
+            aria-selected="true"
+            aria-controls="settings-panel-overview"
+            id="settings-tab-overview"
+          >
+            Overview
+          </button>
+          <button
+            type="button"
+            class="settings-tab-button auth-switch-button"
+            data-settings-tab="appearance"
+            role="tab"
+            aria-selected="false"
+            aria-controls="settings-panel-appearance"
+            id="settings-tab-appearance"
+          >
+            Appearance
+          </button>
+          <button
+            type="button"
+            class="settings-tab-button auth-switch-button"
+            data-settings-tab="profile"
+            role="tab"
+            aria-selected="false"
+            aria-controls="settings-panel-profile"
+            id="settings-tab-profile"
+          >
+            Profile
+          </button>
+          <button
+            type="button"
+            class="settings-tab-button auth-switch-button"
+            data-settings-tab="security"
+            role="tab"
+            aria-selected="false"
+            aria-controls="settings-panel-security"
+            id="settings-tab-security"
+          >
+            Security
+          </button>
+        </div>
+
         <div class="settings-grid">
-          <div class="settings-primary">
-            <section class="settings-section settings-profile-section">
+            <section
+              class="settings-section settings-profile-section"
+              data-settings-panel="profile"
+              id="settings-panel-profile"
+              role="tabpanel"
+              aria-labelledby="settings-tab-profile"
+              hidden
+            >
               <div class="settings-section-head">
                 <div>
                   <p class="settings-section-kicker">Profile</p>
@@ -378,7 +431,14 @@
               <p id="settings-profile-status" class="modal-status" aria-live="polite"></p>
             </section>
 
-            <section class="settings-section settings-security-section">
+            <section
+              class="settings-section settings-security-section"
+              data-settings-panel="security"
+              id="settings-panel-security"
+              role="tabpanel"
+              aria-labelledby="settings-tab-security"
+              hidden
+            >
               <div class="settings-section-head">
                 <div>
                   <p class="settings-section-kicker">Security</p>
@@ -396,10 +456,15 @@
               </form>
               <p id="settings-password-status" class="modal-status" aria-live="polite"></p>
             </section>
-          </div>
 
-          <div class="settings-secondary">
-            <section class="settings-section settings-appearance-section">
+            <section
+              class="settings-section settings-appearance-section"
+              data-settings-panel="appearance"
+              id="settings-panel-appearance"
+              role="tabpanel"
+              aria-labelledby="settings-tab-appearance"
+              hidden
+            >
               <div class="settings-section-head">
                 <div>
                   <p class="settings-section-kicker">Appearance</p>
@@ -423,7 +488,13 @@
               </div>
             </section>
 
-            <section class="settings-section settings-summary-section">
+            <section
+              class="settings-section settings-summary-section"
+              data-settings-panel="overview"
+              id="settings-panel-overview"
+              role="tabpanel"
+              aria-labelledby="settings-tab-overview"
+            >
               <div class="settings-section-head">
                 <div>
                   <p class="settings-section-kicker">Overview</p>
@@ -450,7 +521,6 @@
               </div>
               <button type="button" class="auth-switch-button settings-logout-button" id="settings-logout">Logout</button>
             </section>
-          </div>
         </div>
       </div>
     </div>

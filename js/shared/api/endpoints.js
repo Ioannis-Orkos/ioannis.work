@@ -1,4 +1,4 @@
-import { AUTH_API_BASE_URL } from "../config.js";
+import { AUTH_API_BASE_URL } from "./api-config.js";
 
 export const API_ENDPOINTS = Object.freeze({
   auth: Object.freeze({

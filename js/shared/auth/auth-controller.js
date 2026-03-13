@@ -69,57 +69,74 @@ export function initAuthController({ onAdminSession } = {}) {
 
   ui.bindHandlers({
     onGoogleLogin() {
+      ui.setStatus("Redirecting to Google sign in...", "info");
+      ui.setAuthPending(true, "all");
       window.location.assign(authApi.endpoints.google);
     },
     async onSignupSubmit(payload) {
       if (!payload.email || !payload.password) {
-        ui.setStatus("Email and password are required.");
+        ui.setStatus("Email and password are required.", "error");
         return;
       }
 
-      const result = await signupWithEmail(payload);
-      if (!result.ok) {
-        ui.setStatus(result.error);
-        return;
-      }
+      ui.setAuthPending(true, "signup");
+      ui.setStatus("Creating your account and sending verification email...", "info");
 
-      const sentAt = formatStatusDate(result.body?.verificationSentAt);
-      ui.setStatus(
-        sentAt
-          ? `Verify your email. Verification sent on ${sentAt}.`
-          : "Verify your email. Verification sent."
-      );
-      ui.resetAuthForms();
+      try {
+        const result = await signupWithEmail(payload);
+        if (!result.ok) {
+          ui.setStatus(result.error, "error");
+          return;
+        }
 
-      const loginEmailInput = document.getElementById("login-email");
-      if (loginEmailInput) {
-        loginEmailInput.value = payload.email;
+        const sentAt = formatStatusDate(result.body?.verificationSentAt);
+        ui.resetAuthForms();
+        ui.setStatus(
+          sentAt
+            ? `Account created. Check your inbox and verify your email. Sent on ${sentAt}.`
+            : "Account created. Check your inbox and verify your email before login.",
+          "success"
+        );
+
+        const loginEmailInput = document.getElementById("login-email");
+        if (loginEmailInput) {
+          loginEmailInput.value = payload.email;
+        }
+      } finally {
+        ui.setAuthPending(false, "signup");
       }
     },
     async onLoginSubmit(payload) {
       if (!payload.email || !payload.password) {
-        ui.setStatus("Email and password are required.");
+        ui.setStatus("Email and password are required.", "error");
         return;
       }
 
-      const result = await loginWithEmail(payload);
-      if (!result.ok || !result.user?.id) {
-        ui.setStatus(result.error || "Login failed.");
-        ui.syncUiForUser(null);
-        return;
+      ui.setAuthPending(true, "login");
+      ui.setStatus("Signing you in...", "info");
+
+      try {
+        const result = await loginWithEmail(payload);
+        if (!result.ok || !result.user?.id) {
+          ui.setStatus(result.error || "Login failed.", "error");
+          ui.syncUiForUser(null);
+          return;
+        }
+
+        ui.syncUiForUser(result.user);
+        emitSessionChanged(result.user);
+
+        if (handleAdminSession(result.user, "login")) {
+          ui.setStatus("Redirecting to admin...", "success");
+          return;
+        }
+
+        ui.setStatus("Logged in successfully.", "success");
+        ui.resetAuthForms();
+        emitAppEvent(APP_EVENT_NAMES.closeModal);
+      } finally {
+        ui.setAuthPending(false, "login");
       }
-
-      ui.syncUiForUser(result.user);
-      emitSessionChanged(result.user);
-
-      if (handleAdminSession(result.user, "login")) {
-        ui.setStatus("Redirecting to admin...");
-        return;
-      }
-
-      ui.setStatus("Logged in successfully.");
-      ui.resetAuthForms();
-      emitAppEvent(APP_EVENT_NAMES.closeModal);
     },
     async onLogout() {
       await performLogout();

@@ -1,5 +1,3 @@
-import { AUTH_API_SELECTED_BASE_URL_KEY } from "../config.js";
-
 const AUTH_TOKEN_KEYS = Object.freeze([
   "auth-token",
   "access-token",
@@ -64,8 +62,5 @@ export function clearAuthTokens() {
     removeStorageValue(localStorage, key);
     removeStorageValue(sessionStorage, key);
   });
-
-  removeStorageValue(localStorage, AUTH_API_SELECTED_BASE_URL_KEY);
-  removeStorageValue(sessionStorage, AUTH_API_SELECTED_BASE_URL_KEY);
 }
 

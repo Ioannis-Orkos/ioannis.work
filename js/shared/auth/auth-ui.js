@@ -82,6 +82,8 @@ function getRefs() {
     settingsThemeColorButtons: [...document.querySelectorAll("[data-settings-theme-color]")],
     loginOverlay: document.getElementById("login-modal"),
     settingsOverlay: document.getElementById("settings-modal"),
+    loginSubmitBtn: document.querySelector("#login-form .modal-submit"),
+    signupSubmitBtn: document.querySelector("#signup-form .modal-submit"),
   };
 
   const isReady = Boolean(
@@ -127,10 +129,41 @@ export function createAuthUi({ getCurrentUser }) {
     refs.showLoginBtn.classList.toggle("active", isLogin);
     refs.showSignupBtn.classList.toggle("active", !isLogin);
     refs.statusEl.textContent = "";
+    refs.statusEl.dataset.tone = "";
   };
 
-  const setStatus = (message) => {
+  const setStatus = (message, tone = "") => {
     refs.statusEl.textContent = message || "";
+    refs.statusEl.dataset.tone = message ? String(tone || "info").toLowerCase() : "";
+  };
+
+  const setAuthPending = (isPending, scope = "all") => {
+    const shouldDisableLogin = scope === "all" || scope === "login";
+    const shouldDisableSignup = scope === "all" || scope === "signup";
+
+    if (shouldDisableLogin) {
+      refs.loginForm.querySelectorAll("input, button").forEach((element) => {
+        element.disabled = Boolean(isPending);
+      });
+    }
+
+    if (shouldDisableSignup) {
+      refs.signupForm.querySelectorAll("input, button").forEach((element) => {
+        element.disabled = Boolean(isPending);
+      });
+    }
+
+    refs.showLoginBtn.disabled = Boolean(isPending);
+    refs.showSignupBtn.disabled = Boolean(isPending);
+    refs.googleAuthBtn.disabled = Boolean(isPending);
+
+    if (refs.loginSubmitBtn && shouldDisableLogin) {
+      refs.loginSubmitBtn.textContent = isPending ? "Signing In..." : "Sign In";
+    }
+
+    if (refs.signupSubmitBtn && shouldDisableSignup) {
+      refs.signupSubmitBtn.textContent = isPending ? "Creating Account..." : "Create Account";
+    }
   };
 
   const setSettingsStatus = (type, message) => {
@@ -325,6 +358,7 @@ export function createAuthUi({ getCurrentUser }) {
     isReady: true,
     setMode,
     setStatus,
+    setAuthPending,
     setSettingsStatus,
     syncUiForUser,
     resetAuthForms,

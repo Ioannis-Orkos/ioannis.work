@@ -3,16 +3,103 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Redirecting to Home</title>
-  <meta http-equiv="refresh" content="0; url=/" />
-  <script>
-    try {
-      window.sessionStorage.setItem('admin-entry-intent', 'oauth-success');
-    } catch {}
-    window.location.replace('/');
-  </script>
+  <title>Finishing Sign In</title>
 </head>
 <body>
-  <p>Redirecting after sign in...</p>
+  <p id="oauth-success-status">Finishing sign in...</p>
+  <script type="module">
+    import { AUTH_API_BASE_URL } from "/js/shared/api/api-config.js";
+    import { saveAuthToken } from "/js/shared/api/token-store.js";
+
+    const statusEl = document.getElementById("oauth-success-status");
+
+    function setStatus(message) {
+      if (statusEl) {
+        statusEl.textContent = message;
+      }
+    }
+
+    async function verifySession() {
+      const response = await fetch(`${AUTH_API_BASE_URL}/api/auth/me`, {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      try {
+        const payload = await response.json();
+        return payload?.user || null;
+      } catch {
+        return null;
+      }
+    }
+
+    function readOAuthPayloadFromHash() {
+      const rawHash = String(window.location.hash || "").replace(/^#/, "").trim();
+      if (!rawHash) {
+        return { token: "", user: null };
+      }
+
+      const params = new URLSearchParams(rawHash);
+      const token = String(params.get("token") || "").trim();
+      const rawUser = String(params.get("user") || "").trim();
+
+      let user = null;
+      if (rawUser) {
+        try {
+          user = JSON.parse(rawUser);
+        } catch {
+          user = null;
+        }
+      }
+
+      return { token, user };
+    }
+
+    async function finishLogin() {
+      try {
+        const { token, user } = readOAuthPayloadFromHash();
+        if (token) {
+          saveAuthToken(token);
+        }
+
+        for (let attempt = 0; attempt < 8; attempt += 1) {
+          const user = await verifySession();
+          if (user?.id) {
+            try {
+              if (String(user.role || "").toLowerCase() === "admin") {
+                window.sessionStorage.setItem("admin-entry-intent", "oauth-success");
+              }
+            } catch {}
+
+            window.location.replace("/");
+            return;
+          }
+
+          await new Promise((resolve) => window.setTimeout(resolve, 250));
+        }
+
+        if (token) {
+          try {
+            if (String(user?.role || "").toLowerCase() === "admin") {
+              window.sessionStorage.setItem("admin-entry-intent", "oauth-success");
+            }
+          } catch {}
+
+          window.location.replace("/");
+          return;
+        }
+
+        setStatus("Sign in completed, but the session is not available yet. Please return home and try again.");
+      } catch {
+        setStatus("Sign in could not be completed. Please return home and try again.");
+      }
+    }
+
+    finishLogin();
+  </script>
 </body>
 </html>

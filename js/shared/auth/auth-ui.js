@@ -70,6 +70,7 @@ function getRefs() {
     statusEl: document.getElementById("login-status"),
     settingsProfileForm: document.getElementById("settings-profile-form"),
     settingsPasswordForm: document.getElementById("settings-password-form"),
+    settingsAccountEmailInput: document.getElementById("settings-account-email"),
     settingsFullNameInput: document.getElementById("settings-fullname"),
     settingsCurrentPasswordGroup: document.getElementById("settings-current-password-group"),
     settingsCurrentPasswordInput: document.getElementById("settings-current-password"),
@@ -104,6 +105,7 @@ function getRefs() {
       refs.statusEl &&
       refs.settingsProfileForm &&
       refs.settingsPasswordForm &&
+      refs.settingsAccountEmailInput &&
       refs.settingsFullNameInput &&
       refs.settingsCurrentPasswordGroup &&
       refs.settingsCurrentPasswordInput &&
@@ -232,6 +234,7 @@ export function createAuthUi({ getCurrentUser }) {
     const hasPassword = Boolean(safeUser.hasPassword);
 
     refs.settingsFullNameInput.value = String(safeUser.fullName || "");
+    refs.settingsAccountEmailInput.value = String(safeUser.email || "");
     refs.settingsEmail.textContent = String(safeUser.email || "-");
 
     refs.settingsRoleCopies.forEach((el) => {

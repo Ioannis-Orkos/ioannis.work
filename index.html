@@ -333,30 +333,30 @@
 
       <form id="login-form" class="modal-form">
         <label for="login-email">Email</label>
-        <input id="login-email" name="email" type="email" required />
+        <input id="login-email" name="email" type="email" autocomplete="email" required />
 
         <label for="login-password">Password</label>
-        <input id="login-password" name="password" type="password" required minlength="6" />
+        <input id="login-password" name="password" type="password" autocomplete="current-password" required minlength="6" />
 
         <button type="submit" class="modal-submit">Sign In</button>
         <button type="button" class="auth-inline-action" id="show-forgot-password">Forgot password?</button>
       </form>
       <form id="forgot-password-form" class="modal-form" hidden>
         <label for="forgot-password-email">Email</label>
-        <input id="forgot-password-email" name="email" type="email" required />
+        <input id="forgot-password-email" name="email" type="email" autocomplete="email" required />
         <p class="auth-helper-copy">We will email you a password reset link if the account is eligible.</p>
         <button type="submit" class="modal-submit">Send Reset Link</button>
         <button type="button" class="auth-inline-action" id="show-login-from-forgot">Back to login</button>
       </form>
       <form id="signup-form" class="modal-form" hidden>
         <label for="signup-fullname">Full Name</label>
-        <input id="signup-fullname" name="fullName" type="text" />
+        <input id="signup-fullname" name="fullName" type="text" autocomplete="name" />
 
         <label for="signup-email">Email</label>
-        <input id="signup-email" name="email" type="email" required />
+        <input id="signup-email" name="email" type="email" autocomplete="email" required />
 
         <label for="signup-password">Password</label>
-        <input id="signup-password" name="password" type="password" required minlength="6" />
+        <input id="signup-password" name="password" type="password" autocomplete="new-password" required minlength="6" />
 
         <button type="submit" class="modal-submit">Create Account</button>
       </form>
@@ -458,6 +458,7 @@
                 </div>
               </div>
               <form id="settings-password-form" class="modal-form settings-form">
+                <input id="settings-account-email" name="email" type="email" autocomplete="username" hidden />
                 <div id="settings-current-password-group">
                   <label for="settings-current-password">Current Password</label>
                   <input id="settings-current-password" name="currentPassword" type="password" autocomplete="current-password" />

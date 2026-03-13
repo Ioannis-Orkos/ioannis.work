@@ -28,7 +28,7 @@ export const PAGE_PATHS = Object.freeze({
 export const BLOG_BASE_PATH = "/blog/";
 export const PROJECT_BASE_PATH = "/project/";
 export const AVIATION_BASE_PATH = "/aviation/";
-export const LOCAL_EMBED_FILE_NAME = "embed.html";
+export const LOCAL_EMBED_FILE_NAME = "index.html";
 
 export const STATIC_DATA_URLS = Object.freeze({
   blogs: `${BLOG_BASE_PATH}blog-data.json`,

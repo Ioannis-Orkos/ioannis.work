@@ -8,7 +8,7 @@
     "image": "ft-to-lb-conversion/asset/preview.webp",
     "locked": false,
     "categories": ["Aviation", "Utilities", "JavaScript"],
-    "url": "ft-to-lb-conversion/embed.html"
+    "url": "ft-to-lb-conversion/index.html"
   },
   {
     "id": "project-002",
@@ -19,7 +19,7 @@
     "image": "line-maintenance-checklist/asset/preview.webp",
     "locked": false,
     "categories": ["Aviation", "Workflow", "Frontend"],
-    "url": "line-maintenance-checklist/embed.html"
+    "url": "line-maintenance-checklist/index.html"
   },
   {
     "id": "project-003",
@@ -30,6 +30,6 @@
     "image": "defect-priority-board/asset/preview.webp",
     "locked": false,
     "categories": ["Aviation", "Operations", "Dashboard"],
-    "url": "defect-priority-board/embed.html"
+    "url": "defect-priority-board/index.html"
   }
 ]

@@ -18,7 +18,9 @@ function normalizeExternalCandidate(value) {
 function normalizeLocalContentPath(value) {
   const candidate = String(value || "").trim().replace(/^\/+/, "");
   if (!candidate) return "";
-  return candidate.replace(/\/index\.html$/i, `/${LOCAL_EMBED_FILE_NAME}`);
+  return candidate
+    .replace(/\/embed\.html$/i, `/${LOCAL_EMBED_FILE_NAME}`)
+    .replace(/\/index\.html$/i, `/${LOCAL_EMBED_FILE_NAME}`);
 }
 
 export function normalizeAviationItem(item, index) {

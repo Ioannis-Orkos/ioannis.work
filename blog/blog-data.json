@@ -7,7 +7,7 @@
     "description": "Test post 1 for iframe and standalone page rendering.",
     "image": "blog1/test.webp",
     "categories": ["Test", "Frontend"],
-    "url": "blog1/embed.html"
+    "url": "blog1/index.html"
   }
 ]
 

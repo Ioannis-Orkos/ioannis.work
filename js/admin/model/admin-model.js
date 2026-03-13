@@ -7,11 +7,11 @@ function includesQuery(parts, query) {
 }
 
 const USER_ROLE_FILTERS = new Set(["all", "admin", "user"]);
-const ADMIN_TABS = new Set(["users", "requests", "projects"]);
+const ADMIN_TABS = new Set(["users", "requests", "content"]);
 
-export function buildAdminOverview(users, requests) {
+export function buildAdminOverview(users, accessRequests) {
   const safeUsers = Array.isArray(users) ? users : [];
-  const safeRequests = Array.isArray(requests) ? requests : [];
+  const safeRequests = Array.isArray(accessRequests) ? accessRequests : [];
 
   return {
     usersTotal: safeUsers.length,
@@ -36,8 +36,9 @@ export function toggleAdminRequestFilter(requestFilter) {
   return requestFilter === "all" ? "pending" : "all";
 }
 
-export function createEmptyAdminProject() {
+export function createEmptyAdminContent() {
   return {
+    section: "project",
     slug: "",
     title: "",
     description: "",
@@ -45,15 +46,16 @@ export function createEmptyAdminProject() {
     categories: [],
     deliveryType: "content",
     locked: false,
+    isPublished: true,
     externalUrl: "",
     htmlContent: "",
   };
 }
 
-export function findAdminRequest(requests, userId, projectId) {
+export function findAccessRequestByContent(accessRequests, userId, contentId) {
   return (
-    requests.find(
-      (request) => Number(request.userId) === Number(userId) && Number(request.projectId) === Number(projectId)
+    accessRequests.find(
+      (request) => Number(request.userId) === Number(userId) && Number(request.contentId) === Number(contentId)
     ) || null
   );
 }
@@ -81,9 +83,10 @@ export function getVisibleAdminUsers({ users, query, roleFilter }) {
   });
 }
 
-export function getVisibleAdminRequests({ requests, filter, query }) {
+export function getVisibleAdminRequests({ accessRequests, filter, query }) {
   const normalizedQuery = String(query || "").trim().toLowerCase();
-  const visibleRequests = filter === "all" ? requests : requests.filter((request) => request.status === "pending");
+  const visibleRequests =
+    filter === "all" ? accessRequests : accessRequests.filter((request) => request.status === "pending");
 
   return [...visibleRequests]
     .sort((left, right) => {
@@ -99,6 +102,7 @@ export function getVisibleAdminRequests({ requests, filter, query }) {
       includesQuery(
         [
           request.title,
+          request.section,
           request.fullName,
           request.email,
           request.status,

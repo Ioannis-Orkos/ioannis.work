@@ -62,7 +62,7 @@
           <div class="admin-tabs" role="tablist" aria-label="Admin Sections">
             <button type="button" id="admin-tab-users" class="auth-switch-button admin-tab active">Users</button>
             <button type="button" id="admin-tab-requests" class="auth-switch-button admin-tab">Requests</button>
-            <button type="button" id="admin-tab-projects" class="auth-switch-button admin-tab">Projects</button>
+            <button type="button" id="admin-tab-content" class="auth-switch-button admin-tab">Contents</button>
           </div>
         </div>
 
@@ -79,9 +79,9 @@
             <div id="admin-access-requests" class="admin-list" aria-live="polite"></div>
           </div>
 
-          <div class="admin-panel admin-panel-projects" data-admin-panel="projects" hidden>
-            <h3>Project Management</h3>
-            <div id="admin-projects" class="admin-list" aria-live="polite"></div>
+          <div class="admin-panel admin-panel-content" data-admin-panel="content" hidden>
+            <h3>Content Manager</h3>
+            <div id="admin-content" class="admin-list" aria-live="polite"></div>
           </div>
         </div>
       </div>
@@ -258,69 +258,125 @@
     </div>
   </div>
 
-  <div id="admin-user-projects-modal" class="modal-overlay" data-modal-id="admin-user-projects" hidden>
-    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="admin-user-projects-title">
-      <button type="button" class="modal-close" data-modal-close aria-label="Close user projects">×</button>
-      <h2 id="admin-user-projects-title">User Projects</h2>
-      <div id="admin-user-projects-body" class="admin-user-projects-body"></div>
-      <p id="admin-user-projects-status" class="modal-status" aria-live="polite"></p>
+  <div id="admin-user-content-modal" class="modal-overlay" data-modal-id="admin-user-content" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="admin-user-content-title">
+      <button type="button" class="modal-close" data-modal-close aria-label="Close user content">×</button>
+      <h2 id="admin-user-content-title">User Content</h2>
+      <div id="admin-user-content-body" class="admin-user-content-body"></div>
+      <p id="admin-user-content-status" class="modal-status" aria-live="polite"></p>
     </div>
   </div>
 
-  <div id="admin-project-editor-modal" class="modal-overlay" data-modal-id="admin-project-editor" hidden>
-    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="admin-project-editor-title">
-      <button type="button" class="modal-close" data-modal-close aria-label="Close project editor">×</button>
-      <h2 id="admin-project-editor-title">Edit Project</h2>
-      <form id="admin-project-editor-form" class="modal-form admin-project-editor-form">
-        <div class="admin-project-editor-grid">
-          <div class="admin-project-editor-field">
-            <label for="admin-project-slug">Slug</label>
-            <input id="admin-project-slug" name="slug" type="text" required />
-          </div>
-          <div class="admin-project-editor-field">
-            <label for="admin-project-title">Title</label>
-            <input id="admin-project-title" name="title" type="text" required />
-          </div>
-          <div class="admin-project-editor-field">
-            <label for="admin-project-image">Image</label>
-            <input id="admin-project-image" name="imagePath" type="text" placeholder="folder/asset/preview.webp" />
-          </div>
-          <div class="admin-project-editor-field">
-            <label for="admin-project-delivery">Delivery</label>
-            <select id="admin-project-delivery" name="deliveryType">
-              <option value="content">content</option>
-              <option value="link">link</option>
-            </select>
-          </div>
-          <div class="admin-project-editor-field">
-            <label for="admin-project-locked">Locked</label>
-            <select id="admin-project-locked" name="locked">
-              <option value="false">open</option>
-              <option value="true">locked</option>
-            </select>
-          </div>
-          <div class="admin-project-editor-field admin-project-editor-field-full">
-            <label for="admin-project-description">Description</label>
-            <textarea id="admin-project-description" name="description" rows="3"></textarea>
-          </div>
-          <div class="admin-project-editor-field admin-project-editor-field-full">
-            <label for="admin-project-categories">Categories (comma separated)</label>
-            <input id="admin-project-categories" name="categoriesText" type="text"
-              placeholder="Aviation, Workflow, Frontend" />
-          </div>
-          <div class="admin-project-editor-field admin-project-editor-field-full">
-            <label for="admin-project-external-url">External URL</label>
-            <input id="admin-project-external-url" name="externalUrl" type="url" placeholder="https://..." />
-          </div>
-          <div class="admin-project-editor-field admin-project-editor-field-full">
-            <label for="admin-project-content">Content</label>
-            <textarea id="admin-project-content" name="htmlContent" rows="10"
-              placeholder="Project HTML content..."></textarea>
-          </div>
+  <div id="admin-content-editor-modal" class="modal-overlay" data-modal-id="admin-content-editor" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="admin-content-editor-title">
+      <button type="button" class="modal-close" data-modal-close aria-label="Close content editor">×</button>
+      <div class="admin-content-editor-header">
+        <p class="admin-content-editor-kicker">Content Manager</p>
+        <h2 id="admin-content-editor-title">Edit Content</h2>
+        <p class="admin-content-editor-intro">Create or update content, choose its type, then control whether it is locked and published.</p>
+      </div>
+      <form id="admin-content-editor-form" class="modal-form admin-content-editor-form">
+        <div class="admin-content-editor-layout">
+          <section class="admin-content-editor-section">
+            <div class="admin-content-editor-section-head">
+              <p class="admin-content-editor-section-kicker">Basics</p>
+              <h3 class="admin-content-editor-section-title">Identity</h3>
+            </div>
+            <div class="admin-content-editor-grid">
+              <div class="admin-content-editor-field">
+                <label for="admin-content-slug">Slug</label>
+                <input id="admin-content-slug" name="slug" type="text" required />
+              </div>
+              <div class="admin-content-editor-field">
+                <label for="admin-content-title">Title</label>
+                <input id="admin-content-title" name="title" type="text" required />
+              </div>
+              <div class="admin-content-editor-field">
+                <label for="admin-content-image">Image</label>
+                <input id="admin-content-image" name="imagePath" type="text" placeholder="folder/asset/preview.webp" />
+              </div>
+              <div class="admin-content-editor-field">
+                <label for="admin-content-delivery">Delivery</label>
+                <select id="admin-content-delivery" name="deliveryType">
+                  <option value="content">content</option>
+                  <option value="link">link</option>
+                </select>
+              </div>
+            </div>
+          </section>
+
+          <section class="admin-content-editor-section">
+            <div class="admin-content-editor-section-head">
+              <p class="admin-content-editor-section-kicker">Visibility</p>
+              <h3 class="admin-content-editor-section-title">Access And Publishing</h3>
+            </div>
+            <div class="admin-content-editor-controls">
+              <div class="admin-content-editor-field">
+                <label for="admin-content-section">Content Type</label>
+                <select id="admin-content-section" name="section">
+                  <option value="aviation">aviation</option>
+                  <option value="blog">blog</option>
+                  <option value="project" selected>project</option>
+                </select>
+                <p class="admin-content-editor-help">Choose where this content belongs.</p>
+              </div>
+              <div class="admin-content-editor-field">
+                <label for="admin-content-locked">Locked</label>
+                <select id="admin-content-locked" name="locked">
+                  <option value="false">open</option>
+                  <option value="true">locked</option>
+                </select>
+                <p class="admin-content-editor-help">Locked content needs approved access.</p>
+              </div>
+              <div class="admin-content-editor-checkbox-card">
+                <div class="admin-content-editor-checkbox-copy">
+                  <label for="admin-content-published">Published</label>
+                  <p class="admin-content-editor-help">Show this content on the site.</p>
+                </div>
+                <input id="admin-content-published" name="isPublished" type="checkbox" checked />
+              </div>
+            </div>
+          </section>
+
+          <section class="admin-content-editor-section">
+            <div class="admin-content-editor-section-head">
+              <p class="admin-content-editor-section-kicker">Metadata</p>
+              <h3 class="admin-content-editor-section-title">Summary</h3>
+            </div>
+            <div class="admin-content-editor-grid">
+              <div class="admin-content-editor-field admin-content-editor-field-full">
+                <label for="admin-content-description">Description</label>
+                <textarea id="admin-content-description" name="description" rows="3"></textarea>
+              </div>
+              <div class="admin-content-editor-field admin-content-editor-field-full">
+                <label for="admin-content-categories">Categories (comma separated)</label>
+                <input id="admin-content-categories" name="categoriesText" type="text"
+                  placeholder="Aviation, Workflow, Frontend" />
+              </div>
+              <div class="admin-content-editor-field admin-content-editor-field-full">
+                <label for="admin-content-external-url">External URL</label>
+                <input id="admin-content-external-url" name="externalUrl" type="url" placeholder="https://..." />
+              </div>
+            </div>
+          </section>
+
+          <section class="admin-content-editor-section">
+            <div class="admin-content-editor-section-head">
+              <p class="admin-content-editor-section-kicker">Body</p>
+              <h3 class="admin-content-editor-section-title">Content Markup</h3>
+            </div>
+            <div class="admin-content-editor-field admin-content-editor-field-full">
+              <label for="admin-content-body">Content</label>
+              <textarea id="admin-content-body" name="htmlContent" rows="10"
+                placeholder="Content HTML..."></textarea>
+            </div>
+          </section>
         </div>
-        <button type="submit" class="modal-submit">Save Project</button>
+        <div class="admin-content-editor-actions">
+          <button type="submit" class="modal-submit">Save Content</button>
+        </div>
       </form>
-      <p id="admin-project-editor-status" class="modal-status" aria-live="polite"></p>
+      <p id="admin-content-editor-status" class="modal-status" aria-live="polite"></p>
     </div>
   </div>
 

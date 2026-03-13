@@ -1,4 +1,4 @@
-import { projectsApi } from "../../shared/api/projects-api.js";
+import { contentAccessApi } from "../../shared/api/content-access-api.js";
 import { APP_EVENT_NAMES, emitAppEvent } from "../../shared/events.js";
 import { getFolderFromLocation } from "../../shared/location.js";
 import { ensureAuthorizedSession } from "../../shared/auth/auth-service.js";
@@ -9,9 +9,9 @@ import {
   buildProjectPublicPath,
   canAccessProject,
   createFallbackProject,
-  createProjectFromServer,
+  createProjectFromContentItem,
+  getContentAccessStatus,
   getProjectSlug,
-  getServerProjectStatus,
   sectionIdForProject,
 } from "./projects-model.js";
 
@@ -23,18 +23,16 @@ function redirectToTarget(url) {
   }
 }
 
-function resolveLockedDeliveryType(project, serverProject) {
-  if (serverProject?.deliveryType === "link") {
+function resolveLockedDeliveryType(project, contentItem) {
+  if (contentItem?.deliveryType === "link") {
     return "link";
   }
 
   return String(project?.lockedDelivery || "").trim().toLowerCase() === "link" ? "link" : "content";
 }
 
-function resolveProjectRedirectTarget(project, serverProject) {
-  return String(
-    project?.serverEndpoint || serverProject?.externalUrl || buildProjectPublicPath(project)
-  ).trim();
+function resolveProjectRedirectTarget(project, contentItem) {
+  return String(project?.contentEndpoint || contentItem?.externalUrl || buildProjectPublicPath(project)).trim();
 }
 
 export function createProjectsService({
@@ -87,63 +85,61 @@ export function createProjectsService({
     }
   };
 
-  const openRequestAccessModal = (project, serverProject, requestStatus = "not_requested") => {
+  const openRequestAccessModal = (project, contentItem, requestStatus = "not_requested") => {
     if (!requestAccessModalUi) {
       return;
     }
 
-    state.pendingRequestProject = project;
-    state.pendingRequestServerProject = serverProject;
+    state.pendingAccessProject = project;
+    state.pendingAccessContent = contentItem;
 
     const slug = getProjectSlug(project);
     requestAccessModalUi.open({
       project,
       requestStatus,
-      canSubmit: Boolean(serverProject?.id || slug),
-      requestNote: String(serverProject?.accessRequestNote || state.requestNotesBySlug.get(slug) || "").trim(),
-      reviewNote: String(serverProject?.accessReviewNote || state.reviewNotesBySlug.get(slug) || "").trim(),
+      canSubmit: Number.isFinite(Number(contentItem?.id)),
+      requestNote: String(contentItem?.accessRequestNote || state.accessRequestNotesBySlug.get(slug) || "").trim(),
+      reviewNote: String(contentItem?.accessReviewNote || state.accessReviewNotesBySlug.get(slug) || "").trim(),
     });
   };
 
-  const syncPendingRequestState = (project, serverProject, requestNote) => {
+  const syncPendingAccessState = (project, contentItem, requestNote) => {
     const slug = getProjectSlug(project);
     if (!slug) {
       return null;
     }
 
-    const existingServerProject = serverProject || catalog.getServerProject(project) || {};
-    const nextServerProject = {
-      ...existingServerProject,
+    const existingContent = contentItem || catalog.getProtectedContentForProject(project) || {};
+    const nextContent = {
+      ...existingContent,
       slug,
-      title: String(existingServerProject.title || project?.title || slug),
-      description: String(existingServerProject.description || project?.description || ""),
+      title: String(existingContent.title || project?.title || slug),
+      description: String(existingContent.description || project?.description || ""),
       locked: true,
-      deliveryType: String(
-        existingServerProject.deliveryType || resolveLockedDeliveryType(project, serverProject)
-      ).toLowerCase(),
+      deliveryType: String(existingContent.deliveryType || resolveLockedDeliveryType(project, contentItem)).toLowerCase(),
       canAccess: false,
       requestStatus: "pending",
       accessRequestNote: requestNote,
       accessReviewNote: "",
     };
 
-    state.serverProjectsBySlug = new Map(state.serverProjectsBySlug);
-    state.serverProjectsBySlug.set(slug, nextServerProject);
+    state.protectedContentBySlug = new Map(state.protectedContentBySlug);
+    state.protectedContentBySlug.set(slug, nextContent);
 
-    state.requestNotesBySlug = new Map(state.requestNotesBySlug);
-    state.requestNotesBySlug.set(slug, requestNote);
+    state.accessRequestNotesBySlug = new Map(state.accessRequestNotesBySlug);
+    state.accessRequestNotesBySlug.set(slug, requestNote);
 
-    state.reviewNotesBySlug = new Map(state.reviewNotesBySlug);
-    state.reviewNotesBySlug.delete(slug);
+    state.accessReviewNotesBySlug = new Map(state.accessReviewNotesBySlug);
+    state.accessReviewNotesBySlug.delete(slug);
 
-    state.pendingRequestServerProject = nextServerProject;
-    return nextServerProject;
+    state.pendingAccessContent = nextContent;
+    return nextContent;
   };
 
-  const loadServerLockedContent = async (project, serverProject, { push = true } = {}) => {
+  const loadApprovedContent = async (project, contentItem, { push = true } = {}) => {
     try {
-      if (resolveLockedDeliveryType(project, serverProject) === "link") {
-        const redirectTarget = resolveProjectRedirectTarget(project, serverProject);
+      if (resolveLockedDeliveryType(project, contentItem) === "link") {
+        const redirectTarget = resolveProjectRedirectTarget(project, contentItem);
         if (!redirectTarget) {
           setProjectStatus("No redirect URL configured for this locked project.");
           return;
@@ -153,12 +149,12 @@ export function createProjectsService({
         return;
       }
 
-      if (!Number.isFinite(serverProject?.id)) {
-        setProjectStatus("Project reference missing.");
+      if (!Number.isFinite(Number(contentItem?.id))) {
+        setProjectStatus("Content reference missing.");
         return;
       }
 
-      const result = await projectsApi.getContent(serverProject.id);
+      const result = await contentAccessApi.getContent(contentItem.id);
       if (!result.ok) {
         setProjectStatus(result.error || "Failed to load locked project content.");
         return;
@@ -173,7 +169,7 @@ export function createProjectsService({
       embeddedDetailUi.renderHtmlIntoSection(
         section,
         String(result.data?.htmlContent || ""),
-        projectsApi.endpoints.content(serverProject.id)
+        contentAccessApi.endpoints.detail(contentItem.id)
       );
 
       navigateToProjectSection(sectionId, project, {
@@ -192,8 +188,8 @@ export function createProjectsService({
 
     setProjectStatus("");
 
-    const serverProject = catalog.getServerProject(project);
-    const redirectTarget = resolveProjectRedirectTarget(project, serverProject);
+    const contentItem = catalog.getProtectedContentForProject(project);
+    const redirectTarget = resolveProjectRedirectTarget(project, contentItem);
 
     if (project.locked) {
       const hasSession = await ensureAuthorizedSession();
@@ -204,11 +200,11 @@ export function createProjectsService({
         return;
       }
 
-      if (!serverProject) {
-        await catalog.loadServerProjects();
+      if (!contentItem) {
+        await catalog.loadProtectedContent();
         catalog.refresh();
-        const refreshedServerProject = catalog.getServerProject(project);
-        if (!refreshedServerProject) {
+        const refreshedContent = catalog.getProtectedContentForProject(project);
+        if (!refreshedContent) {
           openRequestAccessModal(project, null, "not_requested");
           return;
         }
@@ -216,40 +212,40 @@ export function createProjectsService({
         if (
           canAccessProject({
             project,
-            serverProject: refreshedServerProject,
+            contentItem: refreshedContent,
             isAdmin: isAdminUser(),
           })
         ) {
-          await loadServerLockedContent(project, refreshedServerProject, { push });
+          await loadApprovedContent(project, refreshedContent, { push });
           return;
         }
 
-        openRequestAccessModal(project, refreshedServerProject, getServerProjectStatus(refreshedServerProject));
+        openRequestAccessModal(project, refreshedContent, getContentAccessStatus(refreshedContent));
         return;
       }
 
       if (
         !canAccessProject({
           project,
-          serverProject,
+          contentItem,
           isAdmin: isAdminUser(),
         })
       ) {
-        openRequestAccessModal(project, serverProject, getServerProjectStatus(serverProject));
+        openRequestAccessModal(project, contentItem, getContentAccessStatus(contentItem));
         return;
       }
 
-      await loadServerLockedContent(project, serverProject, { push });
+      await loadApprovedContent(project, contentItem, { push });
       return;
     }
 
-    if ((serverProject?.deliveryType === "link" || project.lockedDelivery === "link") && redirectTarget) {
+    if ((contentItem?.deliveryType === "link" || project.lockedDelivery === "link") && redirectTarget) {
       redirectToTarget(redirectTarget);
       return;
     }
 
-    if (serverProject && serverProject.deliveryType === "content" && String(project.id || "").startsWith("server-")) {
-      await loadServerLockedContent(project, serverProject, { push });
+    if (contentItem && contentItem.deliveryType === "content" && String(project.id || "").startsWith("content-")) {
+      await loadApprovedContent(project, contentItem, { push });
       return;
     }
 
@@ -262,7 +258,7 @@ export function createProjectsService({
     await embeddedDetailUi.renderUrlIntoSection(section, buildProjectContentUrl(project));
     navigateToProjectSection(sectionId, project, {
       push,
-      preserveSharedUrl: Boolean(serverProject),
+      preserveSharedUrl: Boolean(contentItem),
     });
   };
 
@@ -281,12 +277,12 @@ export function createProjectsService({
       return;
     }
 
-    await catalog.loadServerProjects();
+    await catalog.loadProtectedContent();
     catalog.refresh();
 
-    const mergedServerProject = state.projects.find((item) => getProjectSlug(item) === normalizedFolder);
-    if (mergedServerProject) {
-      await openProject(mergedServerProject, { push, promptLogin });
+    const projectFromProtectedContent = state.projects.find((item) => getProjectSlug(item) === normalizedFolder);
+    if (projectFromProtectedContent) {
+      await openProject(projectFromProtectedContent, { push, promptLogin });
       return;
     }
 
@@ -319,11 +315,11 @@ export function createProjectsService({
       return;
     }
 
-    await catalog.loadServerProjects();
+    await catalog.loadProtectedContent();
     catalog.refresh();
 
-    const serverProject = catalog.getServerProjectBySlug(normalizedSlug);
-    if (!serverProject) {
+    const contentItem = catalog.getProtectedContentBySlug(normalizedSlug);
+    if (!contentItem) {
       setProjectStatus("Shared project is unavailable.");
       return;
     }
@@ -331,20 +327,20 @@ export function createProjectsService({
     const knownProject = state.projects.find(
       (item) => getProjectSlug(item) === normalizedSlug || item.folder === normalizedSlug
     );
-    const targetProject = knownProject || createProjectFromServer(serverProject, normalizedSlug);
+    const targetProject = knownProject || createProjectFromContentItem(contentItem, normalizedSlug);
 
     if (
       !canAccessProject({
         project: targetProject,
-        serverProject,
+        contentItem,
         isAdmin: isAdminUser(),
       })
     ) {
-      openRequestAccessModal(targetProject, serverProject, getServerProjectStatus(serverProject));
+      openRequestAccessModal(targetProject, contentItem, getContentAccessStatus(contentItem));
       return;
     }
 
-    await loadServerLockedContent(targetProject, serverProject, { push });
+    await loadApprovedContent(targetProject, contentItem, { push });
   };
 
   const handleLocation = async () => {
@@ -367,38 +363,36 @@ export function createProjectsService({
   };
 
   const refreshAuthSensitiveState = async () => {
-    await catalog.loadServerProjects();
+    await catalog.loadProtectedContent();
     rerenderCatalog();
     await handleLocation();
   };
 
   const submitPendingAccessRequest = async () => {
-    if (!requestAccessModalUi || !state.pendingRequestProject) {
+    if (!requestAccessModalUi || !state.pendingAccessProject) {
       requestAccessModalUi?.setStatus("No project selected.");
       return false;
     }
 
     const note = requestAccessModalUi.getNote();
-    const project = state.pendingRequestProject;
-    const serverProject = state.pendingRequestServerProject;
-    const projectRef = serverProject?.id || getProjectSlug(project);
+    const project = state.pendingAccessProject;
+    const contentItem = state.pendingAccessContent;
+    const contentId = Number(contentItem?.id);
 
     if (!note) {
       requestAccessModalUi.setStatus("Please enter a message.");
       return false;
     }
 
-    if (!projectRef) {
-      requestAccessModalUi.setStatus("Project reference missing. Please try again.");
+    if (!Number.isFinite(contentId)) {
+      const message = "This project is not connected to the API yet.";
+      setProjectStatus(message);
+      requestAccessModalUi.setStatus(message);
       return false;
     }
 
     try {
-      const result = await projectsApi.requestAccess(projectRef, {
-        note,
-        projectTitle: project?.title || "",
-        projectDescription: project?.description || "",
-      });
+      const result = await contentAccessApi.requestAccess(contentId, { note });
 
       if (!result.ok) {
         const fallbackMessage =
@@ -413,7 +407,7 @@ export function createProjectsService({
 
       const slug = getProjectSlug(project);
       const savedNote = String(result.data?.request?.note || note).trim();
-      const nextServerProject = syncPendingRequestState(project, serverProject, savedNote || note);
+      const nextContent = syncPendingAccessState(project, contentItem, savedNote || note);
 
       console.log(`[Project] Access request submitted for ${slug || project?.folder || "project"}.`);
 
@@ -426,7 +420,7 @@ export function createProjectsService({
         reviewNote: "",
       });
       requestAccessModalUi.setStatus("Access request sent.");
-      state.pendingRequestServerProject = nextServerProject;
+      state.pendingAccessContent = nextContent;
       rerenderCatalog();
       return true;
     } catch {
@@ -439,7 +433,7 @@ export function createProjectsService({
   const initialize = async () => {
     await catalog.loadBaseProjects();
     rerenderCatalog();
-    await catalog.loadServerProjects();
+    await catalog.loadProtectedContent();
     rerenderCatalog();
     await handleLocation();
   };
@@ -452,4 +446,3 @@ export function createProjectsService({
     submitPendingAccessRequest,
   };
 }
-

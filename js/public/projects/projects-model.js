@@ -6,67 +6,6 @@ function normalizeDeliveryType(value) {
   return String(value || "content").trim().toLowerCase() === "link" ? "link" : "content";
 }
 
-export function normalizeProject(project, index) {
-  const folder = String(project?.folder || "").trim();
-
-  return {
-    id: String(project?.id || `project-${index + 1}`),
-    folder,
-    title: String(project?.title || `Project ${index + 1}`).trim(),
-    date: String(project?.date || "").trim(),
-    description: String(project?.description || "").trim(),
-    image: String(project?.image || "").trim(),
-    url: String(project?.url || "").trim(),
-    locked: Boolean(project?.locked),
-    serverEndpoint: String(project?.serverEndpoint || "").trim(),
-    serverProjectSlug: String(project?.serverProjectSlug || folder).trim(),
-    lockedDelivery: normalizeDeliveryType(project?.lockedDelivery),
-    categories: normalizeStringArray(project?.categories),
-  };
-}
-
-export function getProjectSlug(project) {
-  return String(project?.serverProjectSlug || project?.folder || "").trim();
-}
-
-export function filterProjects({ projects, query, selectedCategories }) {
-  return filterCatalogItems({
-    items: projects,
-    query,
-    selectedCategories,
-    getCategories: (project) => project.categories,
-    getSearchText: (project) =>
-      [project.title, project.description, project.date, ...project.categories].join(" "),
-  });
-}
-
-export function sectionIdForProject(project) {
-  return `project-${project.folder}`;
-}
-
-export function getServerProjectStatus(serverProject) {
-  return String(serverProject?.requestStatus || "not_requested").toLowerCase();
-}
-
-export function canAccessProject({ project, serverProject, isAdmin = false }) {
-  if (!project?.locked) return true;
-  if (isAdmin) return true;
-
-  if (typeof serverProject?.canAccess === "boolean") {
-    return serverProject.canAccess;
-  }
-
-  const requestStatus = getServerProjectStatus(serverProject);
-  return requestStatus === "approved" || requestStatus === "admin";
-}
-
-export function buildProjectImageUrl(project) {
-  const rawImage = String(project?.image || "").trim();
-  if (!rawImage) return "";
-  if (/^https?:\/\//i.test(rawImage) || rawImage.startsWith("/")) return rawImage;
-  return `${PROJECT_BASE_PATH}${rawImage.replace(/^\/+/, "")}`;
-}
-
 function normalizeExternalCandidate(value) {
   const candidate = String(value || "").trim();
   if (!candidate) return "";
@@ -82,9 +21,69 @@ function normalizeLocalContentPath(value) {
   return candidate.replace(/\/index\.html$/i, `/${LOCAL_EMBED_FILE_NAME}`);
 }
 
+export function normalizeProject(project, index) {
+  const folder = String(project?.folder || "").trim();
+
+  return {
+    id: String(project?.id || `project-${index + 1}`),
+    folder,
+    title: String(project?.title || `Project ${index + 1}`).trim(),
+    date: String(project?.date || "").trim(),
+    description: String(project?.description || "").trim(),
+    image: String(project?.image || "").trim(),
+    url: String(project?.url || "").trim(),
+    locked: Boolean(project?.locked),
+    contentEndpoint: String(project?.contentEndpoint || project?.serverEndpoint || "").trim(),
+    contentSlug: String(project?.contentSlug || project?.serverProjectSlug || folder).trim(),
+    lockedDelivery: normalizeDeliveryType(project?.lockedDelivery),
+    categories: normalizeStringArray(project?.categories),
+  };
+}
+
+export function getProjectSlug(project) {
+  return String(project?.contentSlug || project?.folder || "").trim();
+}
+
+export function filterProjects({ projects, query, selectedCategories }) {
+  return filterCatalogItems({
+    items: projects,
+    query,
+    selectedCategories,
+    getCategories: (project) => project.categories,
+    getSearchText: (project) => [project.title, project.description, project.date, ...project.categories].join(" "),
+  });
+}
+
+export function sectionIdForProject(project) {
+  return `project-${project.folder}`;
+}
+
+export function getContentAccessStatus(contentItem) {
+  return String(contentItem?.requestStatus || "not_requested").toLowerCase();
+}
+
+export function canAccessProject({ project, contentItem, isAdmin = false }) {
+  if (!project?.locked) return true;
+  if (isAdmin) return true;
+
+  if (typeof contentItem?.canAccess === "boolean") {
+    return contentItem.canAccess;
+  }
+
+  const requestStatus = getContentAccessStatus(contentItem);
+  return requestStatus === "approved" || requestStatus === "admin";
+}
+
+export function buildProjectImageUrl(project) {
+  const rawImage = String(project?.image || "").trim();
+  if (!rawImage) return "";
+  if (/^https?:\/\//i.test(rawImage) || rawImage.startsWith("/")) return rawImage;
+  return `${PROJECT_BASE_PATH}${rawImage.replace(/^\/+/, "")}`;
+}
+
 export function buildProjectContentUrl(project) {
   const rawUrl = String(project?.url || "").trim();
-  const rawEndpoint = String(project?.serverEndpoint || "").trim();
+  const rawEndpoint = String(project?.contentEndpoint || "").trim();
 
   const normalizedUrl = normalizeExternalCandidate(rawUrl);
   if (normalizedUrl) return normalizedUrl;
@@ -94,11 +93,11 @@ export function buildProjectContentUrl(project) {
   const normalizedEndpoint = normalizeExternalCandidate(rawEndpoint);
   if (normalizedEndpoint) return normalizedEndpoint;
 
-  if (project?.serverEndpoint) {
+  if (project?.contentEndpoint) {
     try {
-      return new URL(project.serverEndpoint, window.location.href).toString();
+      return new URL(project.contentEndpoint, window.location.href).toString();
     } catch {
-      return project.serverEndpoint;
+      return project.contentEndpoint;
     }
   }
 
@@ -116,99 +115,99 @@ export function createFallbackProject(folder) {
     title: `Project ${folder}`,
     url: `${folder}/${LOCAL_EMBED_FILE_NAME}`,
     locked: false,
-    serverProjectSlug: folder,
+    contentSlug: folder,
     lockedDelivery: "content",
   };
 }
 
-export function createProjectFromServer(serverProject, slug) {
+export function createProjectFromContentItem(contentItem, slug) {
   return normalizeProject(
     {
-      id: `server-${slug}`,
+      id: `content-${slug}`,
       folder: slug,
-      title: String(serverProject?.title || slug),
-      date: String(serverProject?.date || "").trim(),
-      description: String(serverProject?.description || ""),
-      image: String(serverProject?.imagePath || ""),
-      locked: Boolean(serverProject?.locked),
-      serverProjectSlug: slug,
-      lockedDelivery: normalizeDeliveryType(serverProject?.deliveryType),
-      serverEndpoint: String(serverProject?.externalUrl || ""),
-      categories: serverProject?.categories,
+      title: String(contentItem?.title || slug),
+      date: String(contentItem?.date || "").trim(),
+      description: String(contentItem?.description || ""),
+      image: String(contentItem?.imagePath || ""),
+      locked: Boolean(contentItem?.locked),
+      contentSlug: slug,
+      lockedDelivery: normalizeDeliveryType(contentItem?.deliveryType),
+      contentEndpoint: String(contentItem?.externalUrl || ""),
+      categories: contentItem?.categories,
     },
     0
   );
 }
 
-export function mergeProjectCatalog({ baseProjects, serverProjectsBySlug, isAuthorized }) {
+export function mergeProjectCatalog({ baseProjects, protectedContentBySlug, isAuthorized }) {
   const projects = baseProjects.map((project) => ({
     ...project,
     categories: [...project.categories],
   }));
 
-  if (!isAuthorized || !serverProjectsBySlug.size) {
+  if (!isAuthorized || !protectedContentBySlug.size) {
     return projects;
   }
 
-  const bySlug = new Map(projects.map((project) => [getProjectSlug(project), project]));
+  const projectsBySlug = new Map(projects.map((project) => [getProjectSlug(project), project]));
   let addedCount = 0;
 
-  serverProjectsBySlug.forEach((row, slug) => {
+  protectedContentBySlug.forEach((contentItem, slug) => {
     const normalizedSlug = String(slug || "").trim();
     if (!normalizedSlug) return;
 
-    const existing = bySlug.get(normalizedSlug);
-    const serverDeliveryType = normalizeDeliveryType(row?.deliveryType);
-    const serverExternalUrl = String(row?.externalUrl || "").trim();
-    const serverImagePath = String(row?.imagePath || "").trim();
-    const serverDate = String(row?.date || "").trim();
-    const serverCategories = normalizeStringArray(row?.categories);
+    const existingProject = projectsBySlug.get(normalizedSlug);
+    const contentDeliveryType = normalizeDeliveryType(contentItem?.deliveryType);
+    const contentExternalUrl = String(contentItem?.externalUrl || "").trim();
+    const contentImagePath = String(contentItem?.imagePath || "").trim();
+    const contentDate = String(contentItem?.date || "").trim();
+    const contentCategories = normalizeStringArray(contentItem?.categories);
 
-    if (existing) {
-      existing.locked = Boolean(row?.locked ?? existing.locked);
-      existing.lockedDelivery = serverDeliveryType;
-      if (serverExternalUrl) {
-        existing.serverEndpoint = serverExternalUrl;
+    if (existingProject) {
+      existingProject.locked = Boolean(contentItem?.locked ?? existingProject.locked);
+      existingProject.lockedDelivery = contentDeliveryType;
+      if (contentExternalUrl) {
+        existingProject.contentEndpoint = contentExternalUrl;
       }
-      if (serverImagePath) {
-        existing.image = serverImagePath;
+      if (contentImagePath) {
+        existingProject.image = contentImagePath;
       }
-      if (serverDate) {
-        existing.date = serverDate;
+      if (contentDate) {
+        existingProject.date = contentDate;
       }
-      if (serverCategories.length) {
-        existing.categories = serverCategories;
+      if (contentCategories.length) {
+        existingProject.categories = contentCategories;
       }
-      if (!existing.title && row?.title) {
-        existing.title = String(row.title);
+      if (!existingProject.title && contentItem?.title) {
+        existingProject.title = String(contentItem.title);
       }
-      if (!existing.description && row?.description) {
-        existing.description = String(row.description);
+      if (!existingProject.description && contentItem?.description) {
+        existingProject.description = String(contentItem.description);
       }
       return;
     }
 
     addedCount += 1;
-    const generated = normalizeProject(
+    const generatedProject = normalizeProject(
       {
-        id: `server-${normalizedSlug}`,
+        id: `content-${normalizedSlug}`,
         folder: normalizedSlug,
-        title: String(row?.title || normalizedSlug),
-        date: serverDate,
-        description: String(row?.description || ""),
-        image: serverImagePath,
-      locked: Boolean(row?.locked),
-      serverProjectSlug: normalizedSlug,
-      lockedDelivery: serverDeliveryType,
-      serverEndpoint: serverExternalUrl,
-      url: serverExternalUrl || `${normalizedSlug}/${LOCAL_EMBED_FILE_NAME}`,
-      categories: serverCategories.length ? serverCategories : ["Server"],
-    },
-    baseProjects.length + addedCount
+        title: String(contentItem?.title || normalizedSlug),
+        date: contentDate,
+        description: String(contentItem?.description || ""),
+        image: contentImagePath,
+        locked: Boolean(contentItem?.locked),
+        contentSlug: normalizedSlug,
+        lockedDelivery: contentDeliveryType,
+        contentEndpoint: contentExternalUrl,
+        url: contentExternalUrl || `${normalizedSlug}/${LOCAL_EMBED_FILE_NAME}`,
+        categories: contentCategories.length ? contentCategories : ["Server"],
+      },
+      baseProjects.length + addedCount
     );
 
-    projects.push(generated);
-    bySlug.set(normalizedSlug, generated);
+    projects.push(generatedProject);
+    projectsBySlug.set(normalizedSlug, generatedProject);
   });
 
   return projects;
@@ -216,15 +215,15 @@ export function mergeProjectCatalog({ baseProjects, serverProjectsBySlug, isAuth
 
 export function resolveProjectAccessLabel({
   project,
-  serverProjectsBySlug,
+  protectedContentBySlug,
   isAuthorized,
   isAdmin,
 }) {
   if (!project?.locked) return "open";
   if (!isAuthorized) return "locked";
 
-  const row = serverProjectsBySlug.get(getProjectSlug(project));
-  if (canAccessProject({ project, serverProject: row, isAdmin })) return "approved";
+  const contentItem = protectedContentBySlug.get(getProjectSlug(project));
+  if (canAccessProject({ project, contentItem, isAdmin })) return "approved";
 
-  return getServerProjectStatus(row) === "pending" ? "pending" : "locked";
+  return getContentAccessStatus(contentItem) === "pending" ? "pending" : "locked";
 }

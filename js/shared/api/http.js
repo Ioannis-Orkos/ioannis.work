@@ -8,7 +8,7 @@ import {
 } from "../config.js";
 import { getAuthToken } from "./token-store.js";
 
-const API_RETRYABLE_STATUS_CODES = new Set([502, 503, 504]);
+const API_RETRYABLE_STATUS_CODES = new Set([502, 503, 504, 520, 521, 522, 523, 524, 525, 526, 530]);
 
 const KNOWN_API_BASE_URLS = Object.freeze(
   IS_LOCAL_FRONTEND

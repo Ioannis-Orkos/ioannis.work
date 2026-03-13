@@ -3,10 +3,10 @@ export function createProjectsState() {
     baseProjects: [],
     projects: [],
     selectedCategories: new Set(),
-    serverProjectsBySlug: new Map(),
-    requestNotesBySlug: new Map(),
-    reviewNotesBySlug: new Map(),
-    pendingRequestProject: null,
-    pendingRequestServerProject: null,
+    protectedContentBySlug: new Map(),
+    accessRequestNotesBySlug: new Map(),
+    accessReviewNotesBySlug: new Map(),
+    pendingAccessProject: null,
+    pendingAccessContent: null,
   };
 }

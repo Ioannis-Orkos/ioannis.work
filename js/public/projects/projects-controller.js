@@ -44,7 +44,7 @@ export async function initProjectsController({ navigationController } = {}) {
       resolveAccessLabel: (project) =>
         resolveProjectAccessLabel({
           project,
-          serverProjectsBySlug: state.serverProjectsBySlug,
+          protectedContentBySlug: state.protectedContentBySlug,
           isAuthorized: isAuthorizedUser(),
           isAdmin: isAdminUser(),
         }),

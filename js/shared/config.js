@@ -9,8 +9,8 @@ export const MODAL_ROUTE_IDS = [
   "login",
   "request-access",
   "settings",
-  "admin-project-editor",
-  "admin-user-projects",
+  "admin-content-editor",
+  "admin-user-content",
   "admin-request-review",
 ];
 export const AUTH_API_PRIMARY_BASE_URL = "https://api-ioannis-work.onrender.com";

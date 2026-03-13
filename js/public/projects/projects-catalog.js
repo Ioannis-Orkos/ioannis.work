@@ -1,47 +1,47 @@
 import { loadProjectCatalog } from "../../shared/api/content-api.js";
-import { projectsApi } from "../../shared/api/projects-api.js";
+import { contentAccessApi } from "../../shared/api/content-access-api.js";
 import { ensureAuthorizedSession } from "../../shared/auth/auth-service.js";
 import { isAuthorizedUser } from "../../shared/auth/session-state.js";
 import { getProjectSlug, mergeProjectCatalog, normalizeProject } from "./projects-model.js";
 
-function resetServerProjectState(state) {
-  state.serverProjectsBySlug = new Map();
-  state.requestNotesBySlug = new Map();
-  state.reviewNotesBySlug = new Map();
+function resetProtectedContentState(state) {
+  state.protectedContentBySlug = new Map();
+  state.accessRequestNotesBySlug = new Map();
+  state.accessReviewNotesBySlug = new Map();
 }
 
-function applyServerProjects(state, projects) {
-  const serverProjectsBySlug = new Map();
-  const requestNotesBySlug = new Map();
-  const reviewNotesBySlug = new Map();
+function applyProtectedContentItems(state, contentItems) {
+  const protectedContentBySlug = new Map();
+  const accessRequestNotesBySlug = new Map();
+  const accessReviewNotesBySlug = new Map();
 
-  projects.forEach((project) => {
-    const slug = String(project?.slug || "").trim();
+  contentItems.forEach((contentItem) => {
+    const slug = String(contentItem?.slug || "").trim();
     if (!slug) {
       return;
     }
 
-    serverProjectsBySlug.set(slug, project);
+    protectedContentBySlug.set(slug, contentItem);
 
-    if (project.accessRequestNote) {
-      requestNotesBySlug.set(slug, project.accessRequestNote);
+    if (contentItem.accessRequestNote) {
+      accessRequestNotesBySlug.set(slug, contentItem.accessRequestNote);
     }
 
-    if (project.accessReviewNote) {
-      reviewNotesBySlug.set(slug, project.accessReviewNote);
+    if (contentItem.accessReviewNote) {
+      accessReviewNotesBySlug.set(slug, contentItem.accessReviewNote);
     }
   });
 
-  state.serverProjectsBySlug = serverProjectsBySlug;
-  state.requestNotesBySlug = requestNotesBySlug;
-  state.reviewNotesBySlug = reviewNotesBySlug;
+  state.protectedContentBySlug = protectedContentBySlug;
+  state.accessRequestNotesBySlug = accessRequestNotesBySlug;
+  state.accessReviewNotesBySlug = accessReviewNotesBySlug;
 }
 
 export function createProjectsCatalog(state) {
   const refresh = () => {
     state.projects = mergeProjectCatalog({
       baseProjects: state.baseProjects,
-      serverProjectsBySlug: state.serverProjectsBySlug,
+      protectedContentBySlug: state.protectedContentBySlug,
       isAuthorized: isAuthorizedUser(),
     });
 
@@ -61,8 +61,8 @@ export function createProjectsCatalog(state) {
     return state.baseProjects;
   };
 
-  const loadServerProjects = async () => {
-    resetServerProjectState(state);
+  const loadProtectedContent = async () => {
+    resetProtectedContentState(state);
 
     const hasSession = isAuthorizedUser() || (await ensureAuthorizedSession());
     if (!hasSession) {
@@ -70,32 +70,32 @@ export function createProjectsCatalog(state) {
     }
 
     try {
-      const result = await projectsApi.list();
+      const result = await contentAccessApi.list({ section: "project" });
       if (!result.ok) {
         if (result.status !== 401) {
-          console.error("[Project] Failed to load server project access list:", result.error || result.status);
+          console.error("[Project] Failed to load protected content access list:", result.error || result.status);
         }
         return [];
       }
 
-      const projects = Array.isArray(result.data?.projects) ? result.data.projects : [];
-      applyServerProjects(state, projects);
-      return projects;
+      const contentItems = Array.isArray(result.data?.content) ? result.data.content : [];
+      applyProtectedContentItems(state, contentItems);
+      return contentItems;
     } catch (error) {
-      console.error("[Project] Failed to load server project access list:", error);
+      console.error("[Project] Failed to load protected content access list:", error);
       return [];
     }
   };
 
-  const getServerProjectBySlug = (slug) => state.serverProjectsBySlug.get(String(slug || "").trim()) || null;
+  const getProtectedContentBySlug = (slug) => state.protectedContentBySlug.get(String(slug || "").trim()) || null;
 
-  const getServerProject = (project) => getServerProjectBySlug(getProjectSlug(project));
+  const getProtectedContentForProject = (project) => getProtectedContentBySlug(getProjectSlug(project));
 
   return {
-    getServerProject,
-    getServerProjectBySlug,
+    getProtectedContentBySlug,
+    getProtectedContentForProject,
     loadBaseProjects,
-    loadServerProjects,
+    loadProtectedContent,
     refresh,
   };
 }

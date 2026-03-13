@@ -10,25 +10,26 @@ export const API_ENDPOINTS = Object.freeze({
     password: `${AUTH_API_BASE_URL}/api/auth/password`,
     google: `${AUTH_API_BASE_URL}/api/auth/google`,
   }),
-  projects: Object.freeze({
-    list: `${AUTH_API_BASE_URL}/api/projects`,
-    requestAccess: (projectRef) =>
-      `${AUTH_API_BASE_URL}/api/projects/${encodeURIComponent(String(projectRef))}/request-access`,
-    content: (projectId) => `${AUTH_API_BASE_URL}/api/projects/${projectId}/content`,
-    ssoToken: (projectId) => `${AUTH_API_BASE_URL}/api/projects/${projectId}/sso-token`,
+  content: Object.freeze({
+    list: `${AUTH_API_BASE_URL}/api/content`,
+    requestAccess: (contentId) =>
+      `${AUTH_API_BASE_URL}/api/content/${encodeURIComponent(String(contentId))}/request-access`,
+    detail: (contentId) => `${AUTH_API_BASE_URL}/api/content/${contentId}/content`,
+    ssoToken: (contentId) => `${AUTH_API_BASE_URL}/api/content/${contentId}/sso-token`,
+    consumeSso: `${AUTH_API_BASE_URL}/api/content/sso/consume`,
   }),
   admin: Object.freeze({
     overview: `${AUTH_API_BASE_URL}/api/admin/overview`,
     users: `${AUTH_API_BASE_URL}/api/admin/users`,
-    projects: `${AUTH_API_BASE_URL}/api/admin/projects`,
+    content: `${AUTH_API_BASE_URL}/api/admin/content`,
     accessRequests: `${AUTH_API_BASE_URL}/api/admin/access-requests`,
     accessRequestById: (id) => `${AUTH_API_BASE_URL}/api/admin/access-requests/${id}`,
-    projectById: (id) => `${AUTH_API_BASE_URL}/api/admin/projects/${id}`,
+    contentById: (id) => `${AUTH_API_BASE_URL}/api/admin/content/${id}`,
     userRoleById: (id) => `${AUTH_API_BASE_URL}/api/admin/users/${id}/role`,
     userById: (id) => `${AUTH_API_BASE_URL}/api/admin/users/${id}`,
     userStatusById: (id) => `${AUTH_API_BASE_URL}/api/admin/users/${id}/status`,
-    userProjectByIds: (userId, projectId) =>
-      `${AUTH_API_BASE_URL}/api/admin/users/${userId}/projects/${projectId}`,
+    userContentByIds: (userId, contentId) =>
+      `${AUTH_API_BASE_URL}/api/admin/users/${userId}/content/${contentId}`,
   }),
 });
 

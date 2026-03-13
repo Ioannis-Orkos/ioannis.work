@@ -35,6 +35,8 @@ export function createRequestAccessModalUi() {
 
     if (requestStatus === "pending") {
       messageEl.textContent = `Your request for "${project.title}" is waiting approval from admin.`;
+    } else if (!canSubmit) {
+      messageEl.textContent = `"${project.title}" is not connected to the API yet, so access requests are unavailable right now.`;
     } else if (requestStatus === "rejected") {
       messageEl.textContent = reviewNote
         ? `Access to\n"${project.title}" was rejected.\nYour previous message: ${requestNote || "No message provided."}\nAdmin message: ${reviewNote}\n\nContact admin to continue.`

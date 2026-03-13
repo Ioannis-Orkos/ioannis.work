@@ -12,6 +12,30 @@ function withJsonBody(method, payload) {
   };
 }
 
+function withDeleteConfirmation(url) {
+  const separator = String(url).includes("?") ? "&" : "?";
+  return `${url}${separator}confirm=true`;
+}
+
+function withQuery(url, query = {}) {
+  const params = new URLSearchParams();
+
+  Object.entries(query).forEach(([key, value]) => {
+    const normalizedValue = String(value ?? "").trim();
+    if (normalizedValue) {
+      params.set(key, normalizedValue);
+    }
+  });
+
+  const queryString = params.toString();
+  if (!queryString) {
+    return url;
+  }
+
+  const separator = String(url).includes("?") ? "&" : "?";
+  return `${url}${separator}${queryString}`;
+}
+
 function normalizeOverview(overview) {
   return {
     usersTotal: readNumber(overview, ["usersTotal", "users_total"], 0),
@@ -33,12 +57,13 @@ function normalizeAdminUser(user) {
   };
 }
 
-function normalizeAdminRequest(request) {
+function normalizeAccessRequest(request) {
   return {
     id: readNumber(request, ["id"], 0),
     userId: readNumber(request, ["userId", "user_id"], 0),
-    projectId: readNumber(request, ["projectId", "project_id"], 0),
-    title: readString(request, ["title", "projectTitle", "project_title"], ""),
+    contentId: readNumber(request, ["contentId", "content_id", "projectId", "project_id"], 0),
+    section: readString(request, ["section", "contentSection", "content_section"], "project"),
+    title: readString(request, ["title", "contentTitle", "content_title", "projectTitle", "project_title"], ""),
     fullName: readString(request, ["fullName", "full_name", "userFullName", "user_full_name"], ""),
     email: readString(request, ["email", "userEmail", "user_email"], ""),
     status: readString(
@@ -70,22 +95,24 @@ function normalizeAdminRequest(request) {
   };
 }
 
-function normalizeAdminProject(project) {
+function normalizeAdminContentItem(contentItem) {
   return {
-    id: readNumber(project, ["id"], 0),
-    slug: readString(project, ["slug"], ""),
-    title: readString(project, ["title"], ""),
-    description: readString(project, ["description"], ""),
-    imagePath: readString(project, ["imagePath", "image_path"], ""),
-    categories: readStringArray(project, ["categories", "categoriesJson", "categories_json"]),
+    id: readNumber(contentItem, ["id"], 0),
+    section: readString(contentItem, ["section"], "project"),
+    slug: readString(contentItem, ["slug"], ""),
+    title: readString(contentItem, ["title"], ""),
+    description: readString(contentItem, ["description"], ""),
+    imagePath: readString(contentItem, ["imagePath", "image_path"], ""),
+    categories: readStringArray(contentItem, ["categories", "categoriesJson", "categories_json"]),
     deliveryType:
-      readString(project, ["deliveryType", "delivery_type"], "content").toLowerCase() === "link"
+      readString(contentItem, ["deliveryType", "delivery_type"], "content").toLowerCase() === "link"
         ? "link"
         : "content",
-    locked: readBoolean(project, ["locked"], false),
-    externalUrl: readString(project, ["externalUrl", "external_url"], ""),
-    htmlContent: readString(project, ["htmlContent", "html_content"], ""),
-    updatedAt: readString(project, ["updatedAt", "updated_at", "date"], ""),
+    locked: readBoolean(contentItem, ["locked"], false),
+    externalUrl: readString(contentItem, ["externalUrl", "external_url"], ""),
+    htmlContent: readString(contentItem, ["htmlContent", "html_content"], ""),
+    isPublished: readBoolean(contentItem, ["isPublished", "is_published"], true),
+    updatedAt: readString(contentItem, ["updatedAt", "updated_at", "date"], ""),
   };
 }
 
@@ -118,8 +145,29 @@ function normalizeObjectResult(result, key, normalizeItem) {
   };
 }
 
-function serializeProjectPayload(payload) {
+function normalizeAdminContentResult(result) {
+  if (!result.ok) {
+    return result;
+  }
+
+  const sourceItems = Array.isArray(result.data?.content)
+    ? result.data.content
+    : Array.isArray(result.data?.projects)
+      ? result.data.projects
+      : [];
+
   return {
+    ...result,
+    data: {
+      ...(result.data || {}),
+      contentItems: sourceItems.map(normalizeAdminContentItem),
+    },
+  };
+}
+
+function serializeAdminContentPayload(payload) {
+  return {
+    section: readString(payload, ["section"], "project").toLowerCase(),
     slug: readString(payload, ["slug"], "").toLowerCase(),
     title: readString(payload, ["title"], ""),
     description: readString(payload, ["description"], ""),
@@ -129,6 +177,7 @@ function serializeProjectPayload(payload) {
     locked: readBoolean(payload, ["locked"], false),
     externalUrl: readString(payload, ["externalUrl"], ""),
     htmlContent: readString(payload, ["htmlContent"], ""),
+    isPublished: readBoolean(payload, ["isPublished"], true),
   };
 }
 
@@ -144,14 +193,14 @@ export const adminApi = Object.freeze({
       normalizeListResult(result, "users", normalizeAdminUser)
     );
   },
-  getProjects() {
-    return requestJson(API_ENDPOINTS.admin.projects, { method: "GET" }).then((result) =>
-      normalizeListResult(result, "projects", normalizeAdminProject)
-    );
+  getContent(query = {}) {
+    return requestJson(withQuery(API_ENDPOINTS.admin.content, query), {
+      method: "GET",
+    }).then(normalizeAdminContentResult);
   },
   getAccessRequests() {
     return requestJson(API_ENDPOINTS.admin.accessRequests, { method: "GET" }).then((result) =>
-      normalizeListResult(result, "requests", normalizeAdminRequest)
+      normalizeListResult(result, "requests", normalizeAccessRequest)
     );
   },
   updateAccessRequest(requestId, status, note = null) {
@@ -160,33 +209,31 @@ export const adminApi = Object.freeze({
       withJsonBody("PATCH", { status, note: typeof note === "string" ? note.trim() : null })
     );
   },
-  saveProject(projectId, payload) {
+  saveContent(contentId, payload) {
     return requestJson(
-      Number.isFinite(projectId)
-        ? API_ENDPOINTS.admin.projectById(projectId)
-        : API_ENDPOINTS.admin.projects,
-      withJsonBody(Number.isFinite(projectId) ? "PATCH" : "POST", serializeProjectPayload(payload))
+      Number.isFinite(contentId)
+        ? API_ENDPOINTS.admin.contentById(contentId)
+        : API_ENDPOINTS.admin.content,
+      withJsonBody(Number.isFinite(contentId) ? "PATCH" : "POST", serializeAdminContentPayload(payload))
     );
   },
-  deleteProject(projectId) {
-    return requestJson(API_ENDPOINTS.admin.projectById(projectId), { method: "DELETE" });
+  deleteContent(contentId) {
+    return requestJson(withDeleteConfirmation(API_ENDPOINTS.admin.contentById(contentId)), {
+      method: "DELETE",
+    });
   },
   updateUserRole(userId, role) {
     return requestJson(API_ENDPOINTS.admin.userRoleById(userId), withJsonBody("PATCH", { role }));
   },
   updateUserStatus(userId, status) {
-    return requestJson(
-      API_ENDPOINTS.admin.userStatusById(userId),
-      withJsonBody("PATCH", { status })
-    );
+    return requestJson(API_ENDPOINTS.admin.userStatusById(userId), withJsonBody("PATCH", { status }));
   },
   deleteUser(userId) {
-    return requestJson(API_ENDPOINTS.admin.userById(userId), { method: "DELETE" });
+    return requestJson(withDeleteConfirmation(API_ENDPOINTS.admin.userById(userId)), { method: "DELETE" });
   },
-  updateUserProjectAccess(userId, projectId, action) {
-    return requestJson(API_ENDPOINTS.admin.userProjectByIds(userId, projectId), {
+  updateUserContentAccess(userId, contentId, action) {
+    return requestJson(API_ENDPOINTS.admin.userContentByIds(userId, contentId), {
       method: action === "assign" ? "POST" : "DELETE",
     });
   },
 });
-

@@ -1,10 +1,30 @@
 import { escapeHtml } from "../../shared/html.js";
 
+const CONTENT_IMAGE_DIRECTORIES = Object.freeze({
+  aviation: "/aviation/",
+  blog: "/blogs/",
+  project: "/projects/",
+});
+
 export const loadingMarkup =
   '<div class="admin-loading"><span class="admin-spinner" aria-hidden="true"></span><span>Loading...</span></div>';
 
-function buildProjectImageUrl(imagePath) {
-  const normalizedImagePath = String(imagePath || "").trim();
+function formatContentSectionLabel(section) {
+  const normalizedSection = String(section || "").trim().toLowerCase();
+
+  if (normalizedSection === "aviation") {
+    return "Aviation";
+  }
+
+  if (normalizedSection === "blog") {
+    return "Blog";
+  }
+
+  return "Project";
+}
+
+function buildContentImageUrl(contentItem) {
+  const normalizedImagePath = String(contentItem?.imagePath || "").trim();
   if (!normalizedImagePath) {
     return "";
   }
@@ -13,7 +33,8 @@ function buildProjectImageUrl(imagePath) {
     return normalizedImagePath;
   }
 
-  return `/projects/${normalizedImagePath}`;
+  const sectionDirectory = CONTENT_IMAGE_DIRECTORIES[String(contentItem?.section || "").trim().toLowerCase()] || "/";
+  return `${sectionDirectory}${normalizedImagePath}`.replace(/\/{2,}/g, "/");
 }
 
 function renderOverviewMarkup(overview) {
@@ -67,7 +88,7 @@ function renderUserRow(user, currentUserId) {
         </div>
       </td>
       <td class="admin-actions-cell">
-        ${isAdminRole ? "" : '<button type="button" class="auth-switch-button admin-manage-user-projects">Projects</button>'}
+        ${isAdminRole ? "" : '<button type="button" class="auth-switch-button admin-manage-user-content">Content</button>'}
         <button
           type="button"
           class="auth-switch-button admin-approve-user"
@@ -134,7 +155,12 @@ function renderRequestRow(request) {
 
   return `
     <tr data-request-id="${request.id}">
-      <td>${escapeHtml(request.title)}</td>
+      <td class="admin-request-content-cell">
+        <span class="admin-request-content-title">${escapeHtml(request.title)}</span>
+        <div class="admin-request-content-meta">
+          <span class="admin-badge">${escapeHtml(formatContentSectionLabel(request.section))}</span>
+        </div>
+      </td>
       <td class="admin-request-user-cell">
         <span class="admin-request-user-name">${escapeHtml(request.fullName || "No Name")}</span>
         <span class="admin-request-user-email">${escapeHtml(request.email || "")}</span>
@@ -181,7 +207,7 @@ function renderRequestsMarkup({ requests, hasRequests, requestFilter, requestSea
     <table class="admin-table admin-requests-table">
       <thead>
         <tr>
-          <th>Project</th>
+          <th>Content</th>
           <th>User</th>
           <th class="admin-requests-col-status">Status</th>
           <th>Message</th>
@@ -195,88 +221,92 @@ function renderRequestsMarkup({ requests, hasRequests, requestFilter, requestSea
   `;
 }
 
-function renderProjectsToolbar() {
+function renderContentToolbar() {
   return `
     <div class="admin-toolbar admin-toolbar-center">
-      <button type="button" class="auth-switch-button admin-add-project">Add Project</button>
+      <button type="button" class="auth-switch-button admin-add-content">Add Content</button>
     </div>
   `;
 }
 
-function renderProjectCard(project) {
-  const imageUrl = buildProjectImageUrl(project.imagePath);
-  const categoriesText = project.categories.length ? project.categories.join(", ") : "No categories";
-  const dateText = String(project.updatedAt || "").slice(0, 10);
+function renderContentCard(contentItem) {
+  const imageUrl = buildContentImageUrl(contentItem);
+  const categoriesText = contentItem.categories.length ? contentItem.categories.join(", ") : "No categories";
+  const dateText = String(contentItem.updatedAt || "").slice(0, 10);
 
   return `
-    <article class="blog-item project-item ${project.locked ? "project-item-locked" : ""}"
-             data-project-id="${project.id}"
-             data-project='${escapeHtml(JSON.stringify(project))}'>
-      <button type="button" class="admin-edit-project-icon" aria-label="Edit project" title="Edit project">✎</button>
-      <button type="button" class="admin-delete-project-icon" aria-label="Delete project" title="Delete project">🗑</button>
+    <article class="blog-item project-item admin-content-card ${contentItem.locked ? "project-item-locked" : ""}"
+             data-content-id="${contentItem.id}"
+             data-content='${escapeHtml(JSON.stringify(contentItem))}'>
+      <button type="button" class="admin-edit-content-icon" aria-label="Edit content" title="Edit content">✎</button>
+      <button type="button" class="admin-delete-content-icon" aria-label="Delete content" title="Delete content">🗑</button>
       <div class="blog-item-media ${imageUrl ? "" : "blog-item-media-empty"}">
-        ${imageUrl ? `<img class="blog-item-image" src="${escapeHtml(imageUrl)}" alt="${escapeHtml(project.title)}" />` : ""}
+        ${imageUrl ? `<img class="blog-item-image" src="${escapeHtml(imageUrl)}" alt="${escapeHtml(contentItem.title)}" />` : ""}
       </div>
       <div class="blog-item-details">
-        <h3>${escapeHtml(project.title)}</h3>
+        <div class="admin-content-card-topline">
+          <span class="admin-badge">${escapeHtml(formatContentSectionLabel(contentItem.section))}</span>
+          <span class="admin-badge">${contentItem.isPublished ? "Published" : "Draft"}</span>
+        </div>
+        <h3>${escapeHtml(contentItem.title)}</h3>
         <p class="blog-item-date">${escapeHtml(dateText)}</p>
-        <p class="blog-item-description">${escapeHtml(project.description || "")}</p>
+        <p class="blog-item-description">${escapeHtml(contentItem.description || "")}</p>
         <p class="blog-item-date">categories: ${escapeHtml(categoriesText)}</p>
-        <p class="blog-item-date">slug: ${escapeHtml(project.slug)} | ${project.locked ? "locked" : "open"} | ${project.deliveryType}</p>
+        <p class="blog-item-date">slug: ${escapeHtml(contentItem.slug)} | ${contentItem.locked ? "locked" : "open"} | ${escapeHtml(contentItem.deliveryType)}</p>
       </div>
     </article>
   `;
 }
 
-function renderProjectsMarkup(projects) {
-  const toolbar = renderProjectsToolbar();
+function renderContentMarkup(contentItems) {
+  const toolbar = renderContentToolbar();
 
-  if (!Array.isArray(projects) || !projects.length) {
-    return `${toolbar}<p>No projects found.</p>`;
+  if (!Array.isArray(contentItems) || !contentItems.length) {
+    return `${toolbar}<p>No content found.</p>`;
   }
 
   return `
     ${toolbar}
     <div class="project-list">
-      ${projects.map((project) => renderProjectCard(project)).join("")}
+      ${contentItems.map((contentItem) => renderContentCard(contentItem)).join("")}
     </div>
   `;
 }
 
-export function renderUserProjectsContent({ user, projects, getRequestRecord }) {
-  const projectRows = projects.length
-    ? projects
-        .map((project) => {
-          const request = getRequestRecord(user.id, project.id);
-          const status = String(request?.status || (project.locked ? "none" : "open")).toLowerCase();
+export function renderUserContentAccess({ user, contentItems, getRequestRecord }) {
+  const contentRows = contentItems.length
+    ? contentItems
+        .map((contentItem) => {
+          const request = getRequestRecord(user.id, contentItem.id);
+          const status = String(request?.status || (contentItem.locked ? "none" : "open")).toLowerCase();
           const isAssigned = status === "approved";
-          const action = project.locked ? (isAssigned ? "remove" : "assign") : "noop";
-          const label = project.locked ? (isAssigned ? "Remove" : "Add") : "Open";
-          const isDisabled = !(project.locked && String(user.role || "").toLowerCase() !== "admin");
+          const action = contentItem.locked ? (isAssigned ? "remove" : "assign") : "noop";
+          const label = contentItem.locked ? (isAssigned ? "Remove" : "Add") : "Open";
+          const isDisabled = !(contentItem.locked && String(user.role || "").toLowerCase() !== "admin");
 
           return `
-            <div class="admin-user-project-item" data-project-id="${project.id}">
-              <div class="admin-user-project-meta">
-                <strong>${escapeHtml(project.title)}</strong>
-                <span>${escapeHtml(project.slug)} | ${project.locked ? "locked" : "open"} | ${escapeHtml(status)}</span>
+            <div class="admin-user-content-item" data-content-id="${contentItem.id}">
+              <div class="admin-user-content-meta">
+                <strong>${escapeHtml(contentItem.title)}</strong>
+                <span>${escapeHtml(formatContentSectionLabel(contentItem.section))} | ${escapeHtml(contentItem.slug)} | ${contentItem.locked ? "locked" : "open"} | ${contentItem.isPublished ? "published" : "draft"} | ${escapeHtml(status)}</span>
               </div>
               <button
                 type="button"
-                class="auth-switch-button admin-user-project-toggle"
-                data-project-toggle="${action}"
+                class="auth-switch-button admin-user-content-toggle"
+                data-content-toggle="${action}"
                 ${isDisabled ? "disabled" : ""}
               >${label}</button>
             </div>
           `;
         })
         .join("")
-    : "<p>No projects found.</p>";
+    : "<p>No content found.</p>";
 
   return `
-    <div class="admin-user-projects-header">
-      <p>Manage project access for <strong>${escapeHtml(user.fullName || user.email || "User")}</strong>.</p>
+    <div class="admin-user-content-header">
+      <p>Manage content access for <strong>${escapeHtml(user.fullName || user.email || "User")}</strong>.</p>
     </div>
-    <div class="admin-user-projects-list">${projectRows}</div>
+    <div class="admin-user-content-list">${contentRows}</div>
   `;
 }
 
@@ -287,10 +317,10 @@ export function createAdminUi() {
   const overviewEl = document.getElementById("admin-overview");
   const usersEl = document.getElementById("admin-users");
   const requestsEl = document.getElementById("admin-access-requests");
-  const projectsEl = document.getElementById("admin-projects");
+  const contentEl = document.getElementById("admin-content");
   const tabUsersBtn = document.getElementById("admin-tab-users");
   const tabRequestsBtn = document.getElementById("admin-tab-requests");
-  const tabProjectsBtn = document.getElementById("admin-tab-projects");
+  const tabContentBtn = document.getElementById("admin-tab-content");
   const panels = [...document.querySelectorAll(".admin-panel[data-admin-panel]")];
 
   return {
@@ -301,10 +331,10 @@ export function createAdminUi() {
         overviewEl &&
         usersEl &&
         requestsEl &&
-        projectsEl &&
+        contentEl &&
         tabUsersBtn &&
         tabRequestsBtn &&
-        tabProjectsBtn
+        tabContentBtn
     ),
     setGateStatus(message) {
       gateStatusEl.textContent = message || "";
@@ -315,14 +345,14 @@ export function createAdminUi() {
         overviewEl.innerHTML = "";
         usersEl.innerHTML = "";
         requestsEl.innerHTML = "";
-        projectsEl.innerHTML = "";
+        contentEl.innerHTML = "";
       }
     },
     showLoading() {
       overviewEl.innerHTML = loadingMarkup;
       usersEl.innerHTML = loadingMarkup;
       requestsEl.innerHTML = loadingMarkup;
-      projectsEl.innerHTML = loadingMarkup;
+      contentEl.innerHTML = loadingMarkup;
     },
     renderOverview(overview) {
       overviewEl.innerHTML = renderOverviewMarkup(overview);
@@ -333,8 +363,8 @@ export function createAdminUi() {
     renderRequests(payload) {
       requestsEl.innerHTML = renderRequestsMarkup(payload);
     },
-    renderProjects(projects) {
-      projectsEl.innerHTML = renderProjectsMarkup(projects);
+    renderContent(contentItems) {
+      contentEl.innerHTML = renderContentMarkup(contentItems);
     },
     setActiveTab(tabId) {
       const activeTab = String(tabId || "users");
@@ -342,7 +372,7 @@ export function createAdminUi() {
       new Map([
         ["users", tabUsersBtn],
         ["requests", tabRequestsBtn],
-        ["projects", tabProjectsBtn],
+        ["content", tabContentBtn],
       ]).forEach((button, key) => {
         button.classList.toggle("active", key === activeTab);
       });
@@ -354,7 +384,7 @@ export function createAdminUi() {
     bindHandlers(handlers) {
       tabUsersBtn.addEventListener("click", () => handlers.onTabChange?.("users"));
       tabRequestsBtn.addEventListener("click", () => handlers.onTabChange?.("requests"));
-      tabProjectsBtn.addEventListener("click", () => handlers.onTabChange?.("projects"));
+      tabContentBtn.addEventListener("click", () => handlers.onTabChange?.("content"));
 
       requestsEl.addEventListener("click", (event) => {
         const filterBtn = event.target.closest(".admin-req-filter-toggle[data-filter-toggle]");
@@ -403,8 +433,8 @@ export function createAdminUi() {
         const userId = Number(row.dataset.userId);
         if (!Number.isFinite(userId)) return;
 
-        if (event.target.closest(".admin-manage-user-projects")) {
-          handlers.onUserManageProjects?.({ userId });
+        if (event.target.closest(".admin-manage-user-content")) {
+          handlers.onUserManageContent?.({ userId });
           return;
         }
 
@@ -428,27 +458,27 @@ export function createAdminUi() {
         }
       });
 
-      projectsEl.addEventListener("click", (event) => {
-        if (event.target.closest(".admin-add-project")) {
-          handlers.onProjectCreate?.();
+      contentEl.addEventListener("click", (event) => {
+        if (event.target.closest(".admin-add-content")) {
+          handlers.onContentCreate?.();
           return;
         }
 
-        const card = event.target.closest("[data-project-id]");
+        const card = event.target.closest("[data-content-id]");
         if (!card) return;
-        const projectId = Number(card.dataset.projectId);
-        if (!Number.isFinite(projectId)) return;
+        const contentId = Number(card.dataset.contentId);
+        if (!Number.isFinite(contentId)) return;
 
-        if (event.target.closest(".admin-edit-project-icon")) {
-          handlers.onProjectEdit?.({
-            projectId,
-            rawProject: card.getAttribute("data-project") || "{}",
+        if (event.target.closest(".admin-edit-content-icon")) {
+          handlers.onContentEdit?.({
+            contentId,
+            rawContent: card.getAttribute("data-content") || "{}",
           });
           return;
         }
 
-        if (event.target.closest(".admin-delete-project-icon")) {
-          handlers.onProjectDelete?.({ projectId });
+        if (event.target.closest(".admin-delete-content-icon")) {
+          handlers.onContentDelete?.({ contentId });
         }
       });
     },

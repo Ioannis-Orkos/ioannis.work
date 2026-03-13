@@ -1,13 +1,13 @@
 import { adminApi } from "../../shared/api/admin-api.js";
 import { fetchCurrentSession } from "../../shared/auth/auth-service.js";
 
-function buildFallbackOverview(users, requests) {
+function buildFallbackOverview(users, accessRequests) {
   return {
     usersTotal: users.length,
     pendingUsers: users.filter((user) => user.status === "pending").length,
-    pendingRequests: requests.filter((request) => request.status === "pending").length,
-    approvedRequests: requests.filter((request) => request.status === "approved").length,
-    rejectedRequests: requests.filter((request) => request.status === "rejected").length,
+    pendingRequests: accessRequests.filter((request) => request.status === "pending").length,
+    approvedRequests: accessRequests.filter((request) => request.status === "approved").length,
+    rejectedRequests: accessRequests.filter((request) => request.status === "rejected").length,
   };
 }
 
@@ -47,33 +47,41 @@ export async function ensureAdminAccess() {
 }
 
 export async function fetchAdminDashboardData() {
-  const [overviewResult, usersResult, requestsResult, projectsResult] = await Promise.all([
+  const [overviewResult, usersResult, accessRequestsResult, contentResult] = await Promise.all([
     adminApi.getOverview().catch(() => null),
     adminApi.getUsers(),
     adminApi.getAccessRequests(),
-    adminApi.getProjects(),
+    adminApi.getContent(),
   ]);
 
-  if (!usersResult.ok || !requestsResult.ok || !projectsResult.ok) {
+  if (!usersResult.ok || !accessRequestsResult.ok || !contentResult.ok) {
     return {
       ok: false,
-      error: usersResult.error || requestsResult.error || projectsResult.error || "Unable to load admin data.",
+      error:
+        usersResult.error ||
+        accessRequestsResult.error ||
+        contentResult.error ||
+        "Unable to load admin data.",
     };
   }
 
   const users = Array.isArray(usersResult.data?.users) ? usersResult.data.users : [];
-  const requests = Array.isArray(requestsResult.data?.requests) ? requestsResult.data.requests : [];
-  const projects = Array.isArray(projectsResult.data?.projects) ? projectsResult.data.projects : [];
+  const accessRequests = Array.isArray(accessRequestsResult.data?.requests)
+    ? accessRequestsResult.data.requests
+    : [];
+  const contentItems = Array.isArray(contentResult.data?.contentItems)
+    ? contentResult.data.contentItems
+    : [];
 
   return {
     ok: true,
     overview:
       overviewResult?.ok && overviewResult.data?.overview
         ? overviewResult.data.overview
-        : buildFallbackOverview(users, requests),
+        : buildFallbackOverview(users, accessRequests),
     users,
-    requests,
-    projects,
+    accessRequests,
+    contentItems,
   };
 }
 
@@ -81,18 +89,18 @@ export async function fetchAdminUsersData() {
   return normalizeListPayload(await adminApi.getUsers(), "users", "Unable to load users.");
 }
 
-export async function fetchAdminRequestsData() {
+export async function fetchAdminAccessRequestsData() {
   return normalizeListPayload(await adminApi.getAccessRequests(), "requests", "Unable to load access requests.");
 }
 
-export async function fetchAdminProjectsData() {
-  return normalizeListPayload(await adminApi.getProjects(), "projects", "Unable to load projects.");
+export async function fetchAdminContentData() {
+  return normalizeListPayload(await adminApi.getContent(), "contentItems", "Unable to load content.");
 }
 
-export async function saveAdminProject(projectId, payload) {
-  const result = await adminApi.saveProject(projectId, payload);
+export async function saveAdminContent(contentId, payload) {
+  const result = await adminApi.saveContent(contentId, payload);
   if (!result.ok) {
-    throw new Error(result.error || "Failed to save project.");
+    throw new Error(result.error || "Failed to save content.");
   }
 }
 
@@ -131,16 +139,16 @@ export async function deleteAdminUser(userId) {
   }
 }
 
-export async function updateAdminUserProjectAccess(userId, projectId, action) {
-  const result = await adminApi.updateUserProjectAccess(userId, projectId, action);
+export async function updateAdminUserContentAccess(userId, contentId, action) {
+  const result = await adminApi.updateUserContentAccess(userId, contentId, action);
   if (!result.ok) {
-    throw new Error(result.error || "Failed to update project access.");
+    throw new Error(result.error || "Failed to update content access.");
   }
 }
 
-export async function deleteAdminProject(projectId) {
-  const result = await adminApi.deleteProject(projectId);
+export async function deleteAdminContent(contentId) {
+  const result = await adminApi.deleteContent(contentId);
   if (!result.ok) {
-    throw new Error(result.error || "Failed to delete project.");
+    throw new Error(result.error || "Failed to delete content.");
   }
 }

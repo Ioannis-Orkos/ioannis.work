@@ -5,6 +5,7 @@ import {
 } from "../shared/auth/entry-routing.js";
 import { initAviationController } from "./aviation/aviation-controller.js";
 import { initBlogController } from "./blog/blog-controller.js";
+import { initCookieController } from "./cookie/cookie-controller.js";
 import { initContactController } from "./contact/contact-controller.js";
 import { initProjectsController } from "./projects/projects-controller.js";
 import { initAuthController } from "../shared/auth/auth-controller.js";
@@ -16,6 +17,7 @@ const shell = initShell({
 });
 
 if (shell.isReady) {
+  initCookieController();
   initContactController();
   initAviationController({ navigationController: shell.navigationController });
   initBlogController({ navigationController: shell.navigationController });

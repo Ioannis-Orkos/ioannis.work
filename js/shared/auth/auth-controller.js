@@ -90,12 +90,15 @@ export function initAuthController({ onAdminSession } = {}) {
           return;
         }
 
+        const verificationRequired = result.body?.verificationRequired !== false;
         const sentAt = formatStatusDate(result.body?.verificationSentAt);
         ui.resetAuthForms();
         ui.setStatus(
-          sentAt
-            ? `Account created. Check your inbox and verify your email. Sent on ${sentAt}.`
-            : "Account created. Check your inbox and verify your email before login.",
+          verificationRequired
+            ? sentAt
+              ? `Account created. Check your inbox and verify your email. Sent on ${sentAt}.`
+              : "Account created. Check your inbox and verify your email before login."
+            : "Admin turned off email verification. You can now log in.",
           "success"
         );
 

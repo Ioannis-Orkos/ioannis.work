@@ -141,12 +141,44 @@ function buildFrameBehaviorScript({ frameId, messageType, rules, frontendOrigin 
     } catch {}
   };
 
+  const getRenderedContentHeight = () => {
+    const body = document.body;
+    if (!body) {
+      return 0;
+    }
+
+    let measuredHeight = 0;
+
+    try {
+      const range = document.createRange();
+      range.selectNodeContents(body);
+      measuredHeight = Math.max(measuredHeight, range.getBoundingClientRect().height || 0);
+    } catch {}
+
+    try {
+      const bodyRect = body.getBoundingClientRect();
+      Array.from(body.children).forEach((child) => {
+        const childRect = child.getBoundingClientRect();
+        if (!Number.isFinite(childRect.bottom)) {
+          return;
+        }
+
+        measuredHeight = Math.max(measuredHeight, childRect.bottom - bodyRect.top);
+      });
+    } catch {}
+
+    return Math.max(0, measuredHeight);
+  };
+
   const sendHeight = () => {
     if (!rules.syncHeightToParent) return;
 
+    const renderedContentHeight = getRenderedContentHeight();
     const bodyHeight = document.body ? document.body.scrollHeight : 0;
     const htmlHeight = document.documentElement ? document.documentElement.scrollHeight : 0;
-    const nextHeight = Math.max(bodyHeight, htmlHeight, 1);
+    const nextHeight = renderedContentHeight > 0
+      ? renderedContentHeight
+      : Math.max(bodyHeight, htmlHeight, 1);
     parent.postMessage({ type: messageType, frameId, height: nextHeight }, "*");
   };
 
@@ -157,6 +189,12 @@ function buildFrameBehaviorScript({ frameId, messageType, rules, frontendOrigin 
       heightScheduled = false;
       sendHeight();
     });
+  };
+
+  const scheduleHeightBurst = () => {
+    scheduleHeight();
+    setTimeout(scheduleHeight, 50);
+    setTimeout(scheduleHeight, 180);
   };
 
   syncTheme();
@@ -178,11 +216,23 @@ function buildFrameBehaviorScript({ frameId, messageType, rules, frontendOrigin 
 
   if (rules.syncHeightToParent) {
     window.addEventListener("load", sendHeight);
-    window.addEventListener("resize", scheduleHeight);
+    window.addEventListener("resize", scheduleHeightBurst);
+    document.addEventListener("toggle", scheduleHeightBurst, true);
+    document.addEventListener("transitionend", scheduleHeightBurst, true);
+    document.addEventListener("animationend", scheduleHeightBurst, true);
     new MutationObserver(scheduleHeight).observe(document.documentElement, {
+      attributes: true,
       childList: true,
+      characterData: true,
       subtree: true,
     });
+    try {
+      const resizeObserver = new ResizeObserver(scheduleHeightBurst);
+      resizeObserver.observe(document.documentElement);
+      if (document.body) {
+        resizeObserver.observe(document.body);
+      }
+    } catch {}
     sendHeight();
   }
 })();
@@ -212,7 +262,14 @@ function buildFrameSrcDoc({ frameId, html, sourceUrl, messageType, rules, fronte
   headParts.push(headMarkup);
 
   if (rules.injectInlineBaseStyle) {
-    headParts.push("<style>html,body{margin:0;padding:0;background:transparent;}</style>");
+    headParts.push(`<style>
+html,body{margin:0;padding:0;background:transparent;}
+body{display:block;min-height:0;padding-top:0;}
+main{width:auto;max-width:none;margin:0;padding:0;}
+section{padding:0;}
+.page{display:block;content-visibility:visible;contain-intrinsic-size:auto;text-align:initial;}
+.page.active{animation:none;}
+</style>`);
   }
 
   return `<!doctype html>
@@ -259,6 +316,7 @@ export function createEmbeddedDetailUi({
     iframe.referrerPolicy = resolvedFrameOptions.referrerPolicy;
     iframe.setAttribute("scrolling", resolvedFrameOptions.scrolling);
     iframe.setAttribute("sandbox", resolvedFrameOptions.sandbox);
+    iframe.style.height = `${getMinimumFrameHeight()}px`;
 
     const frameId = `${frameIdPrefix}-${Math.random().toString(36).slice(2)}`;
     iframe.dataset.frameId = frameId;
@@ -375,7 +433,7 @@ export function createEmbeddedDetailUi({
     const nextHeight = Number(data.height);
     if (!Number.isFinite(nextHeight) || nextHeight <= 0) return;
 
-    frame.style.height = `${Math.max(getMinimumFrameHeight(), Math.round(nextHeight))}px`;
+    frame.style.height = `${Math.max(1, Math.round(nextHeight))}px`;
   });
 
   return {

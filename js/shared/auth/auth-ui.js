@@ -94,29 +94,25 @@ function getRefs() {
   };
 
   const isReady = Boolean(
-      refs.loginForm &&
-      refs.signupForm &&
-      refs.forgotPasswordForm &&
-      refs.showLoginBtn &&
-      refs.showSignupBtn &&
-      refs.showForgotPasswordBtn &&
-      refs.showLoginFromForgotBtn &&
-      refs.googleAuthBtn &&
-      refs.statusEl &&
-      refs.settingsProfileForm &&
-      refs.settingsPasswordForm &&
-      refs.settingsAccountEmailInput &&
-      refs.settingsFullNameInput &&
-      refs.settingsCurrentPasswordGroup &&
-      refs.settingsCurrentPasswordInput &&
-      refs.settingsPasswordSubmit &&
-      refs.settingsProfileStatus &&
-      refs.settingsPasswordStatus &&
-      refs.settingsEmail &&
-      refs.settingsAuthMethod &&
-      refs.settingsLogoutBtn &&
-      refs.loginOverlay &&
-      refs.settingsOverlay
+    refs.loginForm &&
+    refs.signupForm &&
+    refs.showLoginBtn &&
+    refs.showSignupBtn &&
+    refs.googleAuthBtn &&
+    refs.statusEl &&
+    refs.settingsProfileForm &&
+    refs.settingsPasswordForm &&
+    refs.settingsFullNameInput &&
+    refs.settingsCurrentPasswordGroup &&
+    refs.settingsCurrentPasswordInput &&
+    refs.settingsPasswordSubmit &&
+    refs.settingsProfileStatus &&
+    refs.settingsPasswordStatus &&
+    refs.settingsEmail &&
+    refs.settingsAuthMethod &&
+    refs.settingsLogoutBtn &&
+    refs.loginOverlay &&
+    refs.settingsOverlay
   );
 
   return {
@@ -138,12 +134,14 @@ export function createAuthUi({ getCurrentUser }) {
     const isForgotPassword = mode === "forgot-password";
     refs.loginForm.hidden = !isLogin;
     refs.signupForm.hidden = mode !== "signup";
-    refs.forgotPasswordForm.hidden = !isForgotPassword;
+    if (refs.forgotPasswordForm) {
+      refs.forgotPasswordForm.hidden = !isForgotPassword;
+    }
     refs.showLoginBtn.classList.toggle("active", isLogin);
     refs.showSignupBtn.classList.toggle("active", mode === "signup");
     refs.statusEl.textContent = "";
     refs.statusEl.dataset.tone = "";
-    refs.googleAuthBtn.hidden = isForgotPassword;
+    refs.googleAuthBtn.hidden = Boolean(isForgotPassword && refs.forgotPasswordForm);
   };
 
   const setStatus = (message, tone = "") => {
@@ -169,7 +167,7 @@ export function createAuthUi({ getCurrentUser }) {
     }
 
     if (shouldDisableForgotPassword) {
-      refs.forgotPasswordForm.querySelectorAll("input, button").forEach((element) => {
+      refs.forgotPasswordForm?.querySelectorAll("input, button").forEach((element) => {
         element.disabled = Boolean(isPending);
       });
     }
@@ -234,7 +232,9 @@ export function createAuthUi({ getCurrentUser }) {
     const hasPassword = Boolean(safeUser.hasPassword);
 
     refs.settingsFullNameInput.value = String(safeUser.fullName || "");
-    refs.settingsAccountEmailInput.value = String(safeUser.email || "");
+    if (refs.settingsAccountEmailInput) {
+      refs.settingsAccountEmailInput.value = String(safeUser.email || "");
+    }
     refs.settingsEmail.textContent = String(safeUser.email || "-");
 
     refs.settingsRoleCopies.forEach((el) => {
@@ -269,6 +269,7 @@ export function createAuthUi({ getCurrentUser }) {
   const resetAuthForms = () => {
     refs.loginForm.reset();
     refs.signupForm.reset();
+    refs.forgotPasswordForm?.reset();
     setStatus("");
     setMode("login");
   };
@@ -295,8 +296,8 @@ export function createAuthUi({ getCurrentUser }) {
   }) => {
     refs.showLoginBtn.addEventListener("click", () => setMode("login"));
     refs.showSignupBtn.addEventListener("click", () => setMode("signup"));
-    refs.showForgotPasswordBtn.addEventListener("click", () => setMode("forgot-password"));
-    refs.showLoginFromForgotBtn.addEventListener("click", () => setMode("login"));
+    refs.showForgotPasswordBtn?.addEventListener("click", () => setMode("forgot-password"));
+    refs.showLoginFromForgotBtn?.addEventListener("click", () => setMode("login"));
 
     refs.googleAuthBtn.addEventListener("click", () => {
       onGoogleLogin?.();
@@ -311,7 +312,7 @@ export function createAuthUi({ getCurrentUser }) {
       });
     });
 
-    refs.forgotPasswordForm.addEventListener("submit", (event) => {
+    refs.forgotPasswordForm?.addEventListener("submit", (event) => {
       event.preventDefault();
       onForgotPasswordSubmit?.({
         email: String(new FormData(refs.forgotPasswordForm).get("email") || "").trim(),

@@ -1,5 +1,6 @@
 import { escapeHtmlAttribute } from "../html.js";
 
+// These rules control how the wrapper builds iframe content.
 const DEFAULT_EMBED_RULES = Object.freeze({
   includeBaseHref: true,
   injectSharedStylesheets: true,
@@ -15,6 +16,21 @@ const DEFAULT_FRAME_OPTIONS = Object.freeze({
   scrolling: "no",
   sandbox:
     "allow-forms allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts",
+});
+
+// Named presets keep controller setup readable.
+export const EMBED_RULE_PRESETS = Object.freeze({
+  default: Object.freeze({
+    ...DEFAULT_EMBED_RULES,
+  }),
+  databaseContent: Object.freeze({
+    ...DEFAULT_EMBED_RULES,
+  }),
+  rawHtml: Object.freeze({
+    ...DEFAULT_EMBED_RULES,
+    injectSharedStylesheets: false,
+    injectInlineBaseStyle: false,
+  }),
 });
 
 function getCurrentThemeColor() {
@@ -35,6 +51,12 @@ function isCrossOriginUrl(value) {
 }
 
 function normalizeEmbedRules(rules) {
+  if (typeof rules === "string" && EMBED_RULE_PRESETS[rules]) {
+    return {
+      ...EMBED_RULE_PRESETS[rules],
+    };
+  }
+
   return {
     ...DEFAULT_EMBED_RULES,
     ...(rules && typeof rules === "object" ? rules : {}),
@@ -60,6 +82,7 @@ function extractDocumentParts(html) {
   };
 }
 
+// Parent shared CSS that we optionally inject into srcdoc content.
 function buildSharedStylesheetLinks({ frontendOrigin, themeColor }) {
   const sharedHeadLinks = [
     '<link rel="preconnect" href="https://fonts.googleapis.com" />',
@@ -83,6 +106,7 @@ function buildSharedStylesheetLinks({ frontendOrigin, themeColor }) {
   ].join("\n");
 }
 
+// Script that runs inside the iframe. It can keep theme and height in sync with the parent.
 function buildFrameBehaviorScript({ frameId, messageType, rules, frontendOrigin }) {
   if (!rules.syncParentTheme && !rules.syncHeightToParent) {
     return "";
@@ -165,6 +189,7 @@ function buildFrameBehaviorScript({ frameId, messageType, rules, frontendOrigin 
 </script>`;
 }
 
+// Build the final srcdoc HTML for same-origin or DB-backed embedded content.
 function buildFrameSrcDoc({ frameId, html, sourceUrl, messageType, rules, frontendOrigin, themeColor }) {
   const { title, headMarkup, bodyMarkup } = extractDocumentParts(html);
   const headParts = [
@@ -224,7 +249,9 @@ export function createEmbeddedDetailUi({
   const embeddedFrameById = new Map();
   const sectionSelector = `section.page[${sectionDataAttribute}]`;
   const frontendOrigin = window.location.origin;
+  const defaultDocumentTitle = document.title;
 
+  // Create one sandboxed iframe using the configured defaults.
   const createSandboxedFrame = () => {
     const iframe = document.createElement("iframe");
     iframe.className = frameClassName;
@@ -243,10 +270,37 @@ export function createEmbeddedDetailUi({
     section.innerHTML = "";
   };
 
-  const removeDynamicSections = () => {
-    document.querySelectorAll(sectionSelector).forEach((node) => node.remove());
+  const getMinimumFrameHeight = () => {
+    try {
+      const viewportHeight = window.innerHeight || document.documentElement?.clientHeight || 0;
+      if (!viewportHeight) {
+        return 1;
+      }
+
+      const headerHeight = document.querySelector("header")?.getBoundingClientRect?.().height || 0;
+      const footerHeight = document.querySelector("footer")?.getBoundingClientRect?.().height || 0;
+      const mainStyles = window.getComputedStyle(mainEl);
+      const mainPaddingTop = Number.parseFloat(mainStyles.paddingTop || "0") || 0;
+      const mainPaddingBottom = Number.parseFloat(mainStyles.paddingBottom || "0") || 0;
+      const availableHeight = viewportHeight - headerHeight - footerHeight - mainPaddingTop - mainPaddingBottom;
+
+      return Math.max(320, Math.round(availableHeight));
+    } catch {
+      return 1;
+    }
   };
 
+  const setParentDocumentTitle = (nextTitle) => {
+    const normalizedTitle = String(nextTitle || "").trim();
+    document.title = normalizedTitle || defaultDocumentTitle;
+  };
+
+  const removeDynamicSections = () => {
+    document.querySelectorAll(sectionSelector).forEach((node) => node.remove());
+    setParentDocumentTitle(defaultDocumentTitle);
+  };
+
+  // We keep only one dynamic embedded section at a time.
   const ensureSection = ({ sectionId, folder }) => {
     removeDynamicSections();
 
@@ -272,6 +326,7 @@ export function createEmbeddedDetailUi({
   const renderHtmlIntoSection = (section, html, sourceUrl) => {
     const iframe = createSandboxedFrame();
     const frameId = String(iframe.dataset.frameId || "");
+    const { title } = extractDocumentParts(html);
     iframe.srcdoc = buildFrameSrcDoc({
       frameId,
       html,
@@ -282,12 +337,14 @@ export function createEmbeddedDetailUi({
       themeColor: getCurrentThemeColor(),
     });
     appendFrameToSection(section, iframe);
+    setParentDocumentTitle(title);
   };
 
   const renderCrossOriginUrlIntoSection = (section, sourceUrl) => {
     const iframe = createSandboxedFrame();
     iframe.src = sourceUrl;
     appendFrameToSection(section, iframe);
+    setParentDocumentTitle(defaultDocumentTitle);
   };
 
   const renderUrlIntoSection = async (section, sourceUrl) => {
@@ -318,7 +375,7 @@ export function createEmbeddedDetailUi({
     const nextHeight = Number(data.height);
     if (!Number.isFinite(nextHeight) || nextHeight <= 0) return;
 
-    frame.style.height = `${Math.max(1, Math.round(nextHeight))}px`;
+    frame.style.height = `${Math.max(getMinimumFrameHeight(), Math.round(nextHeight))}px`;
   });
 
   return {

@@ -1,84 +1,52 @@
-# Embeddable Blog / Project Prompt
+# Embedded Content Prompt
 
-Use this prompt when generating future embedded blogs or projects for `ioannis.work`.
+Use this prompt when generating future embedded content for `ioannis.work`.
+
+It now supports two delivery modes:
+- `folder` content
+- `database` content
+
+`folder` mode is for local files stored in the frontend repo.
+`database` mode is for single HTML content stored in the backend/content system and loaded into the iframe from the API.
 
 ```text
-Create a new embeddable content page for my ioannis.work site.
+Create a new embedded content page for my ioannis.work site.
 
-Important references:
-- Use `projects/unit-converter/embed.html` as the main reference for embedded project/tool style.
-- Use the current local route pattern:
-  - `index.html` is a tiny public route wrapper
-  - `embed.html` is the actual iframe content
-- Keep the result compatible with the way my site embeds local HTML inside a sandbox iframe.
-- If creating a blog/article, keep it cleaner and narrower than the tool example, but still in the same visual family.
+Choose one delivery mode:
+- `folder`
+- `database`
 
-Choose one content type:
+Choose one content section:
 - `project`
 - `blog`
+- `aviation`
 
-Follow these exact integration rules:
+Important references:
+- Use `project/unit-converter/index.html` as the main reference for embedded tool/project structure and proportion.
+- Match the current frontend route system:
+  - local folder content uses `index.html`
+  - database content is stored as one single HTML document
+- Keep the result compatible with the way my site loads content into a sandbox iframe.
+- The final result must feel native inside the parent site, not like a separate standalone app.
 
-- Output complete local HTML files.
-- If content type is `project`, generate:
-  - `projects/[folder]/index.html`
-  - `projects/[folder]/embed.html`
-- If content type is `blog`, generate:
-  - `blogs/[folder]/index.html`
-  - `blogs/[folder]/embed.html`
+Follow these exact integration rules.
 
-Public route wrapper rules for `index.html`:
-- Keep it very small and lightweight.
-- It should not contain the full project or blog markup.
-- It should immediately redirect into the parent site shell.
-- Use this redirect pattern:
-
-  For projects:
-  <script>
-    window.location.replace("/#project-[folder]");
-  </script>
-
-  For blogs:
-  <script>
-    window.location.replace("/#blog-[folder]");
-  </script>
-
-- You may include a matching `<meta http-equiv="refresh">`.
-- A tiny “Opening…” message is fine.
-
-Embedded content rules for `embed.html`:
-- The page will be loaded inside a sandbox iframe on the parent site.
-- It must work as embedded content first, not as a standalone landing page.
-- Include a standalone guard near the top so direct visits to `embed.html` go back to the public route wrapper:
-
-  For projects:
-  <script>
-    if (window.top === window.self) {
-      window.location.replace("/projects/[folder]/");
-    }
-  </script>
-
-  For blogs:
-  <script>
-    if (window.top === window.self) {
-      window.location.replace("/blogs/[folder]/");
-    }
-  </script>
-
+Shared technical rules:
 - Use plain HTML, CSS, and vanilla JavaScript only.
 - No React, Vue, Angular, Tailwind, Bootstrap, or external UI libraries.
-- Keep everything self-contained in `embed.html` unless local relative assets are needed.
-- Relative assets should be referenced from the content folder, for example:
-  - `./asset/preview.webp`
-  - `./test.webp`
-- Do not add a global site navbar, footer, sidebar, or standalone app shell.
 - The parent site already injects:
   - shared fonts
   - reset styles
   - theme variables
   - public site CSS
-- The parent site also syncs light/dark theme automatically.
-- Use CSS variables with fallbacks, for example:
+- The parent site also syncs:
+  - `data-theme`
+  - `data-theme-color`
+- Do not add your own iframe resizing script.
+- Do not rely on parent DOM access for layout or interaction.
+- Keep all interactions local to the embedded document.
+- Keep the page responsive on mobile and desktop.
+- Use CSS variables with fallbacks where useful, especially:
   - `--color-body`
   - `--color-surface`
   - `--color-body-text`
@@ -87,71 +55,134 @@ Embedded content rules for `embed.html`:
   - `--color-nav-active-hover`
   - `--font-body`
   - `--font-heading`
-- Make it blend into the parent site when embedded in an iframe.
-- Do not rely on parent DOM access.
-- Do not implement your own iframe resizing script.
-- No full page reload behavior for normal interactions.
-- Keep the page readable on mobile and desktop.
 
-Design rules for projects:
-- Match the spirit of `projects/unit-converter/embed.html`
-- compact centered header
-- practical card-based layout
-- rounded corners
-- subtle borders and shadows
-- clean responsive spacing
-- lightweight vanilla JavaScript
-- polished but simple interaction design
-- embedded-content-first layout, not a standalone marketing page
-- good for tools, demos, utilities, and interactive project pages
+Design rules for `project`:
+- Practical and compact
+- Card-based sections are preferred
+- Clean controls and readable outputs
+- Rounded corners, subtle borders, light shadows
+- Good fit for tools, demos, utilities, references
 
-Design rules for blogs:
-- Same visual family as the site, but simpler and more editorial
-- narrower readable column
-- clear headings, paragraphs, lists, code/image blocks if needed
-- no giant hero section
-- no marketing-page layout
-- no heavy chrome around the article
-- calm spacing, readable rhythm, and subtle content sections
+Design rules for `blog`:
+- Editorial and calm
+- Narrower reading layout
+- Clear hierarchy for headings, body text, lists, and media
+- No oversized hero or marketing-page feel
+
+Design rules for `aviation`:
+- Structured and reference-friendly
+- Good for maintenance notes, procedures, aircraft reference content, or technical summaries
+- Clear tables, cards, callouts, and image support
+- Professional, practical, easy to scan
 
 Shared design constraints:
-- no giant hero section
-- no standalone landing page feel
-- no duplicated site branding
-- no heavy animation
-- no framework-style component boilerplate
-- no aggressive global CSS reset
-- no dark background by default unless clearly needed
-- use concise helper text and practical labels
-- keep interactions local, small, and useful
+- No giant hero section
+- No duplicated site navbar, footer, or full shell
+- No heavy animation
+- No aggressive global reset
+- No dark background by default unless the content clearly needs it
+- Use concise labels and helper text
+- Keep spacing simple and readable
 
 Layout guidance:
-- For projects/tools: 1 to 3 main cards/sections is preferred
-- For blogs/articles: use a clean reading layout with sensible content width
-- Keep spacing and proportions close to the unit converter reference where appropriate
+- For tools/reference pages: 1 to 4 main sections/cards is preferred
+- For editorial pages: one readable main column with optional side blocks only if clearly helpful
+- Keep spacing and proportions close to the unit converter reference when appropriate
 
-Also generate:
+Mode-specific rules:
+
+1. Folder mode
+- Output complete local frontend files.
+- Use singular folders, not plural ones.
+- If section is `project`, generate:
+  - `project/[folder]/index.html`
+- If section is `blog`, generate:
+  - `blog/[folder]/index.html`
+- If section is `aviation`, generate:
+  - `aviation/[folder]/index.html`
+- The HTML should work embedded first.
+- Include a standalone guard near the top so direct visits redirect back into the parent site shell.
+
+Standalone guard pattern:
+
+  For `project`:
+  <script>
+    if (window.top === window.self) {
+      window.location.replace("/#project-[folder]");
+    }
+  </script>
+
+  For `blog`:
+  <script>
+    if (window.top === window.self) {
+      window.location.replace("/#blog-[folder]");
+    }
+  </script>
+
+  For `aviation`:
+  <script>
+    if (window.top === window.self) {
+      window.location.replace("/#aviation-[folder]");
+    }
+  </script>
+
+- Keep everything self-contained in `index.html` unless local relative assets are needed.
+- Relative assets should be referenced from the same folder, for example:
+  - `./asset/preview.webp`
+  - `./diagram.webp`
+  - `./table-image.webp`
+
+Folder mode output:
 1. The full HTML for `index.html`
-2. The full HTML for `embed.html`
-3. The suggested JSON catalog entry
-4. A short description
-5. A suggested preview image path if relevant
+2. The suggested catalog entry
+3. A short description
+4. A suggested preview image path if relevant
 
-Catalog rule:
-- If content type is `project`, also generate an entry for `projects/projects-data.json`
-- If content type is `blog`, also generate an entry matching the structure used in `blogs/blog-data.json`
-- If you include a `url` field in the catalog entry for local embedded content, point it to `[folder]/embed.html`
+Folder mode catalog rule:
+- If section is `project`, generate an entry for `project/project-data.json`
+- If section is `blog`, generate an entry matching `blog/blog-data.json`
+- If section is `aviation`, generate an entry matching `aviation/aviation-data.json`
+- For local content, if a `url` field is used, point it to `[folder]/index.html`
+
+2. Database mode
+- Output one single self-contained HTML document only.
+- Do not rely on `fetch()` to load local JSON, config files, or tab files at runtime.
+- Inline all content data directly inside the HTML.
+- If images are needed, use frontend-resolvable absolute paths or resolve them from the frontend origin so the content still works when loaded from the API iframe context.
+- Database content must be safe to store as a single HTML body and render inside the iframe without extra file dependencies.
+- Do not include redirect wrappers or public route wrapper pages in database mode.
+- The document should be embeddable first, with no extra shell.
+
+Database mode asset rule:
+- Prefer asset paths that resolve against the frontend origin, not the API origin.
+- If you need runtime asset resolution, use a lightweight helper that tries:
+  - `window.location.ancestorOrigins[0]`
+  - then `document.referrer`
+  - then `window.location.origin`
+
+Database mode output:
+1. One complete single-file HTML document
+2. Suggested content metadata for admin/content entry
+3. Suggested `section` value:
+  - `project`
+  - `blog`
+  - `aviation`
+4. Suggested title
+5. Suggested description
 
 Content details:
-- content type: [project or blog]
-- folder: [folder]
+- delivery mode: [folder or database]
+- section: [project, blog, or aviation]
+- folder: [folder, only if folder mode]
 - title: [title]
-- date: [yyyy-mm-dd]
+- date: [yyyy-mm-dd if relevant]
 - description: [short description]
 - categories: [category1, category2, category3]
-- feature list or sections: [list]
+- sections or feature list: [list]
 - visual style: based on my existing embedded site content
 
 Output goal:
-Make the result feel native to ioannis.work when embedded inside the parent page, while keeping direct public URLs lightweight and clean.
+Make the content feel native to ioannis.work inside the iframe, while matching the correct storage mode:
+- `folder` for frontend file-based content
+- `database` for single HTML stored in backend content
 ```

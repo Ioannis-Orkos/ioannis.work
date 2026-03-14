@@ -10,6 +10,7 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    padding-top: var(--header-height);
     transition: background-color var(--transition), color var(--transition);
 }
 
@@ -17,7 +18,7 @@ main {
     flex: 1;
     width: min(112rem, 100%);
     margin: 0 auto;
-    padding: calc(var(--header-height) + 1.6rem) 1.6rem 3.2rem;
+    padding: 1.6rem 1.6rem 3.2rem;
 }
 
 section {
